@@ -12,11 +12,13 @@ export const routes = {
   register: "/register",
   verify: "/verify",
 
-  discover: "/discover",
-  matches: "/matches",
-  messages: "/messages",
-  profile: "/profile",
-  settings: "/settings",
+  app: "/app",
+  discover: "/app/discover",
+  matches: "/app/matches",
+  messages: "/app/messages",
+  profile: "/app/profile",
+  profileSetup: "/app/profile/setup",
+  settings: "/app/settings",
 
   admin: {
     root: "/admin",
