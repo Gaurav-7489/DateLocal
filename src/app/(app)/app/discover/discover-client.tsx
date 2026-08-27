@@ -29,6 +29,7 @@ type Profile = {
   bio: string | null;
   profile_photos: ProfilePhoto[] | null;
   profile_interests: ProfileInterest[] | null;
+  profile_photo_url: string | null;
 };
 
 function calculateAge(dateOfBirth: string | null) {
@@ -124,18 +125,7 @@ function handlePass(profileId: string) {
         : [item.interests];
     }) ?? [];
 
-  const photos = [...(profile.profile_photos ?? [])].sort((a, b) => {
-    if (a.is_primary && !b.is_primary) return -1;
-    if (!a.is_primary && b.is_primary) return 1;
-
-    return a.display_order - b.display_order;
-  });
-
-  const photoPath = photos[0]?.storage_path;
-
-  const photoUrl = photoPath
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${photoPath}`
-    : null;
+  const photoUrl = profile.profile_photo_url;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">

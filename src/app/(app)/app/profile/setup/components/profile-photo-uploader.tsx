@@ -83,7 +83,6 @@ if (signedUrlError) {
 }
 
 setPreviewUrl(data.signedUrl);
-onPhotoUploaded(filePath);
       onPhotoUploaded(filePath);
     } catch (err) {
       console.error("Photo upload error:", err);
