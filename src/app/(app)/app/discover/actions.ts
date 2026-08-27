@@ -50,7 +50,7 @@ export async function likeProfile(profileId: string) {
         console.error("Like failed:", likeError);
 
         return {
-             error: `Like failed: ${likeError.message} (${likeError.code})`,
+             error: "Couldn't save your like. Please try again.",
             matched: false,
         };
     }
