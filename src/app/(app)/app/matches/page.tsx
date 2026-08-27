@@ -118,7 +118,7 @@ export default async function MatchesPage() {
         </p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+     <div className="grid grid-cols-1 gap-5">
         {matches.map((match) => {
           const otherUserId =
             match.user_a === user.id ? match.user_b : match.user_a;
@@ -177,15 +177,18 @@ export default async function MatchesPage() {
                   </p>
                 )}
 
-                <Link href={routes.messages}>
-                  <Button
-                    variant="primary"
-                    size="md"
-                    className="w-full"
-                  >
-                    Message
-                  </Button>
-                </Link>
+              <Link
+  href={`${routes.messages}/${match.id}`}
+  className="block w-full"
+>
+  <Button
+    variant="primary"
+    size="md"
+    className="w-full"
+  >
+    Message
+  </Button>
+</Link>
               </div>
             </div>
           );

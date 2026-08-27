@@ -89,7 +89,7 @@ export default async function ChatPage({ params }: Props) {
     : null;
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-5rem)] max-w-3xl flex-col px-4 py-4">
+    <div className="mx-auto flex h-[calc(100dvh-7rem)] max-w-3xl flex-col px-4 py-4">
       <div className="mb-4 flex items-center gap-3">
         <Link
           href={routes.matches}

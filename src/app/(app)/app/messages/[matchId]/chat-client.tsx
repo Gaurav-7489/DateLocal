@@ -54,8 +54,8 @@ export default function ChatClient({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+  <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-gray-300 bg-white">
+     <div className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4">
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center text-center">
             <div>
@@ -79,13 +79,13 @@ export default function ChatClient({
                   isMine ? "justify-end" : "justify-start"
                 }`}
               >
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
-                    isMine
-                      ? "bg-uni-primary text-white"
-                      : "bg-muted text-foreground"
-                  }`}
-                >
+               <div
+  className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${
+    isMine
+      ? "bg-green-600 text-white"
+      : "bg-gray-200 text-gray-900"
+  }`}
+>
                   {message.content}
                 </div>
               </div>
@@ -102,7 +102,7 @@ export default function ChatClient({
 
       <form
         onSubmit={handleSend}
-        className="flex gap-2 border-t border-border p-3"
+       className="flex shrink-0 gap-2 border-t border-gray-300 bg-white p-3"
       >
         <input
           value={content}
@@ -110,17 +110,16 @@ export default function ChatClient({
           maxLength={2000}
           placeholder="Write a message..."
           disabled={loading}
-          className="min-w-0 flex-1 rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none focus:border-uni-primary"
+              className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:border-green-600"
         />
 
-        <Button
-          type="submit"
-          variant="primary"
-          size="md"
-          disabled={loading || !content.trim()}
-        >
-          {loading ? "..." : "Send"}
-        </Button>
+        <button
+  type="submit"
+  disabled={loading || !content.trim()}
+  className="shrink-0 rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {loading ? "..." : "Send"}
+</button>
       </form>
     </div>
   );
