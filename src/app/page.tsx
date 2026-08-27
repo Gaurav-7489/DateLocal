@@ -114,10 +114,10 @@ export default function HomePage() {
       <Navbar />
 
       <main className="flex-1 flex flex-col space-y-16 sm:space-y-24">
-        
+
         {/* ================= HERO SECTION WITH GENEROUS BREATHING ROOM ================= */}
         <section className="relative min-h-[85vh] flex items-center justify-center px-6 pt-32 pb-12 overflow-hidden">
-          
+
           {/* Ambient Lighting Engine for Pure White Canvas */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
             <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[550px] bg-gradient-to-tr from-emerald-200/40 via-orange-200/30 to-blue-200/40 rounded-full blur-[130px]" />
@@ -126,7 +126,7 @@ export default function HomePage() {
           </div>
 
           <div className="relative z-10 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-            
+
             {/* Left Column: Hero Copy */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -140,7 +140,7 @@ export default function HomePage() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
                 </span>
-                Exclusively for {universityConfig.name} Students
+                A Student Project for {universityConfig.name}
               </div>
 
               {/* Headline */}
@@ -162,7 +162,7 @@ export default function HomePage() {
                   href={routes.register}
                   className="group relative inline-flex items-center justify-center px-8 py-4 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-full shadow-[0_4px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_6px_25px_rgba(16,185,129,0.35)] hover:scale-105 active:scale-95 transition-all duration-300"
                 >
-                  Join with BU Email
+                  Join with Student Email
                   <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Link>
 
@@ -214,7 +214,7 @@ export default function HomePage() {
                       );
                     })
                   ) : (
-                    <motion.div 
+                     <motion.div 
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       className="h-full w-full rounded-3xl border border-zinc-200 bg-white p-8 flex flex-col items-center justify-center text-center shadow-xl space-y-3"
@@ -222,7 +222,7 @@ export default function HomePage() {
                       <Sparkles className="w-12 h-12 text-orange-500 animate-bounce mb-2" />
                       <h3 className="text-xl font-bold text-zinc-900">All Caught Up!</h3>
                       <p className="text-xs text-zinc-500 max-w-[210px] leading-relaxed">
-                        You&apos;ve checked all verified students in this batch.
+                        You&apos;ve checked all verified students in this demo batch.
                       </p>
                       <button
                         onClick={() => setDeck(DEMO_PROFILES)}
@@ -255,7 +255,7 @@ export default function HomePage() {
 
         {/* ================= STACKED 1-BY-1 FEATURE SHOWCASE (NO SQUEEZED COLUMNS) ================= */}
         <section className="relative px-6 py-8 max-w-2xl mx-auto w-full space-y-8">
-          
+
           <div className="text-center space-y-2">
             <span className="text-xs uppercase tracking-widest text-emerald-600 font-bold">Explore Campus Hub</span>
             <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-zinc-950">
@@ -267,14 +267,14 @@ export default function HomePage() {
           </div>
 
           <div className="flex flex-col space-y-5 w-full">
-            
+
             {/* Feature Card 1: 100% University Verified */}
             <div className="w-full rounded-3xl border border-zinc-200 bg-white p-6 sm:p-7 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all duration-300 flex flex-col space-y-4">
               <div className="w-12 h-12 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-xs">
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div className="space-y-1.5">
-                <h3 className="text-xl font-bold text-zinc-900">100% University Verified</h3>
+                <h3 className="text-xl font-bold text-zinc-900">100% Student Verified</h3>
                 <p className="text-zinc-600 text-xs sm:text-sm leading-relaxed">
                   Zero fake accounts or bots. Registration requires direct single sign-on verification via <span className="text-emerald-700 font-mono text-xs bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-medium">@bahrauniversity.edu.in</span>.
                 </p>
@@ -349,7 +349,7 @@ export default function HomePage() {
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />
                   Zero Outside Visibility
                 </span>
-                <span className="text-emerald-700 font-semibold">Protected by BU Auth</span>
+                <span className="text-emerald-700 font-semibold">Student Built &amp; Protected</span>
               </div>
             </div>
 
@@ -422,7 +422,7 @@ export default function HomePage() {
 
       {/* ================= INSTAGRAM-STYLE FIXED BOTTOM NAVIGATION ================= */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-zinc-200/90 px-6 py-3 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.04)] max-w-lg mx-auto sm:rounded-t-3xl">
-        
+
         {/* Discover / Feed */}
         <Link 
           href="/" 
@@ -520,7 +520,7 @@ function InteractiveCard({
       className="absolute inset-0 select-none cursor-grab active:cursor-grabbing"
     >
       <div className="relative h-full w-full rounded-3xl bg-white border border-zinc-200/90 p-5 shadow-[0_12px_35px_rgba(0,0,0,0.08)] flex flex-col justify-between overflow-hidden">
-        
+
         {/* Swipe Overlays */}
         {isTop && (
           <>
@@ -554,8 +554,14 @@ function InteractiveCard({
             </>
           )}
 
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md border border-zinc-200 text-[10px] font-semibold text-emerald-700 shadow-xs z-10">
-            <ShieldCheck className="w-3 h-3" /> BU Verified
+          {/* Demo & Verified Badges Container */}
+          <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5 z-20">
+            <div className="px-2.5 py-0.5 rounded-full bg-rose-500/90 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest shadow-sm">
+              Demo Profile
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md border border-zinc-200 text-[10px] font-semibold text-emerald-700 shadow-xs">
+              <ShieldCheck className="w-3 h-3" /> Verified
+            </div>
           </div>
 
           <div className="z-10">
@@ -611,7 +617,7 @@ function InteractiveCard({
 }
 
 const marqueeItems = [
-  "🎓 Bahra University Verified Only",
+  "🎓 Verified Students Only",
   "☕ Canteen Maggi & Chai Breaks",
   "💻 Midnight Hackathons & Devs",
   "🏸 Campus Badminton & Sports",
