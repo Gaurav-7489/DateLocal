@@ -4,7 +4,6 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { universityConfig } from "@/config/university";
 import { ProfileSetupForm } from "./profile-setup-form";
-import { redirect } from "next/navigation";
 
 export const metadata: Metadata = { title: "Profile Setup" };
 
@@ -14,9 +13,6 @@ export default async function ProfileSetupPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-  redirect(routes.login);
-}
 
   // Load all available interests
   const { data: interests } = await supabase
@@ -66,12 +62,9 @@ export default async function ProfileSetupPage() {
         </p>
       </div>
 
-      
-
       {/* Form */}
-
       <ProfileSetupForm
-        userId={user.id}
+        userId={user!.id}
         interests={interests ?? []}
         existingProfile={existingProfile}
         existingInterestIds={existingInterestIds}
