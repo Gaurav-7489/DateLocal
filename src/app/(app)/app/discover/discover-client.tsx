@@ -81,13 +81,13 @@ export default function DiscoverClient({
     setLoading(false);
   }
 
-  function handlePass(profileId: string) {
-    setRemainingProfiles((current) =>
-      current.filter((profile) => profile.id !== profileId),
-    );
+function handlePass(profileId: string) {
+  setRemainingProfiles((current) =>
+    current.filter((profile) => profile.id !== profileId),
+  );
 
-    setMessage(null);
-  }
+  setMessage(null);
+}
 
   if (remainingProfiles.length === 0) {
     return (
@@ -107,25 +107,11 @@ export default function DiscoverClient({
     );
   }
 
-const profile = remainingProfiles[0];
+  const profile = remainingProfiles[0];
 
-if (!profile) {
-  return (
-    <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-      <div className="rounded-[var(--radius-lg)] border border-border bg-card p-10">
-        <div className="text-4xl">🔍</div>
-
-        <h1 className="mt-4 text-2xl font-bold text-foreground">
-          No more profiles right now
-        </h1>
-
-        <p className="mt-2 text-muted-foreground">
-          Check back later when more students join DateBu.
-        </p>
-      </div>
-    </div>
-  );
-}
+  if (!profile) {
+    return null;
+  }
 
   const age = calculateAge(profile.date_of_birth);
 
@@ -145,6 +131,12 @@ if (!profile) {
     return a.display_order - b.display_order;
   });
 
+  const photoPath = photos[0]?.storage_path;
+
+  const photoUrl = photoPath
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${photoPath}`
+    : null;
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="mb-8 text-center">
@@ -159,16 +151,16 @@ if (!profile) {
 
       <div className="overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card">
         <div className="flex aspect-[4/3] items-center justify-center bg-muted">
-          {photos.length > 0 ? (
-            <div className="p-6 text-center text-muted-foreground">
-              Profile photo available
-              <div className="mt-1 text-xs">
-                const storagePath = photos?.[0]?.storage_path;
-              </div>
-            </div>
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={`${profile.display_name ?? "Profile"} profile photo`}
+              className="h-full w-full object-cover"
+            />
           ) : (
             <div className="text-center">
               <div className="text-5xl">👤</div>
+
               <p className="mt-2 text-sm text-muted-foreground">
                 No profile photo yet
               </p>
@@ -180,6 +172,7 @@ if (!profile) {
           <div>
             <h2 className="text-2xl font-bold text-foreground">
               {profile.display_name || "DateBu student"}
+
               {age !== null && (
                 <span className="ml-2 font-normal text-muted-foreground">
                   {age}
@@ -189,6 +182,7 @@ if (!profile) {
 
             <p className="mt-1 text-sm text-muted-foreground">
               {profile.department || "Student"}
+
               {profile.academic_year
                 ? ` • ${profile.academic_year}`
                 : ""}
@@ -233,7 +227,7 @@ if (!profile) {
               disabled={loading}
               onClick={() => handlePass(profile.id)}
             >
-              Pass
+              {loading ? "..." : "Pass"}
             </Button>
 
             <Button
