@@ -16,13 +16,9 @@ import {
   Coffee, 
   Flame, 
   CheckCircle2, 
-  Users, 
-  MapPin, 
-  Building2, 
-  GraduationCap,
   MessageSquare,
   User,
-  Radio
+  RotateCcw
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { universityConfig } from "@/config/university";
@@ -90,23 +86,21 @@ export default function HomePage() {
   const [deck, setDeck] = useState<Profile[]>(DEMO_PROFILES);
   const [matchUser, setMatchUser] = useState<Profile | null>(null);
 
-  const activeIndex = deck.length - 1;
-  const currentCard = deck[activeIndex];
+  const handleSwipe = (profileId: string, direction: "left" | "right") => {
+    const swipedCard = deck.find((p) => p.id === profileId);
 
-  const handleSwipe = (direction: "left" | "right") => {
-    if (!currentCard) return;
-
-    if (direction === "right") {
-      setMatchUser(currentCard);
+    if (direction === "right" && swipedCard) {
+      setMatchUser(swipedCard);
       confetti({
-        particleCount: 60,
-        spread: 60,
+        particleCount: 70,
+        spread: 70,
         origin: { y: 0.6 },
         colors: ["#10B981", "#F97316", "#3B82F6", "#F43F5E"],
       });
     }
 
-    setDeck((prev) => prev.slice(0, prev.length - 1));
+    // Remove swiped card so the card beneath smoothly scales up into active view
+    setDeck((prev) => prev.filter((p) => p.id !== profileId));
   };
 
   return (
@@ -192,47 +186,48 @@ export default function HomePage() {
               </div>
             </motion.div>
 
-            {/* Right Column: Interactive Card Stack */}
+            {/* Right Column: Stacked Interactive Card Stack (Smooth Deck Transitions) */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.15 }}
               className="lg:col-span-5 flex justify-center items-center relative py-6"
             >
-              <div className="relative w-full max-w-[340px] h-[480px]">
-                <AnimatePresence>
-                  {deck.length > 0 ? (
-                    deck.map((profile, index) => {
-                      const isTop = index === activeIndex;
-                      return (
-                        <InteractiveCard
-                          key={profile.id}
-                          profile={profile}
-                          isTop={isTop}
-                          onSwipe={handleSwipe}
-                        />
-                      );
-                    })
-                  ) : (
-                     <motion.div 
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="h-full w-full rounded-3xl border border-zinc-200 bg-white p-8 flex flex-col items-center justify-center text-center shadow-xl space-y-3"
+              <div className="relative w-full max-w-[340px] h-[480px] flex items-center justify-center">
+                {deck.length > 0 ? (
+                  deck.map((profile, index) => {
+                    const isTop = index === deck.length - 1;
+                    const isSecond = index === deck.length - 2;
+
+                    return (
+                      <InteractiveCard
+                        key={profile.id}
+                        profile={profile}
+                        isTop={isTop}
+                        isSecond={isSecond}
+                        onSwipe={(dir) => handleSwipe(profile.id, dir)}
+                      />
+                    );
+                  })
+                ) : (
+                  <motion.div 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="absolute inset-0 rounded-3xl border border-zinc-200 bg-white p-8 flex flex-col items-center justify-center text-center shadow-xl space-y-3 z-20"
+                  >
+                    <Sparkles className="w-12 h-12 text-orange-500 animate-bounce mb-2" />
+                    <h3 className="text-xl font-bold text-zinc-900">All Caught Up!</h3>
+                    <p className="text-xs text-zinc-500 max-w-[210px] leading-relaxed">
+                      You&apos;ve checked all verified students in this demo batch.
+                    </p>
+                    <button
+                      onClick={() => setDeck(DEMO_PROFILES)}
+                      className="mt-4 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer"
                     >
-                      <Sparkles className="w-12 h-12 text-orange-500 animate-bounce mb-2" />
-                      <h3 className="text-xl font-bold text-zinc-900">All Caught Up!</h3>
-                      <p className="text-xs text-zinc-500 max-w-[210px] leading-relaxed">
-                        You&apos;ve checked all verified students in this demo batch.
-                      </p>
-                      <button
-                        onClick={() => setDeck(DEMO_PROFILES)}
-                        className="mt-4 px-6 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer"
-                      >
-                        Reset Demo Cards
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <RotateCcw className="w-3.5 h-3.5" /> Reset Demo Cards
+                    </button>
+                  </motion.div>
+                )}
               </div>
             </motion.div>
 
@@ -478,28 +473,30 @@ export default function HomePage() {
   );
 }
 
-// ---------------- WHITE DOMINANT SWIPE CARD COMPONENT ----------------
+// ---------------- STACKED INTERACTIVE CARD COMPONENT WITH SMOOTH TRANSITIONS ----------------
 
 function InteractiveCard({
   profile,
   isTop,
+  isSecond,
   onSwipe,
 }: {
   profile: Profile;
   isTop: boolean;
+  isSecond: boolean;
   onSwipe: (dir: "left" | "right") => void;
 }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-150, 150], [-18, 18]);
-  const opacity = useTransform(x, [-180, -100, 0, 100, 180], [0.6, 0.9, 1, 0.9, 0.6]);
 
-  const likeOpacity = useTransform(x, [10, 70], [0, 1]);
-  const passOpacity = useTransform(x, [-70, -10], [1, 0]);
+  // Dynamic feedback indicators
+  const likeOpacity = useTransform(x, [15, 80], [0, 1]);
+  const passOpacity = useTransform(x, [-80, -15], [1, 0]);
 
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (info.offset.x > 90) {
+    if (info.offset.x > 80) {
       onSwipe("right");
-    } else if (info.offset.x < -90) {
+    } else if (info.offset.x < -80) {
       onSwipe("left");
     }
   };
@@ -509,30 +506,32 @@ function InteractiveCard({
       style={{
         x: isTop ? x : 0,
         rotate: isTop ? rotate : 0,
-        opacity: isTop ? opacity : 0.85,
-        scale: isTop ? 1 : 0.96,
-        zIndex: isTop ? 10 : 0,
       }}
+      animate={{
+        scale: isTop ? 1 : isSecond ? 0.96 : 0.92,
+        y: isTop ? 0 : isSecond ? 14 : 28,
+        opacity: isTop ? 1 : isSecond ? 0.75 : 0.35,
+      }}
+      transition={{ type: "spring", damping: 25, stiffness: 320 }}
       drag={isTop ? "x" : false}
       dragConstraints={{ left: 0, right: 0 }}
       onDragEnd={handleDragEnd}
-      transition={{ type: "spring", damping: 20, stiffness: 300 }}
-      className="absolute inset-0 select-none cursor-grab active:cursor-grabbing"
+      className={`absolute inset-0 select-none ${isTop ? "cursor-grab active:cursor-grabbing z-20" : "pointer-events-none z-10"}`}
     >
-      <div className="relative h-full w-full rounded-3xl bg-white border border-zinc-200/90 p-5 shadow-[0_12px_35px_rgba(0,0,0,0.08)] flex flex-col justify-between overflow-hidden">
+      <div className="relative h-full w-full rounded-3xl bg-white border border-zinc-200/90 p-5 shadow-[0_16px_40px_rgba(0,0,0,0.08)] flex flex-col justify-between overflow-hidden">
 
-        {/* Swipe Overlays */}
+        {/* Swipe Indicators */}
         {isTop && (
           <>
             <motion.div
               style={{ opacity: likeOpacity }}
-              className="absolute top-4 left-4 z-20 px-3 py-1 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-700 font-extrabold text-xs uppercase tracking-wider shadow-xs"
+              className="absolute top-4 left-4 z-30 px-3 py-1 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-700 font-extrabold text-xs uppercase tracking-wider shadow-xs"
             >
               Like
             </motion.div>
             <motion.div
               style={{ opacity: passOpacity }}
-              className="absolute top-4 right-4 z-20 px-3 py-1 rounded-xl bg-orange-100 border border-orange-300 text-orange-700 font-extrabold text-xs uppercase tracking-wider shadow-xs"
+              className="absolute top-4 right-4 z-30 px-3 py-1 rounded-xl bg-orange-100 border border-orange-300 text-orange-700 font-extrabold text-xs uppercase tracking-wider shadow-xs"
             >
               Pass
             </motion.div>
@@ -554,7 +553,6 @@ function InteractiveCard({
             </>
           )}
 
-          {/* Demo & Verified Badges Container */}
           <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5 z-20">
             <div className="px-2.5 py-0.5 rounded-full bg-rose-500/90 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest shadow-sm">
               Demo Profile
