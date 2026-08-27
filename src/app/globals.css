@@ -1,103 +1,99 @@
 @import "tailwindcss";
 
-/*
- * ============================================
- * DESIGN TOKENS — University Branding
- * ============================================
- * Change university identity by updating these variables.
- * Zero component rewrites needed.
- */
+:root {
+  /* Light Mode Palette */
+  --bg-primary: 255 255 255;
+  --bg-surface: 248 250 252;
+  --border-color: 226 232 240;
+  --text-primary: 15 23 42;
+  --text-secondary: 100 116 139;
 
-@theme {
-  /* University Primary — Green */
-  --color-uni-primary: #1B5E20;
-  --color-uni-primary-light: #2E7D32;
-  --color-uni-primary-dark: #0D3B13;
-  --color-uni-primary-50: #E8F5E9;
-  --color-uni-primary-100: #C8E6C9;
-  --color-uni-primary-200: #A5D6A7;
-  --color-uni-primary-500: #1B5E20;
-  --color-uni-primary-600: #155D1A;
-  --color-uni-primary-700: #0D3B13;
-  --color-uni-primary-900: #071F0A;
-
-  /* Department Accent — Blue */
-  --color-dept-accent: #1565C0;
-  --color-dept-accent-light: #1E88E5;
-  --color-dept-accent-dark: #0D47A1;
-  --color-dept-accent-50: #E3F2FD;
-  --color-dept-accent-100: #BBDEFB;
-  --color-dept-accent-500: #1565C0;
-
-  /* Semantic Surface Colors */
-  --color-background: #FAFBFC;
-  --color-foreground: #111827;
-  --color-card: #FFFFFF;
-  --color-card-foreground: #1F2937;
-  --color-muted: #F3F4F6;
-  --color-muted-foreground: #6B7280;
-  --color-border: #E5E7EB;
-  --color-input: #E5E7EB;
-
-  /* Feedback */
-  --color-destructive: #DC2626;
-  --color-destructive-foreground: #FFFFFF;
-  --color-success: #16A34A;
-  --color-warning: #D97706;
-
-  /* Radius */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-full: 9999px;
-
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
-  --shadow-card: 0 1px 3px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
-
-  /* Typography */
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* Brand Accents */
+  --campus-green: 16 185 129;    /* #10B981 */
+  --campus-orange: 249 115 22;   /* #F97316 */
+  --dept-blue: 37 99 235;        /* #2563EB */
 }
 
-/* ============================================
- * BASE STYLES
- * ============================================ */
+.dark {
+  /* Night Mode Palette (OLED Slate) */
+  --bg-primary: 9 9 11;
+  --bg-surface: 18 18 23;
+  --border-color: 39 39 42;
+  --text-primary: 248 250 252;
+  --text-secondary: 161 161 170;
 
-* {
-  border-color: var(--color-border);
+  /* Dark-Mode Tuned Glow Accents */
+  --campus-green: 52 211 153;    /* Bright Emerald */
+  --campus-orange: 251 146 60;   /* Bright Coral Orange */
+  --dept-blue: 96 165 250;       /* Sky-Blue Glow */
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
+/* Base Body Styles & Smooth Transitions */
 body {
-  font-family: var(--font-sans);
-  background-color: var(--color-background);
-  color: var(--color-foreground);
+  background-color: rgb(var(--bg-primary));
+  color: rgb(var(--text-primary));
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  overflow-x: hidden;
 }
 
-/* Focus ring */
-:focus-visible {
-  outline: 2px solid var(--color-uni-primary);
-  outline-offset: 2px;
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Continuous Marquee Animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* High-Performance Atmospheric Glow Utilities */
+.bg-radial-glow {
+  background-image: 
+    radial-gradient(at 50% 0%, rgba(16, 185, 129, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 50%, rgba(249, 115, 22, 0.12) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(37, 99, 235, 0.12) 0px, transparent 50%);
+}
+
+.glass-card {
+  background: rgba(18, 18, 23, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
 }
