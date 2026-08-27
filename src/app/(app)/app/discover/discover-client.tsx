@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { likeProfile } from "./actions";
+import { likeProfile, passProfile } from "./actions";
 import { Button } from "@/components/ui/button";
 
 type Interest = {
@@ -82,12 +82,23 @@ export default function DiscoverClient({
     setLoading(false);
   }
 
-function handlePass(profileId: string) {
+async function handlePass(profileId: string) {
+  setLoading(true);
+  setMessage(null);
+
+  const result = await passProfile(profileId);
+
+  if (result.error) {
+    setMessage(result.error);
+    setLoading(false);
+    return;
+  }
+
   setRemainingProfiles((current) =>
     current.filter((profile) => profile.id !== profileId),
   );
 
-  setMessage(null);
+  setLoading(false);
 }
 
   if (remainingProfiles.length === 0) {

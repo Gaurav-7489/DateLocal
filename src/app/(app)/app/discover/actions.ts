@@ -108,3 +108,58 @@ export async function likeProfile(profileId: string) {
         matched: true,
     };
 }
+export async function passProfile(profileId: string) {
+    const supabase = await createServerSupabaseClient();
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return {
+            error: "You must be logged in to pass someone.",
+        };
+    }
+
+    if (user.id === profileId) {
+        return {
+            error: "You cannot pass your own profile.",
+        };
+    }
+
+    // Make sure the target profile actually exists
+    // and has completed their profile.
+    const { data: targetProfile, error: targetError } = await supabase
+        .from("profiles")
+        .select("id, profile_completed")
+        .eq("id", profileId)
+        .single();
+
+    if (targetError || !targetProfile || !targetProfile.profile_completed) {
+        return {
+            error: "That profile is no longer available.",
+        };
+    }
+
+    // Save the pass.
+    const { error: passError } = await supabase
+        .from("passes")
+        .insert({
+            passer_id: user.id,
+            passed_id: profileId,
+        });
+
+    // A duplicate pass is harmless because the database
+    // has a unique constraint on the user pair.
+    if (passError && passError.code !== "23505") {
+        console.error("Pass failed:", passError);
+
+        return {
+            error: "Couldn't save your pass. Please try again.",
+        };
+    }
+
+    return {
+        error: null,
+    };
+}

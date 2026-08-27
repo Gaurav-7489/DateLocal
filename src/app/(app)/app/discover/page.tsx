@@ -17,7 +17,61 @@ export default async function DiscoverPage() {
     return null;
   }
 
-  const { data: profiles, error } = await supabase
+  // Get profiles the current user has already liked.
+  const { data: likes, error: likesError } = await supabase
+    .from("likes")
+    .select("liked_id")
+    .eq("liker_id", user.id);
+
+  if (likesError) {
+    console.error("Failed to load liked profiles:", likesError);
+
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <h1 className="text-2xl font-bold text-foreground">
+          Something went wrong
+        </h1>
+
+        <p className="mt-2 text-muted-foreground">
+          We couldn&apos;t load your Discover history right now. Please try
+          again.
+        </p>
+      </div>
+    );
+  }
+
+  // Get profiles the current user has already passed.
+  const { data: passes, error: passesError } = await supabase
+    .from("passes")
+    .select("passed_id")
+    .eq("passer_id", user.id);
+
+  if (passesError) {
+    console.error("Failed to load passed profiles:", passesError);
+
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <h1 className="text-2xl font-bold text-foreground">
+          Something went wrong
+        </h1>
+
+        <p className="mt-2 text-muted-foreground">
+          We couldn&apos;t load your Discover history right now. Please try
+          again.
+        </p>
+      </div>
+    );
+  }
+
+  // Combine all profiles the user has already interacted with.
+  const interactedProfileIds = new Set([
+    ...(likes ?? []).map((like) => like.liked_id),
+    ...(passes ?? []).map((pass) => pass.passed_id),
+  ]);
+
+    const excludedProfileIds = Array.from(interactedProfileIds);
+
+  let profilesQuery = supabase
     .from("profiles")
     .select(`
       id,
@@ -40,7 +94,18 @@ export default async function DiscoverPage() {
       )
     `)
     .eq("profile_completed", true)
-    .neq("id", user.id)
+    .neq("id", user.id);
+
+  // Don't show profiles we've already interacted with.
+  if (excludedProfileIds.length > 0) {
+    profilesQuery = profilesQuery.not(
+      "id",
+      "in",
+      `(${excludedProfileIds.join(",")})`,
+    );
+  }
+
+  const { data: profiles, error } = await profilesQuery
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -59,8 +124,13 @@ export default async function DiscoverPage() {
     );
   }
 
+  // Remove profiles the current user has already liked or passed.
+  const availableProfiles = (profiles ?? []).filter(
+    (profile) => !interactedProfileIds.has(profile.id),
+  );
+
   const profilesWithPhotoUrls = await Promise.all(
-    (profiles ?? []).map(async (profile) => {
+    availableProfiles.map(async (profile) => {
       const photos = [...(profile.profile_photos ?? [])].sort((a, b) => {
         if (a.is_primary && !b.is_primary) return -1;
         if (!a.is_primary && b.is_primary) return 1;
