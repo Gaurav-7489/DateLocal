@@ -54,20 +54,24 @@ interface ProfileSetupFormProps {
   userId: string;
   interests: Interest[];
   existingProfile: ExistingProfile | null;
+  existingPhotoUrl: string | null;
+  existingPhotoPath: string | null;
   existingInterestIds: string[];
   existingPreferences: ExistingPreferences | null;
 }
 
 function deriveInterestedIn(arr: string[] | null | undefined): string {
-  if (!arr || arr.length === 0) return "";
-  if (arr.includes("men") && arr.includes("women")) return "everyone";
-  return arr[0] ?? "";
+  if (!arr || arr.length === 0) return "everyone";
+  if (arr.includes("everyone") || (arr.includes("men") && arr.includes("women"))) return "everyone";
+  return arr[0] ?? "everyone";
 }
 
 export function ProfileSetupForm({
   userId,
   interests,
   existingProfile,
+  existingPhotoUrl,
+  existingPhotoPath,
   existingInterestIds,
   existingPreferences,
 }: ProfileSetupFormProps) {
@@ -81,7 +85,7 @@ export function ProfileSetupForm({
   );
 
   const [bioLength, setBioLength] = useState(existingProfile?.bio?.length ?? 0);
-  const [photoPath, setPhotoPath] = useState<string | null>(null);
+  const [photoPath, setPhotoPath] = useState<string | null>(existingPhotoPath);
 
   function toggleInterest(id: string) {
     setSelectedInterests((prev) => {
@@ -95,23 +99,23 @@ export function ProfileSetupForm({
   const fe = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} className="space-y-8">
+    <form action={formAction} className="space-y-6">
       {/* Form-level error */}
       {state.error && (
-        <div className="rounded-[var(--radius-md)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-semibold text-red-700">
           {state.error}
         </div>
       )}
 
       {/* ===== BASIC INFO ===== */}
-      <Card>
-        <h2 className="mb-4 text-lg font-semibold text-foreground">
+      <Card className="p-6">
+        <h2 className="mb-4 text-base font-bold text-foreground">
           Basic Information
         </h2>
         <div className="space-y-4">
           {/* Display Name */}
           <div>
-            <label htmlFor="display_name" className="mb-1 block text-sm font-medium text-foreground">
+            <label htmlFor="display_name" className="mb-1 block text-xs font-semibold text-foreground">
               Display name <span className="text-destructive">*</span>
             </label>
             <input
@@ -121,15 +125,15 @@ export function ProfileSetupForm({
               defaultValue={existingProfile?.display_name ?? ""}
               maxLength={50}
               required
-              placeholder="How others will see you"
-              className="w-full rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-uni-primary"
+              placeholder="How others will see you (e.g. Alex Sharma)"
+              className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             />
             {fe.display_name && <p className="mt-1 text-xs text-destructive">{fe.display_name}</p>}
           </div>
 
           {/* Date of Birth */}
           <div>
-            <label htmlFor="date_of_birth" className="mb-1 block text-sm font-medium text-foreground">
+            <label htmlFor="date_of_birth" className="mb-1 block text-xs font-semibold text-foreground">
               Date of birth <span className="text-destructive">*</span>
             </label>
             <input
@@ -138,15 +142,15 @@ export function ProfileSetupForm({
               type="date"
               defaultValue={existingProfile?.date_of_birth ?? ""}
               required
-              className="w-full rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-uni-primary"
+              className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             />
-            <p className="mt-1 text-xs text-muted-foreground">You must be at least 18 years old.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">You must be at least 18 years old.</p>
             {fe.date_of_birth && <p className="mt-1 text-xs text-destructive">{fe.date_of_birth}</p>}
           </div>
 
           {/* Gender */}
           <div>
-            <label htmlFor="gender" className="mb-1 block text-sm font-medium text-foreground">
+            <label htmlFor="gender" className="mb-1 block text-xs font-semibold text-foreground">
               Gender <span className="text-destructive">*</span>
             </label>
             <select
@@ -154,7 +158,7 @@ export function ProfileSetupForm({
               name="gender"
               defaultValue={existingProfile?.gender ?? ""}
               required
-              className="w-full rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-uni-primary"
+              className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             >
               <option value="">Select gender</option>
               {GENDER_OPTIONS.map((g) => (
@@ -166,7 +170,7 @@ export function ProfileSetupForm({
 
           {/* Department */}
           <div>
-            <label htmlFor="department" className="mb-1 block text-sm font-medium text-foreground">
+            <label htmlFor="department" className="mb-1 block text-xs font-semibold text-foreground">
               Department <span className="text-destructive">*</span>
             </label>
             <input
@@ -176,15 +180,15 @@ export function ProfileSetupForm({
               defaultValue={existingProfile?.department ?? ""}
               maxLength={100}
               required
-              placeholder="e.g. Computer Science"
-              className="w-full rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-uni-primary"
+              placeholder="e.g. Computer Science & Engineering"
+              className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             />
             {fe.department && <p className="mt-1 text-xs text-destructive">{fe.department}</p>}
           </div>
 
           {/* Academic Year */}
           <div>
-            <label htmlFor="academic_year" className="mb-1 block text-sm font-medium text-foreground">
+            <label htmlFor="academic_year" className="mb-1 block text-xs font-semibold text-foreground">
               Academic year <span className="text-destructive">*</span>
             </label>
             <select
@@ -192,9 +196,9 @@ export function ProfileSetupForm({
               name="academic_year"
               defaultValue={existingProfile?.academic_year ?? ""}
               required
-              className="w-full rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-uni-primary"
+              className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             >
-              <option value="">Select year</option>
+              <option value="">Select academic year</option>
               {YEAR_OPTIONS.map((y) => (
                 <option key={y.value} value={y.value}>{y.label}</option>
               ))}
@@ -204,7 +208,7 @@ export function ProfileSetupForm({
 
           {/* Bio */}
           <div>
-            <label htmlFor="bio" className="mb-1 block text-sm font-medium text-foreground">
+            <label htmlFor="bio" className="mb-1 block text-xs font-semibold text-foreground">
               Bio
             </label>
             <textarea
@@ -213,11 +217,11 @@ export function ProfileSetupForm({
               defaultValue={existingProfile?.bio ?? ""}
               maxLength={500}
               rows={3}
-              placeholder="Tell people a little about yourself..."
+              placeholder="Tell other students about yourself, your hobbies, favorite campus spots..."
               onChange={(e) => setBioLength(e.target.value.length)}
-              className="w-full resize-none rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-uni-primary"
+              className="w-full resize-none rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             />
-            <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+            <div className="mt-1 flex justify-between text-[11px] text-muted-foreground">
               <span>Optional</span>
               <span>{bioLength}/500</span>
             </div>
@@ -226,11 +230,12 @@ export function ProfileSetupForm({
         </div>
       </Card>
 
-            {/* ===== PROFILE PHOTO ===== */}
-      <Card>
+      {/* ===== PROFILE PHOTO ===== */}
+      <Card className="p-6">
         <ProfilePhotoUploader
           userId={userId}
-          onPhotoUploaded={(storagePath) => setPhotoPath(storagePath)}
+          existingPhotoUrl={existingPhotoUrl}
+          onPhotoUploaded={(path) => setPhotoPath(path)}
         />
 
         {photoPath && (
@@ -242,17 +247,16 @@ export function ProfileSetupForm({
         )}
       </Card>
 
-
       {/* ===== INTERESTS ===== */}
-      <Card>
-        <h2 className="mb-1 text-lg font-semibold text-foreground">Interests</h2>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Select at least one interest to help find like-minded people.
+      <Card className="p-6">
+        <h2 className="mb-1 text-base font-bold text-foreground">Interests</h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Select at least one interest to help discover like-minded campus peers.
         </p>
 
         {interests.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No interests available yet. An admin needs to add interests to the database.
+          <p className="text-xs text-muted-foreground">
+            No interests listed yet.
           </p>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -263,10 +267,10 @@ export function ProfileSetupForm({
                   key={interest.id}
                   type="button"
                   onClick={() => toggleInterest(interest.id)}
-                  className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all cursor-pointer ${
+                  className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                     isSelected
-                      ? "border-uni-primary bg-uni-primary text-white"
-                      : "border-border bg-background text-foreground hover:border-uni-primary-200 hover:bg-uni-primary-50"
+                      ? "border-emerald-600 bg-emerald-600 text-white shadow-xs"
+                      : "border-border bg-background text-foreground hover:border-emerald-300 hover:bg-emerald-50"
                   }`}
                 >
                   {interest.name}
@@ -285,15 +289,15 @@ export function ProfileSetupForm({
       </Card>
 
       {/* ===== DATING PREFERENCES ===== */}
-      <Card>
-        <h2 className="mb-1 text-lg font-semibold text-foreground">Dating Preferences</h2>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Help us show you the right people.
+      <Card className="p-6">
+        <h2 className="mb-1 text-base font-bold text-foreground">Dating & Matching Preferences</h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Control who appears in your discovery deck.
         </p>
         <div className="space-y-4">
           {/* Interested In */}
           <div>
-            <label htmlFor="interested_in" className="mb-1 block text-sm font-medium text-foreground">
+            <label htmlFor="interested_in" className="mb-1 block text-xs font-semibold text-foreground">
               Interested in <span className="text-destructive">*</span>
             </label>
             <select
@@ -301,7 +305,7 @@ export function ProfileSetupForm({
               name="interested_in"
               defaultValue={deriveInterestedIn(existingPreferences?.interested_in)}
               required
-              className="w-full rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-uni-primary"
+              className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             >
               <option value="">Select preference</option>
               {INTERESTED_IN_OPTIONS.map((o) => (
@@ -314,7 +318,7 @@ export function ProfileSetupForm({
           {/* Age Range */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="min_age" className="mb-1 block text-sm font-medium text-foreground">
+              <label htmlFor="min_age" className="mb-1 block text-xs font-semibold text-foreground">
                 Min age <span className="text-destructive">*</span>
               </label>
               <input
@@ -325,12 +329,12 @@ export function ProfileSetupForm({
                 max={99}
                 defaultValue={existingPreferences?.min_age ?? 18}
                 required
-                className="w-full rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-uni-primary"
+                className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               />
               {fe.min_age && <p className="mt-1 text-xs text-destructive">{fe.min_age}</p>}
             </div>
             <div>
-              <label htmlFor="max_age" className="mb-1 block text-sm font-medium text-foreground">
+              <label htmlFor="max_age" className="mb-1 block text-xs font-semibold text-foreground">
                 Max age <span className="text-destructive">*</span>
               </label>
               <input
@@ -341,7 +345,7 @@ export function ProfileSetupForm({
                 max={99}
                 defaultValue={existingPreferences?.max_age ?? 25}
                 required
-                className="w-full rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-uni-primary"
+                className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               />
               {fe.max_age && <p className="mt-1 text-xs text-destructive">{fe.max_age}</p>}
             </div>
@@ -349,7 +353,7 @@ export function ProfileSetupForm({
 
           {/* Preferred Department */}
           <div>
-            <label htmlFor="preferred_department" className="mb-1 block text-sm font-medium text-foreground">
+            <label htmlFor="preferred_department" className="mb-1 block text-xs font-semibold text-foreground">
               Preferred department
             </label>
             <input
@@ -357,18 +361,18 @@ export function ProfileSetupForm({
               name="preferred_department"
               type="text"
               defaultValue={existingPreferences?.preferred_department ?? ""}
-              placeholder="Any department"
-              className="w-full rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-uni-primary"
+              placeholder="Any department (or specific like BCA, B.Tech)"
+              className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             />
-            <p className="mt-1 text-xs text-muted-foreground">Leave blank for no preference.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">Leave blank for all departments.</p>
           </div>
         </div>
       </Card>
 
       {/* ===== SUBMIT ===== */}
-      <div className="flex justify-end">
-        <Button type="submit" variant="primary" size="lg" disabled={isPending}>
-          {isPending ? "Saving..." : "Save profile"}
+      <div className="flex justify-end pt-2">
+        <Button type="submit" variant="primary" size="lg" disabled={isPending} className="w-full sm:w-auto">
+          {isPending ? "Saving Profile..." : "Save Profile"}
         </Button>
       </div>
     </form>

@@ -15,8 +15,7 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
-  MapPin,
-  Sparkles
+  MapPin
 } from "lucide-react";
 import { universityConfig } from "@/config/university";
 import { routes } from "@/config/routes";

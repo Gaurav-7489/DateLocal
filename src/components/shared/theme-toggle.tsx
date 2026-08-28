@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles, ShieldCheck } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 export function ThemeToggle() {
   return (

@@ -1,13 +1,28 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { routes } from "@/config/routes";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import DiscoverClient from "./discover-client";
+import { Sparkles, ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Discover",
+  title: "Discover Students",
 };
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+function calculateAge(dateOfBirth: string | null): number | null {
+  if (!dateOfBirth) return null;
+  const birth = new Date(dateOfBirth);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return isNaN(age) ? null : age;
+}
 
 export default async function DiscoverPage() {
   const supabase = await createServerSupabaseClient();
@@ -16,64 +31,77 @@ export default async function DiscoverPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return null;
+  if (!user) return null;
+
+  // Check if current user completed their profile
+  const { data: myProfile } = await supabase
+    .from("profiles")
+    .select("id, profile_completed, ghost_mode")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!myProfile || !myProfile.profile_completed) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
+        <Card className="p-8 border-emerald-200 bg-emerald-50/50 space-y-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+            <Sparkles className="h-7 w-7" />
+          </div>
+          <h1 className="text-2xl font-black text-foreground">
+            Complete your profile first
+          </h1>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            Before you can discover and swipe on other students, please complete your profile details and dating preferences.
+          </p>
+          <Link href={routes.profileSetup}>
+            <Button variant="primary" size="md" className="gap-2">
+              Complete Profile <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </Card>
+      </div>
+    );
   }
 
-  // Get profiles the current user has already liked.
-  const { data: likes, error: likesError } = await supabase
+  // Load dating preferences
+  const { data: myPrefs } = await supabase
+    .from("dating_preferences")
+    .select("interested_in, min_age, max_age, preferred_department")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  // 1. Get profiles the user already liked
+  const { data: likes } = await supabase
     .from("likes")
     .select("liked_id")
     .eq("liker_id", user.id);
 
-  if (likesError) {
-    console.error("Failed to load liked profiles:", likesError);
-
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-foreground">
-          Something went wrong
-        </h1>
-
-        <p className="mt-2 text-muted-foreground">
-          We couldn&apos;t load your Discover history right now. Please try
-          again.
-        </p>
-      </div>
-    );
-  }
-
-  // Get profiles the current user has already passed.
-  const { data: passes, error: passesError } = await supabase
+  // 2. Get profiles the user already passed
+  const { data: passes } = await supabase
     .from("passes")
     .select("passed_id")
     .eq("passer_id", user.id);
 
-  if (passesError) {
-    console.error("Failed to load passed profiles:", passesError);
+  // 3. Get blocked users (both where current user is blocker or was blocked)
+  const { data: blocksCreated } = await supabase
+    .from("blocks")
+    .select("blocked_id")
+    .eq("blocker_id", user.id);
 
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-foreground">
-          Something went wrong
-        </h1>
+  const { data: blocksReceived } = await supabase
+    .from("blocks")
+    .select("blocker_id")
+    .eq("blocked_id", user.id);
 
-        <p className="mt-2 text-muted-foreground">
-          We couldn&apos;t load your Discover history right now. Please try
-          again.
-        </p>
-      </div>
-    );
-  }
-
-  // Combine all profiles the user has already interacted with.
-  const interactedProfileIds = new Set([
-    ...(likes ?? []).map((like) => like.liked_id),
-    ...(passes ?? []).map((pass) => pass.passed_id),
+  const excludedIds = new Set<string>([
+    user.id,
+    ...(likes ?? []).map((l) => l.liked_id),
+    ...(passes ?? []).map((p) => p.passed_id),
+    ...(blocksCreated ?? []).map((b) => b.blocked_id),
+    ...(blocksReceived ?? []).map((b) => b.blocker_id),
   ]);
 
-    const excludedProfileIds = Array.from(interactedProfileIds);
-
+  // Query profiles that completed onboarding and are not in ghost mode
   let profilesQuery = supabase
     .from("profiles")
     .select(`
@@ -84,6 +112,7 @@ export default async function DiscoverPage() {
       department,
       academic_year,
       bio,
+      ghost_mode,
       profile_photos (
         storage_path,
         display_order,
@@ -97,47 +126,77 @@ export default async function DiscoverPage() {
       )
     `)
     .eq("profile_completed", true)
+    .eq("ghost_mode", false)
     .neq("id", user.id);
 
-  // Don't show profiles we've already interacted with.
-  if (excludedProfileIds.length > 0) {
-    profilesQuery = profilesQuery.not(
-      "id",
-      "in",
-      `(${excludedProfileIds.join(",")})`,
-    );
+  const excludedArray = Array.from(excludedIds);
+  if (excludedArray.length > 0) {
+    profilesQuery = profilesQuery.not("id", "in", `(${excludedArray.join(",")})`);
   }
 
-  const { data: profiles, error } = await profilesQuery
-    .order("created_at", { ascending: false });
+  // Gender preference filtering
+  if (myPrefs?.interested_in && myPrefs.interested_in.length > 0) {
+    const wantsMen = myPrefs.interested_in.includes("men");
+    const wantsWomen = myPrefs.interested_in.includes("women");
+    const wantsEveryone = myPrefs.interested_in.includes("everyone");
 
-  if (error) {
-    console.error("Failed to load discover profiles:", error);
+    if (!wantsEveryone) {
+      if (wantsMen && !wantsWomen) {
+        profilesQuery = profilesQuery.in("gender", ["man"]);
+      } else if (wantsWomen && !wantsMen) {
+        profilesQuery = profilesQuery.in("gender", ["woman"]);
+      }
+    }
+  }
 
+  const { data: rawProfiles, error: profilesError } = await profilesQuery
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (profilesError) {
+    console.error("Failed to load discover profiles:", profilesError);
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-foreground">
-          Something went wrong
-        </h1>
-
-        <p className="mt-2 text-muted-foreground">
+        <h1 className="text-2xl font-bold text-foreground">Something went wrong</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
           We couldn&apos;t load profiles right now. Please try again.
         </p>
       </div>
     );
   }
 
-  // Remove profiles the current user has already liked or passed.
-  const availableProfiles = (profiles ?? []).filter(
-    (profile) => !interactedProfileIds.has(profile.id),
-  );
+  // In-memory filter for age range and department preference
+  const minAge = myPrefs?.min_age ?? 18;
+  const maxAge = myPrefs?.max_age ?? 99;
+  const prefDept = myPrefs?.preferred_department?.trim().toLowerCase();
 
+  const filteredProfiles = (rawProfiles ?? []).filter((p) => {
+    if (excludedIds.has(p.id)) return false;
+
+    // Age filter
+    const age = calculateAge(p.date_of_birth);
+    if (age !== null && (age < minAge || age > maxAge)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Sort: prioritize preferred department if configured
+  if (prefDept) {
+    filteredProfiles.sort((a, b) => {
+      const aMatch = a.department?.toLowerCase().includes(prefDept) ? 1 : 0;
+      const bMatch = b.department?.toLowerCase().includes(prefDept) ? 1 : 0;
+      return bMatch - aMatch;
+    });
+  }
+
+  // Resolve photo URLs
   const profilesWithPhotoUrls = await Promise.all(
-    availableProfiles.map(async (profile) => {
+    filteredProfiles.map(async (profile) => {
       const photos = [...(profile.profile_photos ?? [])].sort((a, b) => {
         if (a.is_primary && !b.is_primary) return -1;
         if (!a.is_primary && b.is_primary) return 1;
-
         return a.display_order - b.display_order;
       });
 
@@ -150,29 +209,25 @@ export default async function DiscoverPage() {
         };
       }
 
-      const { data: signedUrlData, error: signedUrlError } =
-        await supabase.storage
-          .from("profile-photos")
-          .createSignedUrl(photoPath, 60 * 60);
+      const { data: signedUrlData } = await supabase.storage
+        .from("profile-photos")
+        .createSignedUrl(photoPath, 60 * 60);
 
-      if (signedUrlError) {
-        console.error(
-          "Failed to create profile photo URL:",
-          signedUrlError,
-        );
-
-        return {
-          ...profile,
-          profile_photo_url: null,
-        };
-      }
+      const photoUrl =
+        signedUrlData?.signedUrl ||
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${photoPath}`;
 
       return {
         ...profile,
-        profile_photo_url: signedUrlData.signedUrl,
+        profile_photo_url: photoUrl,
       };
     }),
   );
 
-  return <DiscoverClient profiles={profilesWithPhotoUrls} />;
+  return (
+    <DiscoverClient
+      profiles={profilesWithPhotoUrls}
+      currentUserId={user.id}
+    />
+  );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck, Heart, Sparkles, GraduationCap } from "lucide-react";
+import { ShieldCheck, Heart, GraduationCap } from "lucide-react";
 import { universityConfig } from "@/config/university";
 import { routes } from "@/config/routes";
 

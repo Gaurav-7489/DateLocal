@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
+import { Upload, Loader2, User } from "lucide-react";
 
 interface ProfilePhotoUploaderProps {
   userId: string;
@@ -72,17 +74,19 @@ export function ProfilePhotoUploader({
         return;
       }
 
-     const { data, error: signedUrlError } = await supabase.storage
-  .from("profile-photos")
-  .createSignedUrl(filePath, 60 * 60);
+      // Generate signed URL for immediate secure preview
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from("profile-photos")
+        .createSignedUrl(filePath, 60 * 60);
 
-if (signedUrlError) {
-  console.error("Signed URL error:", signedUrlError);
-  setError("Photo uploaded, but preview could not be loaded.");
-  return;
-}
+      if (signedUrlError) {
+        // Fallback to public URL format if signed URL fails
+        const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${filePath}`;
+        setPreviewUrl(publicUrl);
+      } else {
+        setPreviewUrl(signedUrlData.signedUrl);
+      }
 
-setPreviewUrl(data.signedUrl);
       onPhotoUploaded(filePath);
     } catch (err) {
       console.error("Photo upload error:", err);
@@ -96,43 +100,52 @@ setPreviewUrl(data.signedUrl);
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold text-foreground">
+        <h2 className="text-base font-bold text-foreground">
           Profile Photo
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Add a clear photo so people can recognize you.
+        <p className="mt-1 text-xs text-muted-foreground">
+          Add a clear photo so fellow students recognize you.
         </p>
       </div>
 
-      <div className="flex flex-col items-center gap-4 sm:flex-row">
-        <div className="flex h-32 w-32 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-border bg-muted">
+      <div className="flex flex-col items-center gap-5 sm:flex-row">
+        <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-3xl border-2 border-emerald-500 bg-muted shadow-sm">
           {previewUrl ? (
-            <img
+            <Image
               src={previewUrl}
               alt="Profile preview"
-              className="h-full w-full object-cover"
+              fill
+              className="object-cover"
+              sizes="128px"
             />
           ) : (
-            <span className="text-sm text-muted-foreground">
-              No photo
-            </span>
+            <div className="flex h-full w-full flex-col items-center justify-center text-muted-foreground">
+              <User className="h-10 w-10 stroke-1" />
+              <span className="text-[10px] mt-1">No photo</span>
+            </div>
           )}
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1 space-y-2 text-center sm:text-left">
           <label
             htmlFor="profile-photo"
-            className={`inline-flex cursor-pointer items-center rounded-[var(--radius-md)] bg-uni-primary px-4 py-2 text-sm font-medium text-white transition-opacity ${
+            className={`inline-flex cursor-pointer items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition-all hover:bg-emerald-700 active:scale-95 ${
               isUploading
                 ? "cursor-not-allowed opacity-60"
-                : "hover:opacity-90"
+                : ""
             }`}
           >
-            {isUploading
-              ? "Uploading..."
-              : previewUrl
-                ? "Change photo"
-                : "Upload photo"}
+            {isUploading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Uploading...</span>
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4" />
+                <span>{previewUrl ? "Change Photo" : "Upload Photo"}</span>
+              </>
+            )}
 
             <input
               id="profile-photo"
@@ -144,14 +157,14 @@ setPreviewUrl(data.signedUrl);
             />
           </label>
 
-          <p className="mt-2 text-xs text-muted-foreground">
-            JPG, PNG or WebP · Maximum 5 MB
+          <p className="text-[11px] text-muted-foreground">
+            JPG, PNG or WebP · Up to 5 MB
           </p>
         </div>
       </div>
 
       {error && (
-        <p className="text-sm text-destructive">
+        <p className="rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-xs font-semibold text-rose-700">
           {error}
         </p>
       )}

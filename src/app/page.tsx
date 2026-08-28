@@ -12,12 +12,10 @@ import {
   ArrowRight, 
   Lock, 
   MessageCircle, 
-  Compass, 
   Coffee, 
   Flame, 
   CheckCircle2, 
   MessageSquare,
-  User,
   RotateCcw
 } from "lucide-react";
 import confetti from "canvas-confetti";
@@ -104,7 +102,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-[#fafafa] text-zinc-900 selection:bg-emerald-500 selection:text-white overflow-x-hidden font-sans pb-32">
+<div className="relative min-h-screen flex flex-col bg-[#fafafa] text-zinc-900 selection:bg-emerald-500 selection:text-white overflow-x-hidden font-sans">
       <Navbar />
 
       <main className="flex-1 flex flex-col space-y-16 sm:space-y-24">
@@ -415,60 +413,7 @@ export default function HomePage() {
 
       <Footer />
 
-      {/* ================= INSTAGRAM-STYLE FIXED BOTTOM NAVIGATION ================= */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-zinc-200/90 px-6 py-3 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.04)] max-w-lg mx-auto sm:rounded-t-3xl">
 
-        {/* Discover / Feed */}
-        <Link 
-          href="/" 
-          className="flex flex-col items-center gap-1 text-emerald-600 group active:scale-90 transition-transform"
-        >
-          <Compass className="w-6 h-6 stroke-[2.2]" />
-          <span className="text-[10px] font-bold tracking-tight">Discover</span>
-        </Link>
-
-        {/* Live Matches */}
-        <Link 
-          href={routes.app || "/app"} 
-          className="flex flex-col items-center gap-1 text-zinc-400 hover:text-zinc-900 group active:scale-90 transition-transform"
-        >
-          <Heart className="w-6 h-6 stroke-[1.8] group-hover:stroke-zinc-900" />
-          <span className="text-[10px] font-medium tracking-tight">Matches</span>
-        </Link>
-
-        {/* Canteen / Campus Chat with Red Alert Badge */}
-        <Link 
-          href={routes.login} 
-          className="relative flex flex-col items-center gap-1 text-zinc-400 hover:text-zinc-900 group active:scale-90 transition-transform"
-        >
-          <div className="relative">
-            <MessageSquare className="w-6 h-6 stroke-[1.8] group-hover:stroke-zinc-900" />
-            <span className="absolute -top-1 -right-1.5 h-3.5 w-3.5 rounded-full bg-rose-500 border-2 border-white text-[8px] font-extrabold text-white flex items-center justify-center">
-              3
-            </span>
-          </div>
-          <span className="text-[10px] font-medium tracking-tight">Chats</span>
-        </Link>
-
-        {/* Safety & Ghost Mode */}
-        <Link 
-          href={routes.safety} 
-          className="flex flex-col items-center gap-1 text-zinc-400 hover:text-zinc-900 group active:scale-90 transition-transform"
-        >
-          <ShieldCheck className="w-6 h-6 stroke-[1.8] group-hover:stroke-zinc-900" />
-          <span className="text-[10px] font-medium tracking-tight">Safety</span>
-        </Link>
-
-        {/* Account / Student Profile */}
-        <Link 
-          href={routes.register} 
-          className="flex flex-col items-center gap-1 text-zinc-400 hover:text-zinc-900 group active:scale-90 transition-transform"
-        >
-          <User className="w-6 h-6 stroke-[1.8] group-hover:stroke-zinc-900" />
-          <span className="text-[10px] font-medium tracking-tight">Profile</span>
-        </Link>
-
-      </nav>
     </div>
   );
 }

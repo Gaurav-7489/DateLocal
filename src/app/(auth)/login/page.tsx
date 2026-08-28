@@ -14,8 +14,7 @@ import {
   EyeOff, 
   AlertCircle,
   Loader2,
-  Sparkles,
-  MapPin
+  Sparkles
 } from "lucide-react";
 import { universityConfig } from "@/config/university";
 import { routes } from "@/config/routes";

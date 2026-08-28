@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 
@@ -32,7 +33,7 @@ export async function saveProfile(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: "You must be logged in." };
+    return { error: "You must be logged in to save your profile." };
   }
 
   // ---- Extract fields ----
@@ -41,28 +42,36 @@ export async function saveProfile(
   const gender = formData.get("gender") as string;
   const department = (formData.get("department") as string)?.trim() ?? "";
   const academicYear = formData.get("academic_year") as string;
-const bio = (formData.get("bio") as string)?.trim() ?? "";
-const photoPath = (formData.get("photo_path") as string)?.trim() ?? "";
-const interestIds = formData.getAll("interests") as string[];
+  const bio = (formData.get("bio") as string)?.trim() ?? "";
+  const photoPath = (formData.get("photo_path") as string)?.trim() ?? "";
+  const interestIds = formData.getAll("interests") as string[];
   const interestedIn = formData.get("interested_in") as string;
   const minAge = parseInt(formData.get("min_age") as string, 10);
   const maxAge = parseInt(formData.get("max_age") as string, 10);
   const preferredDepartment = (formData.get("preferred_department") as string)?.trim() ?? "";
 
-  // ---- Validation ----
+  // ---- Server-Side Validation ----
   const fieldErrors: Record<string, string> = {};
 
-  if (!displayName) fieldErrors.display_name = "Display name is required.";
-  else if (displayName.length > 50) fieldErrors.display_name = "Display name must be 50 characters or less.";
+  if (!displayName) {
+    fieldErrors.display_name = "Display name is required.";
+  } else if (displayName.length > 50) {
+    fieldErrors.display_name = "Display name must be 50 characters or less.";
+  }
 
   if (!dateOfBirth) {
     fieldErrors.date_of_birth = "Date of birth is required.";
   } else {
     const dob = new Date(dateOfBirth);
     if (isNaN(dob.getTime())) {
-      fieldErrors.date_of_birth = "Invalid date.";
-    } else if (calculateAge(dob) < 18) {
-      fieldErrors.date_of_birth = "You must be at least 18 years old.";
+      fieldErrors.date_of_birth = "Invalid date format.";
+    } else {
+      const age = calculateAge(dob);
+      if (age < 18) {
+        fieldErrors.date_of_birth = "You must be at least 18 years old to use DateBu.";
+      } else if (age > 99) {
+        fieldErrors.date_of_birth = "Please enter a valid date of birth.";
+      }
     }
   }
 
@@ -70,23 +79,34 @@ const interestIds = formData.getAll("interests") as string[];
     fieldErrors.gender = "Please select your gender.";
   }
 
-  if (!department) fieldErrors.department = "Department is required.";
-  else if (department.length > 100) fieldErrors.department = "Department name is too long.";
+  if (!department) {
+    fieldErrors.department = "Department is required.";
+  } else if (department.length > 100) {
+    fieldErrors.department = "Department name is too long (max 100 characters).";
+  }
 
   if (!academicYear || !YEAR_OPTIONS.includes(academicYear as typeof YEAR_OPTIONS[number])) {
     fieldErrors.academic_year = "Please select your academic year.";
   }
 
-  if (bio.length > 500) fieldErrors.bio = "Bio must be 500 characters or less.";
-
-  if (interestIds.length === 0) fieldErrors.interests = "Select at least one interest.";
-
-  if (!interestedIn || !INTERESTED_IN_OPTIONS.includes(interestedIn as typeof INTERESTED_IN_OPTIONS[number])) {
-    fieldErrors.interested_in = "Please select who you're interested in.";
+  if (bio.length > 500) {
+    fieldErrors.bio = "Bio must be 500 characters or less.";
   }
 
-  if (isNaN(minAge) || minAge < 18 || minAge > 99) fieldErrors.min_age = "Minimum age must be 18–99.";
-  if (isNaN(maxAge) || maxAge < 18 || maxAge > 99) fieldErrors.max_age = "Maximum age must be 18–99.";
+  if (interestIds.length === 0) {
+    fieldErrors.interests = "Select at least one interest.";
+  }
+
+  if (!interestedIn || !INTERESTED_IN_OPTIONS.includes(interestedIn as typeof INTERESTED_IN_OPTIONS[number])) {
+    fieldErrors.interested_in = "Please select who you are interested in.";
+  }
+
+  if (isNaN(minAge) || minAge < 18 || minAge > 99) {
+    fieldErrors.min_age = "Minimum age must be between 18 and 99.";
+  }
+  if (isNaN(maxAge) || maxAge < 18 || maxAge > 99) {
+    fieldErrors.max_age = "Maximum age must be between 18 and 99.";
+  }
   if (!isNaN(minAge) && !isNaN(maxAge) && minAge > maxAge) {
     fieldErrors.min_age = "Minimum age cannot be greater than maximum age.";
   }
@@ -97,7 +117,7 @@ const interestIds = formData.getAll("interests") as string[];
 
   // ---- Convert interested_in to array for DB ----
   const interestedInArray =
-    interestedIn === "everyone" ? ["men", "women"] : [interestedIn];
+    interestedIn === "everyone" ? ["men", "women", "everyone"] : [interestedIn];
 
   // ---- Save profile ----
   const { error: profileError } = await supabase.from("profiles").upsert(
@@ -119,7 +139,8 @@ const interestIds = formData.getAll("interests") as string[];
     console.error("Profile save error:", profileError);
     return { error: "Failed to save profile. Please try again." };
   }
-    // ---- Save profile photo ----
+
+  // ---- Save profile photo if provided ----
   if (photoPath) {
     const { error: photoDeleteError } = await supabase
       .from("profile_photos")
@@ -128,7 +149,6 @@ const interestIds = formData.getAll("interests") as string[];
 
     if (photoDeleteError) {
       console.error("Profile photo delete error:", photoDeleteError);
-      return { error: "Failed to update profile photo. Please try again." };
     }
 
     const { error: photoInsertError } = await supabase
@@ -142,19 +162,17 @@ const interestIds = formData.getAll("interests") as string[];
 
     if (photoInsertError) {
       console.error("Profile photo insert error:", photoInsertError);
-      return { error: "Failed to save profile photo. Please try again." };
     }
   }
 
   // ---- Save interests ----
-  const { error: deleteError } = await supabase
+  const { error: deleteInterestsError } = await supabase
     .from("profile_interests")
     .delete()
     .eq("profile_id", user.id);
 
-  if (deleteError) {
-    console.error("Interest delete error:", deleteError);
-    return { error: "Failed to update interests. Please try again." };
+  if (deleteInterestsError) {
+    console.error("Interest delete error:", deleteInterestsError);
   }
 
   if (interestIds.length > 0) {
@@ -163,12 +181,12 @@ const interestIds = formData.getAll("interests") as string[];
       interest_id,
     }));
 
-    const { error: insertError } = await supabase
+    const { error: insertInterestsError } = await supabase
       .from("profile_interests")
       .insert(rows);
 
-    if (insertError) {
-      console.error("Interest insert error:", insertError);
+    if (insertInterestsError) {
+      console.error("Interest insert error:", insertInterestsError);
       return { error: "Failed to save interests. Please try again." };
     }
   }
@@ -191,5 +209,11 @@ const interestIds = formData.getAll("interests") as string[];
     return { error: "Failed to save preferences. Please try again." };
   }
 
-  redirect(routes.app);
+  revalidatePath(routes.app);
+  revalidatePath(routes.profile);
+  revalidatePath(routes.discover);
+  revalidatePath(routes.matches);
+  revalidatePath(routes.settings);
+
+  redirect(routes.profile);
 }

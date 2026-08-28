@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { universityConfig } from "@/config/university";
 import { ProfileSetupForm } from "./profile-setup-form";
-import { redirect } from "next/navigation";
 
 export const metadata: Metadata = { title: "Profile Setup" };
+
+export const dynamic = "force-dynamic";
 
 export default async function ProfileSetupPage() {
   const supabase = await createServerSupabaseClient();
@@ -14,9 +16,10 @@ export default async function ProfileSetupPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) {
-  redirect(routes.login);
-}
+    redirect(routes.login);
+  }
 
   // Load all available interests
   const { data: interests } = await supabase
@@ -28,14 +31,26 @@ export default async function ProfileSetupPage() {
   const { data: existingProfile } = await supabase
     .from("profiles")
     .select("display_name, date_of_birth, gender, department, academic_year, bio")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .maybeSingle();
+
+  // Load existing primary photo (if any)
+  const { data: existingPhoto } = await supabase
+    .from("profile_photos")
+    .select("storage_path")
+    .eq("profile_id", user.id)
+    .eq("is_primary", true)
+    .maybeSingle();
+
+  const existingPhotoUrl = existingPhoto?.storage_path
+    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${existingPhoto.storage_path}`
+    : null;
 
   // Load existing selected interest IDs
   const { data: existingPi } = await supabase
     .from("profile_interests")
     .select("interest_id")
-    .eq("profile_id", user!.id);
+    .eq("profile_id", user.id);
 
   const existingInterestIds = (existingPi ?? []).map((row) => row.interest_id);
 
@@ -43,7 +58,7 @@ export default async function ProfileSetupPage() {
   const { data: existingPreferences } = await supabase
     .from("dating_preferences")
     .select("interested_in, min_age, max_age, preferred_department")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   const isEditing = !!existingProfile;
@@ -52,28 +67,27 @@ export default async function ProfileSetupPage() {
     <div className="mx-auto max-w-2xl px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-uni-primary-100 bg-uni-primary-50 px-4 py-1.5 text-sm font-medium text-uni-primary">
-          <span className="h-2 w-2 rounded-full bg-uni-primary" aria-hidden="true" />
+        <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-semibold text-emerald-700">
+          <span className="h-2 w-2 rounded-full bg-emerald-600" aria-hidden="true" />
           {isEditing ? "Edit Profile" : "Profile Setup"}
         </span>
-        <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
-          {isEditing ? "Edit your profile" : `Create your ${universityConfig.appName} profile`}
+        <h1 className="mt-4 text-2xl font-black text-foreground sm:text-3xl tracking-tight">
+          {isEditing ? "Edit Your Profile" : `Create Your ${universityConfig.appName} Profile`}
         </h1>
-        <p className="mt-2 text-muted-foreground">
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
           {isEditing
-            ? "Update your profile information below."
-            : `Let other ${universityConfig.name} students get to know you.`}
+            ? "Update your student profile and dating preferences below."
+            : `Set up your profile to connect with verified ${universityConfig.name} students.`}
         </p>
       </div>
 
-      
-
       {/* Form */}
-
       <ProfileSetupForm
         userId={user.id}
         interests={interests ?? []}
         existingProfile={existingProfile}
+        existingPhotoUrl={existingPhotoUrl}
+        existingPhotoPath={existingPhoto?.storage_path ?? null}
         existingInterestIds={existingInterestIds}
         existingPreferences={existingPreferences}
       />
@@ -81,10 +95,10 @@ export default async function ProfileSetupPage() {
       {/* Back link */}
       <div className="mt-6 text-center">
         <Link
-          href={routes.app}
-          className="text-sm font-medium text-uni-primary transition-colors hover:text-uni-primary-light"
+          href={routes.profile}
+          className="text-xs font-semibold text-emerald-600 transition-colors hover:text-emerald-700"
         >
-          ← Back to dashboard
+          ← Back to profile
         </Link>
       </div>
     </div>
