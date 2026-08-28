@@ -38,9 +38,7 @@ export default async function SettingsPage() {
   // Load dating preferences
   const { data: preferences } = await supabase
     .from("dating_preferences")
-    .select(
-      "interested_in, min_age, max_age, preferred_department",
-    )
+    .select("interested_in, min_age, max_age, preferred_department")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -50,16 +48,9 @@ export default async function SettingsPage() {
     .select("blocked_id")
     .eq("blocker_id", user.id);
 
-  const blockedUserIds = (blocks ?? []).map(
-    (b) => b.blocked_id,
-  );
+  const blockedUserIds = (blocks ?? []).map((b) => b.blocked_id);
 
-  let blockedUsers: {
-    id: string;
-    display_name: string;
-    department: string;
-  }[] = [];
-
+  let blockedUsers: { id: string; display_name: string; department: string }[] = [];
   if (blockedUserIds.length > 0) {
     const { data: blockedProfiles } = await supabase
       .from("profiles")
@@ -73,25 +64,14 @@ export default async function SettingsPage() {
     }));
   }
 
-  // Load DateBu Extrovert subscription
-  const { data: subscription } = await supabase
-    .from("subscriptions")
-    .select(
-      "plan, status, current_period_end",
-    )
-    .eq("user_id", user.id)
-    .maybeSingle();
-
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
       <div>
         <h1 className="text-2xl font-black text-foreground sm:text-3xl tracking-tight">
           Settings &amp; Safety
         </h1>
-
         <p className="mt-1 text-xs text-muted-foreground">
-          Manage your account, privacy, discovery visibility,
-          and safety controls
+          Manage your account, privacy, discovery visibility, and safety controls
         </p>
       </div>
 
@@ -100,17 +80,8 @@ export default async function SettingsPage() {
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
           Student Account
         </h2>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <p className="text-sm font-bold text-foreground">
-              {profile?.display_name || "DateBu Student"}
-            </p>
-
-            <p className="text-xs text-muted-foreground font-mono">
               {user.email}
             </p>
-
             <p className="text-[11px] text-muted-foreground">
               {universityConfig.name}
             </p>
@@ -133,18 +104,13 @@ export default async function SettingsPage() {
               <SlidersHorizontal className="w-5 h-5 text-emerald-600" />
               Dating &amp; Matching Preferences
             </h2>
-
             <p className="text-xs text-muted-foreground mt-0.5">
               Control the age range and departments you discover.
             </p>
           </div>
 
           <Link href={routes.profileSetup}>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs"
-            >
+            <Button variant="outline" size="sm" className="text-xs">
               Edit
             </Button>
           </Link>
@@ -155,10 +121,8 @@ export default async function SettingsPage() {
             <span className="text-[10px] uppercase font-bold text-muted-foreground block">
               Interested in
             </span>
-
             <span className="font-semibold text-foreground capitalize mt-0.5 block">
-              {preferences?.interested_in?.join(", ") ||
-                "Everyone"}
+              {preferences?.interested_in?.join(", ") || "Everyone"}
             </span>
           </div>
 
@@ -166,10 +130,8 @@ export default async function SettingsPage() {
             <span className="text-[10px] uppercase font-bold text-muted-foreground block">
               Age Range
             </span>
-
             <span className="font-semibold text-foreground mt-0.5 block">
-              {preferences?.min_age ?? 18} –{" "}
-              {preferences?.max_age ?? 25} yrs
+              {preferences?.min_age ?? 18} – {preferences?.max_age ?? 25} yrs
             </span>
           </div>
 
@@ -177,25 +139,17 @@ export default async function SettingsPage() {
             <span className="text-[10px] uppercase font-bold text-muted-foreground block">
               Department
             </span>
-
             <span className="font-semibold text-foreground mt-0.5 block">
-              {preferences?.preferred_department ||
-                "All Departments"}
+              {preferences?.preferred_department || "All Departments"}
             </span>
           </div>
         </div>
       </Card>
 
-      {/* DateBu Extrovert */}
+      {/* Ghost Mode & Blocked Users (Client Component) */}
       <SettingsClient
         initialGhostMode={Boolean(profile?.ghost_mode)}
         blockedUsers={blockedUsers}
-        subscription={{
-          plan: subscription?.plan ?? "free",
-          status: subscription?.status ?? "inactive",
-          currentPeriodEnd:
-            subscription?.current_period_end ?? null,
-        }}
       />
 
       {/* Safety & Guidelines Links */}
@@ -210,10 +164,7 @@ export default async function SettingsPage() {
             href={routes.safety}
             className="flex items-center justify-between py-2.5 font-medium text-foreground hover:text-emerald-600 transition"
           >
-            <span>
-              Campus Safety Center &amp; Guidelines
-            </span>
-
+            <span>Campus Safety Center &amp; Guidelines</span>
             <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
           </Link>
 
@@ -221,10 +172,7 @@ export default async function SettingsPage() {
             href={routes.privacy}
             className="flex items-center justify-between py-2.5 font-medium text-foreground hover:text-emerald-600 transition"
           >
-            <span>
-              Privacy Policy &amp; Data Rights
-            </span>
-
+            <span>Privacy Policy &amp; Data Rights</span>
             <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
           </Link>
 
@@ -233,7 +181,6 @@ export default async function SettingsPage() {
             className="flex items-center justify-between py-2.5 font-medium text-foreground hover:text-emerald-600 transition"
           >
             <span>Terms of Service</span>
-
             <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
           </Link>
         </div>
@@ -242,10 +189,7 @@ export default async function SettingsPage() {
       {/* Sign Out Card */}
       <Card className="p-6 flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-bold text-foreground">
-            Sign Out
-          </h2>
-
+          <h2 className="text-sm font-bold text-foreground">Sign Out</h2>
           <p className="text-xs text-muted-foreground">
             End your active session on this device
           </p>
@@ -258,8 +202,7 @@ export default async function SettingsPage() {
             size="sm"
             className="gap-2 text-rose-600 border-rose-200 hover:bg-rose-50"
           >
-            <LogOut className="w-4 h-4" />
-            Sign Out
+            <LogOut className="w-4 h-4" /> Sign Out
           </Button>
         </form>
       </Card>

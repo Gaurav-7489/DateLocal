@@ -2,6 +2,9 @@
  * Supabase database types.
  */
 
+import type { UserRole } from "@/types/roles";
+
+
 export type Json =
   | string
   | number
@@ -15,6 +18,7 @@ export interface Database {
     Tables: {
       profiles: {
         Row: {
+          role: UserRole;
           id: string;
           display_name: string;
           date_of_birth: string;
@@ -28,6 +32,7 @@ export interface Database {
           updated_at: string;
         };
         Insert: {
+          role?: UserRole;
           id: string;
           display_name: string;
           date_of_birth: string;
@@ -42,6 +47,7 @@ export interface Database {
         };
         Update: {
           id?: string;
+          role?: UserRole;
           display_name?: string;
           date_of_birth?: string;
           gender?: string;

@@ -145,7 +145,7 @@ export default function HomePage() {
 
               {/* Subheading */}
               <p className="text-base sm:text-lg text-zinc-600 max-w-xl font-normal leading-relaxed">
-                The authentic digital campus layer. Find genuine friendships, study groups, hackathon teams, and dates without outsiders or fake profiles.
+                A student-only space, to find genuine friendships, study groups, and dates without outsiders or fake profiles.
               </p>
 
               {/* CTA Action Bar */}
@@ -163,7 +163,7 @@ export default function HomePage() {
                   className="inline-flex items-center justify-center px-7 py-4 text-sm font-medium text-zinc-700 bg-white border border-zinc-200 rounded-full hover:bg-zinc-50 hover:text-zinc-950 transition-all shadow-xs"
                 >
                   <ShieldCheck className="mr-2 w-4 h-4 text-emerald-600" />
-                  100% Student Verified
+                  How It Stays Safe
                 </Link>
               </div>
 
@@ -250,7 +250,7 @@ export default function HomePage() {
         <section className="relative px-6 py-8 max-w-2xl mx-auto w-full space-y-8">
 
           <div className="text-center space-y-2">
-            <span className="text-xs uppercase tracking-widest text-emerald-600 font-bold">Explore Campus Hub</span>
+            <span className="text-xs uppercase tracking-widest text-emerald-600 font-bold">THE CAMPUS, BUT ONLINE</span>
             <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-zinc-950">
               Engineered for real campus life.
             </h2>
@@ -267,7 +267,7 @@ export default function HomePage() {
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div className="space-y-1.5">
-                <h3 className="text-xl font-bold text-zinc-900">100% Student Verified</h3>
+                <h3 className="text-xl font-bold text-zinc-900">100% Student Verified.</h3>
                 <p className="text-zinc-600 text-xs sm:text-sm leading-relaxed">
                   Zero fake accounts or bots. Registration requires direct single sign-on verification via <span className="text-emerald-700 font-mono text-xs bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-medium">@bahrauniversity.edu.in</span>.
                 </p>
@@ -275,7 +275,7 @@ export default function HomePage() {
               <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-50 border border-zinc-200 w-fit">
                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-                  <span className="text-xs font-mono text-emerald-700 font-semibold">Campus Directory Active</span>
+                  <span className="text-xs font-mono text-emerald-700 font-semibold">Active</span>
                 </div>
                 <Link
                   href={routes.register}
@@ -305,26 +305,53 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {/* Feature Card 3: Intent Modes */}
-            <div className="w-full rounded-3xl border border-zinc-200 bg-white p-6 sm:p-7 shadow-xs hover:shadow-md hover:border-orange-300 transition-all duration-300 flex flex-col space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-orange-100 border border-orange-200 flex items-center justify-center text-orange-700 shadow-xs">
-                <Coffee className="w-6 h-6" />
-              </div>
-              <div className="space-y-1.5">
-                <h3 className="text-xl font-bold text-zinc-900">Campus Intent Modes</h3>
-                <p className="text-zinc-600 text-xs sm:text-sm leading-relaxed">
-                  Signal whether you&apos;re looking to date, study at the library, or grab cafeteria chai.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <span className="text-xs px-3.5 py-1.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-700 font-medium">
-                  ☕ Chai Break
-                </span>
-                <span className="text-xs px-3.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium">
-                  📚 Study Sync
-                </span>
-              </div>
-            </div>
+{/* Feature Card 3: DateBu Modes */}
+<div className="w-full rounded-3xl border border-zinc-200 bg-white p-6 sm:p-7 shadow-xs hover:shadow-md hover:border-orange-300 transition-all duration-300 flex flex-col space-y-4">
+  <div className="w-12 h-12 rounded-2xl bg-orange-100 border border-orange-200 flex items-center justify-center text-orange-700 shadow-xs">
+    <Coffee className="w-6 h-6" />
+  </div>
+
+  <div className="space-y-1.5">
+    <h3 className="text-xl font-bold text-zinc-900">
+      Find Your Vibe
+    </h3>
+
+    <p className="text-zinc-600 text-xs sm:text-sm leading-relaxed">
+      Choose how you want to connect. Keep it mysterious, go random,
+      find your vibe, or team up for the next study grind.
+    </p>
+  </div>
+
+  <div className="grid grid-cols-2 gap-2.5 pt-1">
+    <button
+      type="button"
+      className="group flex items-center justify-center rounded-xl border border-purple-200 bg-purple-50 px-3 py-2.5 text-xs font-semibold text-purple-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-purple-300 hover:bg-purple-100 hover:shadow-sm active:translate-y-0"
+    >
+      Blind Date
+    </button>
+
+    <button
+      type="button"
+      className="group flex items-center justify-center rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs font-semibold text-orange-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-orange-300 hover:bg-orange-100 hover:shadow-sm active:translate-y-0"
+    >
+      Random Rush
+    </button>
+
+    <button
+      type="button"
+      className="group flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold text-rose-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-100 hover:shadow-sm active:translate-y-0"
+    >
+      Vibe Matcher
+    </button>
+
+    <button
+      type="button"
+      className="group flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-100 hover:shadow-sm active:translate-y-0"
+    >
+      Study Buddies
+    </button>
+  </div>
+</div>
 
             {/* Feature Card 4: Safe Space & Ghost Mode */}
             <div className="w-full rounded-3xl border border-zinc-200 bg-white p-6 sm:p-7 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all duration-300 flex flex-col space-y-4">
@@ -543,7 +570,7 @@ function InteractiveCard({
           </button>
 
           <span className="text-[11px] font-medium text-zinc-400">
-            Drag card or tap
+            Drag card or tap 
           </span>
 
           <button

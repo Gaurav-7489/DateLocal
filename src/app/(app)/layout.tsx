@@ -25,9 +25,24 @@ export default async function AppLayout({
     redirect(routes.login);
   }
 
+  // Get the user's authorization role.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+// Only the designated owner account gets the direct Admin button.
+const isSuperAdmin =
+  profile?.role === "SUPER_ADMIN" &&
+  user.id === process.env.DATEBU_OWNER_ID;
+
   return (
     <div className="flex min-h-screen flex-col">
-      <AppNavbar userEmail={user.email ?? "Unknown"} />
+      <AppNavbar
+        userEmail={user.email ?? "Unknown"}
+        isSuperAdmin={isSuperAdmin}
+      />
 
       <div className="flex-1">{children}</div>
 
