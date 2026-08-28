@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { likeProfile, passProfile } from "./actions";
 import { Button } from "@/components/ui/button";
 
@@ -78,6 +79,7 @@ export default function DiscoverClient({
     );
 
     setMessage(result.matched ? "It's a match!" : "Liked!");
+    router.refresh();
 
     setLoading(false);
   }
@@ -97,6 +99,7 @@ async function handlePass(profileId: string) {
   setRemainingProfiles((current) =>
     current.filter((profile) => profile.id !== profileId),
   );
+  router.refresh();
 
   setLoading(false);
 }

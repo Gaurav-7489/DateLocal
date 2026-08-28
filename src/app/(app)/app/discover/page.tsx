@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "Discover",
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function DiscoverPage() {
   const supabase = await createServerSupabaseClient();
 
