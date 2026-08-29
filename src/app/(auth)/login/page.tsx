@@ -24,7 +24,7 @@ interface LoginSlide {
   image: string;
   tag: string;
   caption: string;
-  glowColor: string; // ONLY this color smoothly transitions in the background
+  glowColor: string;
 }
 
 const LOGIN_STORIES: LoginSlide[] = [
@@ -35,13 +35,13 @@ const LOGIN_STORIES: LoginSlide[] = [
     glowColor: "rgba(37, 99, 235, 0.22)", // Soft Sapphire Blue
   },
   {
-    image: "/images/buphoto.jpeg", // Replace with your next photo (e.g. library / lawn)
+    image: "/images/buphoto.jpeg",
     tag: "Central Library & Labs",
     caption: "Catch up with study buddies and friends",
     glowColor: "rgba(99, 102, 241, 0.20)", // Soft Indigo
   },
   {
-    image: "/images/buphoto.jpeg", // Replace with your third photo (e.g. cafeteria / sunset)
+    image: "/images/buphoto.jpeg",
     tag: "Cafeteria & Student Lawn",
     caption: "Plan canteen chai breaks between classes",
     glowColor: "rgba(245, 158, 11, 0.18)", // Warm Amber
@@ -105,9 +105,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-[#f8fafc] text-zinc-900 selection:bg-blue-600 selection:text-white font-sans overflow-x-hidden">
+    <div className="relative min-h-[100dvh] flex flex-col bg-[#f8fafc] text-zinc-900 selection:bg-blue-600 selection:text-white font-sans overflow-x-hidden antialiased">
       
-      {/* ================= ONLY BACKGROUND COLOR TRANSITIONS SLOWLY & SMOOTHLY ================= */}
+      {/* ================= BACKGROUND GLOW ================= */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <motion.div
           animate={{
@@ -115,34 +115,34 @@ export default function LoginPage() {
             scale: isFocusedPassword ? 1.15 : 1,
           }}
           transition={{ duration: 3.2, ease: "easeInOut" }}
-          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[750px] h-[750px] rounded-full blur-[150px]"
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] h-[380px] rounded-full blur-[150px]"
         />
       </div>
 
       {/* Top Floating App Header */}
-      <header className="sticky top-0 z-40 px-4 py-3 bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 flex items-center justify-between shadow-xs">
-        <Link href="/" className="flex items-center gap-2">
+      <header className="sticky top-0 z-40 px-4 py-3 bg-white/85 backdrop-blur-xl border-b border-zinc-200/80 flex items-center justify-between shadow-xs">
+        <Link href="/" className="flex items-center gap-2 active:scale-95 transition-transform">
           <div className="h-7 w-7 rounded-full bg-blue-600 flex items-center justify-center text-xs font-black text-white shadow-xs">
             {universityConfig.shortName[0]}
           </div>
-          <span className="font-extrabold text-sm tracking-tight text-zinc-950">
+          <span className="font-extrabold text-xs tracking-tight text-zinc-950">
             {universityConfig.appName}
           </span>
         </Link>
 
         <Link
           href={routes.register}
-          className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+          className="text-[11px] font-semibold px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 active:scale-95 transition-all"
         >
           Create Account
         </Link>
       </header>
 
-      {/* Main Login Screen */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-6 max-w-sm mx-auto w-full">
+      {/* Main Mobile Login Screen */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-4 max-w-sm mx-auto w-full">
         
         {/* ================= STORYTELLING CAMPUS BANNER ================= */}
-        <div className="relative h-48 w-full rounded-3xl overflow-hidden border border-zinc-200/90 shadow-xs mb-[-24px]">
+        <div className="relative h-36 w-full rounded-2xl overflow-hidden border border-zinc-200/90 shadow-xs mb-[-18px]">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeStoryIndex}
@@ -164,7 +164,7 @@ export default function LoginPage() {
           </AnimatePresence>
 
           {/* Story Progress Indicators */}
-          <div className="absolute top-3 left-4 right-4 flex gap-1.5 z-20">
+          <div className="absolute top-2.5 left-3 right-3 flex gap-1 z-20">
             {LOGIN_STORIES.map((_, idx) => (
               <div
                 key={idx}
@@ -186,12 +186,12 @@ export default function LoginPage() {
           </div>
 
           {/* Location Badge & Time Greeting */}
-          <div className="absolute bottom-7 left-4 right-4 z-20 flex flex-col items-start gap-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/95 backdrop-blur-md text-[10px] font-bold text-blue-700 shadow-xs border border-blue-200">
+          <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-col items-start gap-0.5">
+            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/95 backdrop-blur-md text-[10px] font-bold text-blue-700 shadow-xs border border-blue-200">
               <Sparkles className="w-3 h-3 text-blue-600" />
               {greeting}
             </div>
-            <p className="text-[11px] text-zinc-700 font-medium line-clamp-1">
+            <p className="text-[11px] text-zinc-700 font-medium truncate">
               {activeStory.caption}
             </p>
           </div>
@@ -206,7 +206,7 @@ export default function LoginPage() {
         </div>
 
         {/* ================= SOLID, CLEAN FORM CARD ================= */}
-        <div className="relative w-full rounded-3xl border border-zinc-200/90 bg-white/95 pt-9 px-6 pb-7 backdrop-blur-xl shadow-[0_12px_35px_rgba(0,0,0,0.06)]">
+        <div className="relative w-full rounded-3xl border border-zinc-200/90 bg-white/95 pt-8 px-5 pb-6 backdrop-blur-xl shadow-[0_12px_35px_rgba(0,0,0,0.06)]">
           
           <form onSubmit={handleLogin} className="space-y-3.5">
             
@@ -214,7 +214,7 @@ export default function LoginPage() {
               <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[10px] font-semibold text-blue-700">
                 <ShieldCheck className="w-3 h-3" /> Student Portal Access
               </div>
-              <h1 className="text-xl font-black text-zinc-950 tracking-tight">
+              <h1 className="text-lg font-black text-zinc-950 tracking-tight">
                 Welcome Back
               </h1>
             </div>
@@ -242,7 +242,7 @@ export default function LoginPage() {
                 onFocus={() => setIsFocusedPassword(false)}
                 placeholder={`username@${universityConfig.emailDomain.replace(/^@/, "")}`}
                 required
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50/70 px-3.5 py-2.5 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-xl border border-zinc-200 bg-zinc-50/70 px-3.5 py-3 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
 
@@ -258,7 +258,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="text-[10px] text-zinc-500 hover:text-zinc-900 transition-colors flex items-center gap-1 cursor-pointer"
+                  className="text-[10px] text-zinc-500 hover:text-zinc-900 transition-colors flex items-center gap-1 cursor-pointer py-0.5 px-1"
                 >
                   {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                   {showPassword ? "Hide" : "Show"}
@@ -273,7 +273,7 @@ export default function LoginPage() {
                 onFocus={() => setIsFocusedPassword(true)}
                 placeholder="Enter your password"
                 required
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50/70 px-3.5 py-2.5 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                className="w-full rounded-xl border border-zinc-200 bg-zinc-50/70 px-3.5 py-3 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
 
@@ -294,7 +294,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/25 active:scale-95 transition-all disabled:opacity-60 cursor-pointer mt-1"
+              className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold shadow-md shadow-blue-600/25 active:scale-[0.98] transition-all disabled:opacity-60 cursor-pointer mt-1"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -312,7 +312,7 @@ export default function LoginPage() {
                 New to {universityConfig.appName}?{" "}
                 <Link
                   href={routes.register}
-                  className="font-bold text-blue-600 hover:text-blue-700"
+                  className="font-bold text-blue-600 hover:text-blue-700 active:underline"
                 >
                   Join now
                 </Link>
@@ -325,7 +325,7 @@ export default function LoginPage() {
       </main>
 
       {/* Clean Footer */}
-      <footer className="py-4 text-center text-[10px] text-zinc-400">
+      <footer className="py-3 text-center text-[10px] text-zinc-400">
         © 2026 {universityConfig.appName} • Bahra University
       </footer>
 
@@ -343,7 +343,7 @@ function LoginCat({
   isPeeking: boolean;
 }) {
   return (
-    <div className="relative w-36 h-28 flex items-center justify-center">
+    <div className="relative w-32 h-24 flex items-center justify-center">
       <svg viewBox="0 0 140 110" className="w-full h-full overflow-visible filter drop-shadow-md">
         
         {/* Left Ear */}

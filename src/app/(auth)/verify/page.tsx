@@ -1,118 +1,269 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
-import { PageContainer } from "@/components/layout/page-container";
-import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Mail, 
+  CheckCircle2, 
+  AlertCircle, 
+  Loader2, 
+  ArrowRight, 
+  RefreshCw, 
+  ExternalLink,
+  ShieldCheck,
+  Inbox,
+  Sparkles
+} from "lucide-react";
 import { universityConfig } from "@/config/university";
 import { routes } from "@/config/routes";
 import { resendVerificationEmail } from "@/services/auth.service";
-import { Mail, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 
 export default function VerifyPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [countdown, setCountdown] = useState(0);
+
+  // Resend cooldown timer countdown
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
 
   async function handleResend(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || countdown > 0) return;
 
     setLoading(true);
     setStatus("idle");
     setMessage("");
 
-    const result = await resendVerificationEmail(email.trim().toLowerCase());
+    const normalizedEmail = email.trim().toLowerCase();
+    const result = await resendVerificationEmail(normalizedEmail);
     setLoading(false);
 
     if (result.success) {
       setStatus("success");
-      setMessage("Verification email has been resent. Please check your inbox and spam folder.");
+      setMessage("Fresh verification link dispatched! Please check your spam folder too.");
+      setCountdown(60); // 60 seconds rate-limit cooldown
     } else {
       setStatus("error");
-      setMessage(result.error || "Failed to resend email. Please try again.");
+      setMessage(result.error || "Failed to resend email. Please verify the address.");
     }
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <Navbar />
-      <PageContainer narrow className="flex flex-1 flex-col items-center justify-center py-12">
-        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200">
-            <Mail className="h-8 w-8" />
+    <div className="relative min-h-[100dvh] flex flex-col bg-[#f7fbf9] text-zinc-900 selection:bg-emerald-500 selection:text-white font-sans overflow-x-hidden antialiased">
+      
+      {/* Ambient Emerald Background Glow */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] h-[380px] rounded-full bg-emerald-500/15 blur-[140px]" />
+      </div>
+
+      {/* Top Floating App Header */}
+      <header className="sticky top-0 z-40 px-4 py-3 bg-white/85 backdrop-blur-xl border-b border-zinc-200/80 flex items-center justify-between shadow-xs">
+        <Link href="/" className="flex items-center gap-2 active:scale-95 transition-transform">
+          <div className="h-7 w-7 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-black text-white shadow-xs">
+            {universityConfig.shortName[0]}
           </div>
+          <span className="font-extrabold text-xs tracking-tight text-zinc-950">
+            {universityConfig.appName}
+          </span>
+        </Link>
 
-          <h1 className="text-2xl font-bold text-foreground">Verify Your Email</h1>
-          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-            We sent a verification link to your {universityConfig.name} email address.
-            Click the link in the email to activate your account and start discovering matches.
-          </p>
+        <Link
+          href={routes.login}
+          className="text-[11px] font-semibold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 active:scale-95 transition-all"
+        >
+          Sign In
+        </Link>
+      </header>
 
-          <div className="mt-6 rounded-2xl bg-muted/60 p-4 text-left text-xs text-muted-foreground space-y-2">
-            <p className="font-semibold text-foreground">Didn&apos;t receive the email?</p>
-            <ul className="list-disc pl-4 space-y-1">
-              <li>Check your spam or junk folder.</li>
-              <li>Ensure you registered with your official @{universityConfig.emailDomain.replace(/^@/, "")} ID.</li>
-              <li>Wait a couple minutes before requesting a new link.</li>
-            </ul>
-          </div>
-
-          <form onSubmit={handleResend} className="mt-6 space-y-3">
-            <input
-              type="email"
-              placeholder={`Enter your student email`}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs text-foreground placeholder-muted-foreground outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-            />
-
-            {status === "success" && (
-              <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-2.5 text-xs text-emerald-700 border border-emerald-200">
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                <span>{message}</span>
-              </div>
-            )}
-
-            {status === "error" && (
-              <div className="flex items-center gap-2 rounded-xl bg-rose-50 p-2.5 text-xs text-rose-700 border border-rose-200">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{message}</span>
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              variant="secondary"
-              size="md"
-              disabled={loading || !email.trim()}
-              className="w-full"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Sending...
-                </span>
-              ) : (
-                "Resend Verification Email"
-              )}
-            </Button>
-          </form>
-
-          <div className="mt-6 border-t border-border pt-4">
-            <Link
-              href={routes.login}
-              className="text-xs font-semibold text-emerald-600 hover:text-emerald-700"
-            >
-              Already verified? Log in here →
-            </Link>
-          </div>
+      {/* Main Container */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-6 max-w-sm mx-auto w-full">
+        
+        {/* Mascot Waiting with Mail */}
+        <div className="relative -mb-6 flex justify-center z-20 pointer-events-none">
+          <VerifyCatMascot />
         </div>
-      </PageContainer>
-      <Footer />
+
+        {/* Verification Card */}
+        <div className="relative w-full rounded-3xl border border-zinc-200/90 bg-white/95 pt-8 px-5 pb-6 backdrop-blur-xl shadow-[0_12px_35px_rgba(0,0,0,0.06)] space-y-4">
+          
+          <div className="text-center space-y-1.5 pb-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-semibold text-emerald-700">
+              <ShieldCheck className="w-3 h-3" /> Step 1 of 2: Identity Check
+            </div>
+            <h1 className="text-xl font-black text-zinc-950 tracking-tight">
+              Verify Campus Email
+            </h1>
+            <p className="text-xs text-zinc-600 leading-relaxed">
+              We sent a verification link to your official <span className="font-semibold text-zinc-900">{universityConfig.name}</span> inbox.
+            </p>
+          </div>
+
+          {/* Quick Mail Shortcuts for Mobile */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <a
+              href="googlegmail:///"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-zinc-50 border border-zinc-200 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-100 active:scale-95 transition-all shadow-2xs"
+            >
+              <Inbox className="w-3.5 h-3.5 text-rose-500" /> Open Gmail
+            </a>
+            <a
+              href="mailto:"
+              className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-zinc-50 border border-zinc-200 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-100 active:scale-95 transition-all shadow-2xs"
+            >
+              <Mail className="w-3.5 h-3.5 text-blue-500" /> Default Mail
+            </a>
+          </div>
+
+          {/* Step-by-Step Visual Instruction Box */}
+          <div className="rounded-2xl bg-emerald-50/50 border border-emerald-100/80 p-3.5 space-y-2 text-left">
+            <p className="text-[11px] font-bold text-emerald-950 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-emerald-600" /> Quick Instructions:
+            </p>
+            <ol className="text-[11px] text-zinc-600 space-y-1.5 list-decimal pl-4">
+              <li>Open the email sent from <strong>{universityConfig.appName}</strong>.</li>
+              <li>Tap the <strong>Confirm My Account</strong> button.</li>
+              <li>Return here to log in and set up your student profile!</li>
+            </ol>
+          </div>
+
+          {/* Primary Post-Verification Action Button */}
+          <Link
+            href={routes.login}
+            className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+          >
+            I&apos;ve Confirmed My Email <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+
+          {/* Resend Verification Form Accordion */}
+          <div className="pt-2 border-t border-zinc-100">
+            <p className="text-[11px] font-semibold text-zinc-700 text-center mb-2">
+              Didn&apos;t receive the link?
+            </p>
+
+            <form onSubmit={handleResend} className="space-y-2">
+              <input
+                type="email"
+                placeholder={`student@${universityConfig.emailDomain.replace(/^@/, "")}`}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full rounded-xl border border-zinc-200 bg-zinc-50/70 px-3.5 py-2.5 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
+              />
+
+              {status === "success" && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-1.5 p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px]"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-600" />
+                  <span>{message}</span>
+                </motion.div>
+              )}
+
+              {status === "error" && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-1.5 p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[11px]"
+                >
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-600" />
+                  <span>{message}</span>
+                </motion.div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || !email.trim() || countdown > 0}
+                className="w-full py-2.5 rounded-xl border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 active:bg-zinc-200 text-zinc-700 text-xs font-semibold active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" /> Sending link...
+                  </>
+                ) : countdown > 0 ? (
+                  <>
+                    <RefreshCw className="w-3 h-3 animate-spin text-zinc-400" /> Resend in {countdown}s
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-3 h-3" /> Resend Verification Link
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+        </div>
+      </main>
+
+      {/* Discrete Footer */}
+      <footer className="py-3 text-center text-[10px] text-zinc-400">
+        © 2026 {universityConfig.appName} • Bahra University Network
+      </footer>
+
+    </div>
+  );
+}
+
+// ---------------- VERIFICATION CAT MASCOT ----------------
+
+function VerifyCatMascot() {
+  return (
+    <div className="relative w-32 h-24 flex items-center justify-center">
+      <svg viewBox="0 0 140 110" className="w-full h-full overflow-visible filter drop-shadow-md">
+        
+        {/* Left Ear */}
+        <polygon points="30,50 14,14 54,34" fill="#ffffff" stroke="#e4e4e7" strokeWidth="2" strokeLinejoin="round" />
+        <polygon points="31,44 21,22 47,33" fill="#f43f5e" opacity="0.3" />
+
+        {/* Right Ear */}
+        <polygon points="110,50 126,14 86,34" fill="#ffffff" stroke="#e4e4e7" strokeWidth="2" strokeLinejoin="round" />
+        <polygon points="109,44 119,22 93,33" fill="#f43f5e" opacity="0.3" />
+
+        {/* Head Base */}
+        <ellipse cx="70" cy="62" rx="44" ry="36" fill="#ffffff" stroke="#e4e4e7" strokeWidth="2" />
+
+        {/* Whiskers */}
+        <line x1="26" y1="62" x2="8" y2="58" stroke="#a1a1aa" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="26" y1="68" x2="10" y2="70" stroke="#a1a1aa" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="114" y1="62" x2="132" y2="58" stroke="#a1a1aa" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="114" y1="68" x2="130" y2="70" stroke="#a1a1aa" strokeWidth="1.5" strokeLinecap="round" />
+
+        {/* Emerald Eyes */}
+        <ellipse cx="52" cy="56" rx="6.5" ry="7.5" fill="#10b981" />
+        <ellipse cx="88" cy="56" rx="6.5" ry="7.5" fill="#10b981" />
+
+        <circle cx="54" cy="54" r="2.2" fill="#ffffff" />
+        <circle cx="90" cy="54" r="2.2" fill="#ffffff" />
+
+        {/* Snout & Pink Nose */}
+        <polygon points="67,68 73,68 70,72" fill="#f43f5e" />
+        <path d="M 65 74 Q 70 77 75 74" stroke="#71717a" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+
+        {/* Envelope in paws */}
+        <g transform="translate(46, 68)">
+          <rect width="48" height="30" rx="4" fill="#ffffff" stroke="#10b981" strokeWidth="2" />
+          <polygon points="2,2 24,18 46,2" fill="#ecfdf5" stroke="#10b981" strokeWidth="1.5" />
+          <circle cx="24" cy="15" r="4" fill="#10b981" />
+        </g>
+
+        {/* Paws Holding Envelope */}
+        <ellipse cx="44" cy="80" rx="7" ry="6" fill="#ffffff" stroke="#10b981" strokeWidth="1.5" />
+        <ellipse cx="96" cy="80" rx="7" ry="6" fill="#ffffff" stroke="#10b981" strokeWidth="1.5" />
+
+      </svg>
     </div>
   );
 }

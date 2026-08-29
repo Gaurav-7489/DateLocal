@@ -2,12 +2,11 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { AppNavbar } from "@/components/layout/app-navbar";
-import { Footer } from "@/components/layout/footer";
 
 /**
  * Authenticated app layout.
  * Protects all /app/* routes — redirects unauthenticated users to login.
- * Provides the app shell: navbar, content area, footer.
+ * Provides the app shell: navbar, content area.
  */
 export default async function AppLayout({
   children,
@@ -32,21 +31,19 @@ export default async function AppLayout({
     .eq("id", user.id)
     .maybeSingle();
 
-// Only the designated owner account gets the direct Admin button.
-const isSuperAdmin =
-  profile?.role === "SUPER_ADMIN" &&
-  user.id === process.env.DATEBU_OWNER_ID;
+  // Only the designated owner account gets the direct Admin button.
+  const isSuperAdmin =
+    profile?.role === "SUPER_ADMIN" &&
+    user.id === process.env.DATEBU_OWNER_ID;
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-background">
       <AppNavbar
         userEmail={user.email ?? "Unknown"}
         isSuperAdmin={isSuperAdmin}
       />
 
-      <div className="flex-1">{children}</div>
-
-      <Footer />
+      <div className="flex-1 pb-10">{children}</div>
     </div>
   );
 }
