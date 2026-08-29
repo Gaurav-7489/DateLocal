@@ -17,10 +17,13 @@ import {
   UserX,
   RotateCcw,
   SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { likeProfile, passProfile, blockUser, reportUser } from "./actions";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
+
 
 type Interest = {
   id: string;
@@ -35,6 +38,7 @@ type ProfilePhoto = {
   storage_path: string;
   display_order: number;
   is_primary: boolean;
+  url?: string;
 };
 
 export type DiscoverProfile = {
@@ -182,9 +186,7 @@ export default function DiscoverClient({
             <Sparkles className="h-8 w-8" />
           </div>
 
-          <h1 className="text-2xl font-black text-foreground tracking-tight">
-            All Caught Up!
-          </h1>
+       
 
           <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">
             You&apos;ve reviewed all available student profiles matching your current preferences.
@@ -211,26 +213,8 @@ export default function DiscoverClient({
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 py-6 space-y-4">
-      {/* Top Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight">
-            Discover
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Verified campus students
-          </p>
-        </div>
+<div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-2xl flex-col px-2 py-2 sm:px-4">
 
-        <Link
-          href={routes.profileSetup}
-          className="flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-600" />
-          Filters
-        </Link>
-      </div>
 
       {/* Toast Notification */}
       <AnimatePresence>
@@ -247,7 +231,7 @@ export default function DiscoverClient({
       </AnimatePresence>
 
       {/* Swipeable Card Stack Container */}
-      <div className="relative h-[530px] w-full flex items-center justify-center">
+  <div className="relative h-[calc(100dvh-10rem)] min-h-[600px] w-full max-w-lg flex items-center justify-center">
         {deck.slice(0, 3).map((profile, index) => {
           const isTop = index === 0;
           const isSecond = index === 1;
@@ -335,6 +319,13 @@ export default function DiscoverClient({
               >
                 <UserX className="w-4 h-4" /> Block This User
               </button>
+              <button
+  type="button"
+  onClick={() => setSafetyMenuOpen(false)}
+  className="flex w-full items-center justify-center rounded-2xl p-3 text-xs font-semibold text-muted-foreground bg-muted hover:bg-muted/80 border border-border transition"
+>
+  Cancel
+</button>
             </motion.div>
           </div>
         )}
@@ -348,7 +339,7 @@ export default function DiscoverClient({
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl space-y-4"
+             className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-2xl space-y-4"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-foreground flex items-center gap-2">
@@ -398,14 +389,30 @@ export default function DiscoverClient({
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setReportModalProfile(null)}
-                  >
-                    Cancel
-                  </Button>
+               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+  <Button
+    type="button"
+    variant="secondary"
+    size="sm"
+    onClick={() => {
+      setReportModalProfile(null);
+      setReportDetails("");
+    }}
+    className="w-full sm:w-auto"
+  >
+    Cancel
+  </Button>
+
+  <Button
+    type="submit"
+    variant="primary"
+    size="sm"
+    disabled={reportSubmitting}
+    className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white"
+  >
+    {reportSubmitting ? "Submitting..." : "Submit Report & Block"}
+  </Button>
+</div>
                   <Button
                     type="submit"
                     variant="primary"
@@ -516,18 +523,21 @@ function DiscoverCard({
   onOpenSafety: () => void;
 }) {
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-150, 150], [-18, 18]);
+  const rotate = useTransform(x, [-300, 300], [-22, 22]);
 
-  const likeOpacity = useTransform(x, [20, 90], [0, 1]);
-  const passOpacity = useTransform(x, [-90, -20], [1, 0]);
+  const likeOpacity = useTransform(x, [20, 120], [0, 1]);
+  const passOpacity = useTransform(x, [-120, -20], [1, 0]);
 
-  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (info.offset.x > 90) {
-      onSwipe("right");
-    } else if (info.offset.x < -90) {
-      onSwipe("left");
-    }
-  };
+  const photos = [...(profile.profile_photos ?? [])]
+    .filter((photo) => photo.url)
+    .sort((a, b) => {
+      if (a.is_primary && !b.is_primary) return -1;
+      if (!a.is_primary && b.is_primary) return 1;
+      return a.display_order - b.display_order;
+    })
+    .slice(0, 5);
+
+  const [photoIndex, setPhotoIndex] = useState(0);
 
   const age = calculateAge(profile.date_of_birth);
 
@@ -537,6 +547,32 @@ function DiscoverCard({
       return Array.isArray(item.interests) ? item.interests : [item.interests];
     }) ?? [];
 
+  const currentPhoto =
+    photos[photoIndex]?.url ?? profile.profile_photo_url;
+
+  const handleDragEnd = (
+    _event: MouseEvent | TouchEvent | PointerEvent,
+    info: PanInfo,
+  ) => {
+    if (Math.abs(info.offset.x) < 100) return;
+
+    onSwipe(info.offset.x > 0 ? "right" : "left");
+  };
+
+  const previousPhoto = (event: React.MouseEvent) => {
+    event.stopPropagation();
+
+    setPhotoIndex((current) => Math.max(0, current - 1));
+  };
+
+  const nextPhoto = (event: React.MouseEvent) => {
+    event.stopPropagation();
+
+    setPhotoIndex((current) =>
+      Math.min(photos.length - 1, current + 1),
+    );
+  };
+
   return (
     <motion.div
       style={{
@@ -544,116 +580,225 @@ function DiscoverCard({
         rotate: isTop ? rotate : 0,
       }}
       animate={{
-        scale: isTop ? 1 : isSecond ? 0.96 : 0.92,
+        scale: isTop ? 1 : isSecond ? 0.97 : 0.94,
         y: isTop ? 0 : isSecond ? 12 : 24,
-        opacity: isTop ? 1 : isSecond ? 0.8 : 0.4,
+        opacity: isTop ? 1 : 0.8,
       }}
-      transition={{ type: "spring", damping: 25, stiffness: 320 }}
+      transition={{
+        type: "spring",
+        stiffness: 320,
+        damping: 28,
+      }}
       drag={isTop ? "x" : false}
       dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.8}
       onDragEnd={handleDragEnd}
-      className={`absolute inset-0 select-none ${
-        isTop ? "cursor-grab active:cursor-grabbing z-20" : "pointer-events-none z-10"
+      className={`absolute inset-0 overflow-hidden rounded-[2rem] select-none ${
+        isTop
+          ? "z-20 cursor-grab active:cursor-grabbing"
+          : "z-10 pointer-events-none"
       }`}
     >
-      <div className="relative h-full w-full rounded-3xl bg-card border border-border p-5 shadow-lg flex flex-col justify-between overflow-hidden">
-        {/* Swipe Visual Feedback Badges */}
-        {isTop && (
+      <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-black shadow-2xl">
+
+        {/* =========================================================
+            BACK CARDS
+        ========================================================== */}
+
+        {!isTop ? (
+          <div className="absolute inset-0 bg-card" />
+        ) : (
           <>
+            {/* =====================================================
+                PHOTO
+            ====================================================== */}
+
+            <div className="absolute inset-0">
+              {currentPhoto ? (
+                <Image
+                  src={currentPhoto}
+                  alt={profile.display_name ?? "Student"}
+                  fill
+                  priority
+                  className="object-cover object-center"
+                  sizes="(max-width: 768px) 100vw, 500px"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-muted text-6xl">
+                  👤
+                </div>
+              )}
+
+              {/* Dark gradient */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/90" />
+
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+            </div>
+
+            {/* =====================================================
+                PHOTO PROGRESS BARS
+            ====================================================== */}
+
+            {photos.length > 0 && (
+              <div className="absolute top-4 left-4 right-4 z-30 flex gap-1.5">
+                {photos.map((photo, index) => (
+                  <div
+                    key={`${photo.storage_path}-${index}`}
+                    className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/30"
+                  >
+                    <motion.div
+                      className="h-full rounded-full bg-white"
+                      animate={{
+                        width:
+                          index <= photoIndex ? "100%" : "0%",
+                      }}
+                      transition={{ duration: 0.2 }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* =====================================================
+                SWIPE FEEDBACK
+            ====================================================== */}
+
             <motion.div
               style={{ opacity: likeOpacity }}
-              className="absolute top-4 left-4 z-30 px-3.5 py-1.5 rounded-2xl bg-emerald-500/95 backdrop-blur-md border border-emerald-400 text-white font-black text-xs uppercase tracking-wider shadow-lg"
+              className="absolute top-20 left-6 z-40 rounded-2xl border-4 border-emerald-400 bg-emerald-500/90 px-5 py-2 text-2xl font-black uppercase tracking-widest text-white shadow-2xl"
             >
-              💚 Like
+              LIKE
             </motion.div>
+
             <motion.div
               style={{ opacity: passOpacity }}
-              className="absolute top-4 right-4 z-30 px-3.5 py-1.5 rounded-2xl bg-orange-500/95 backdrop-blur-md border border-orange-400 text-white font-black text-xs uppercase tracking-wider shadow-lg"
+              className="absolute top-20 right-6 z-40 rounded-2xl border-4 border-orange-400 bg-orange-500/90 px-5 py-2 text-2xl font-black uppercase tracking-widest text-white shadow-2xl"
             >
-              ❌ Pass
+              PASS
             </motion.div>
-          </>
-        )}
 
-        {/* Photo / Visual Hero */}
-        <div className="relative h-64 w-full rounded-2xl bg-muted overflow-hidden flex flex-col justify-end p-4 border border-border">
-          {profile.profile_photo_url ? (
-            <Image
-              src={profile.profile_photo_url}
-              alt={profile.display_name ?? "Student"}
-              fill
-              priority
-              className="object-cover object-center filter brightness-[0.96]"
-              sizes="380px"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-tr from-emerald-100 to-teal-50 text-4xl">
-              👤
-            </div>
-          )}
+{/* =====================================================
+    PHOTO NAVIGATION
+====================================================== */}
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+{photos.length > 1 && (
+  <>
+    {/* Invisible tap zones */}
+    <button
+      type="button"
+      aria-label="Previous photo"
+      onClick={previousPhoto}
+      disabled={photoIndex === 0}
+      className="absolute left-0 top-16 bottom-32 z-20 w-1/2 cursor-pointer disabled:cursor-default"
+    />
 
-          {/* Badges & Safety Button */}
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
-            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md border border-zinc-200 text-[10px] font-bold text-emerald-700 shadow-xs">
-              <ShieldCheck className="w-3 h-3" /> Verified
-            </div>
-            {isTop && (
+    <button
+      type="button"
+      aria-label="Next photo"
+      onClick={nextPhoto}
+      disabled={photoIndex === photos.length - 1}
+      className="absolute right-0 top-16 bottom-32 z-20 w-1/2 cursor-pointer disabled:cursor-default"
+    />
+
+    {/* Visible left arrow */}
+    {photoIndex > 0 && (
+      <div className="pointer-events-none absolute left-3 top-1/2 z-30 -translate-y-1/2">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/30 text-white shadow-lg backdrop-blur-md">
+          <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
+        </div>
+      </div>
+    )}
+
+    {/* Visible right arrow */}
+    {photoIndex < photos.length - 1 && (
+      <div className="pointer-events-none absolute right-3 top-1/2 z-30 -translate-y-1/2">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/30 text-white shadow-lg backdrop-blur-md">
+          <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
+        </div>
+      </div>
+    )}
+  </>
+)}
+
+            {/* =====================================================
+                TOP CONTROLS
+            ====================================================== */}
+
+            <div className="absolute top-9 right-4 z-40 flex items-center gap-2">
+              <div className="flex items-center gap-1.5 rounded-full border border-white/30 bg-white/90 px-3 py-1.5 text-[10px] font-bold text-emerald-700 shadow-lg backdrop-blur-md">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Verified
+              </div>
+
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={(event) => {
+                  event.stopPropagation();
                   onOpenSafety();
                 }}
-                className="h-7 w-7 rounded-full bg-white/90 backdrop-blur-md border border-zinc-200 flex items-center justify-center text-zinc-700 hover:text-black transition"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-white/30 bg-white/90 text-zinc-700 shadow-lg backdrop-blur-md transition hover:bg-white hover:text-black"
                 aria-label="Safety menu"
               >
-                <MoreVertical className="w-3.5 h-3.5" />
+                <MoreVertical className="h-4 w-4" />
               </button>
-            )}
-          </div>
-
-          <div className="z-10">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-extrabold text-white tracking-tight">
-                {profile.display_name || "DateBu Student"}
-                {age !== null && `, ${age}`}
-              </h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/90 text-white shadow-xs">
-                {profile.department}
-              </span>
             </div>
-            <p className="text-xs text-zinc-200 mt-0.5">
-              {profile.academic_year} • {profile.gender}
-            </p>
-          </div>
-        </div>
 
-        {/* Bio */}
-        {profile.bio && (
-          <p className="text-xs text-foreground line-clamp-2 leading-relaxed my-2">
-            &ldquo;{profile.bio}&rdquo;
-          </p>
+            {/* =====================================================
+                PROFILE INFORMATION
+            ====================================================== */}
+
+            <div className="absolute bottom-5 left-5 right-5 z-30">
+              <div className="flex items-end gap-2">
+                <h2 className="text-3xl font-black leading-tight tracking-tight text-white drop-shadow-lg">
+                  {profile.display_name || "DateBu Student"}
+                  {age !== null && `, ${age}`}
+                </h2>
+
+                {profile.department && (
+                  <span className="mb-1 rounded-full bg-blue-500/90 px-2.5 py-1 text-[10px] font-bold text-white shadow-lg backdrop-blur-md">
+                    {profile.department}
+                  </span>
+                )}
+              </div>
+
+              <p className="mt-1 text-sm font-medium text-zinc-200">
+                {profile.academic_year}
+                {profile.gender && ` • ${profile.gender}`}
+              </p>
+
+              {profile.bio && (
+                <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-white/90 drop-shadow-md">
+                  &ldquo;{profile.bio}&rdquo;
+                </p>
+              )}
+
+              {interests.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {interests.slice(0, 5).map((interest) => (
+                    <span
+                      key={interest.id}
+                      className="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[10px] font-semibold text-white backdrop-blur-md"
+                    >
+                      {interest.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-4 flex items-center justify-between border-t border-white/20 pt-3 text-[10px] font-medium text-white/70">
+                <span>← Pass</span>
+
+                {photos.length > 1 && (
+                  <span>
+                    {photoIndex + 1} / {photos.length}
+                  </span>
+                )}
+
+                <span>Like →</span>
+              </div>
+            </div>
+          </>
         )}
-
-        {/* Interests */}
-        <div className="flex flex-wrap gap-1.5 my-1">
-          {interests.slice(0, 5).map((interest) => (
-            <span
-              key={interest.id}
-              className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-muted border border-border text-foreground"
-            >
-              {interest.name}
-            </span>
-          ))}
-        </div>
-
-        {/* Footer instruction */}
-        <div className="pt-2 border-t border-border flex items-center justify-between text-[10px] text-muted-foreground">
-          <span>Swipe right to Like</span>
-          <span>Swipe left to Pass</span>
-        </div>
       </div>
     </motion.div>
   );

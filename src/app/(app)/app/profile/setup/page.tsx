@@ -34,17 +34,21 @@ export default async function ProfileSetupPage() {
     .eq("id", user.id)
     .maybeSingle();
 
-  // Load existing primary photo (if any)
-  const { data: existingPhoto } = await supabase
+  // Load all existing profile photos in display order
+  const { data: existingPhotos } = await supabase
     .from("profile_photos")
-    .select("storage_path")
+    .select("storage_path, display_order, is_primary")
     .eq("profile_id", user.id)
-    .eq("is_primary", true)
-    .maybeSingle();
+    .order("display_order", { ascending: true });
 
-  const existingPhotoUrl = existingPhoto?.storage_path
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${existingPhoto.storage_path}`
-    : null;
+  const existingPhotoPaths = (existingPhotos ?? []).map(
+    (photo) => photo.storage_path,
+  );
+
+  const existingPhotoUrls = existingPhotoPaths.map(
+    (path) =>
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${path}`,
+  );
 
   // Load existing selected interest IDs
   const { data: existingPi } = await supabase
@@ -86,8 +90,8 @@ export default async function ProfileSetupPage() {
         userId={user.id}
         interests={interests ?? []}
         existingProfile={existingProfile}
-        existingPhotoUrl={existingPhotoUrl}
-        existingPhotoPath={existingPhoto?.storage_path ?? null}
+        existingPhotoUrls={existingPhotoUrls}
+        existingPhotoPaths={existingPhotoPaths}
         existingInterestIds={existingInterestIds}
         existingPreferences={existingPreferences}
       />

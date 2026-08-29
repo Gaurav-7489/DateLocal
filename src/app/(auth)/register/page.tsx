@@ -14,7 +14,6 @@ import {
   EyeOff, 
   AlertCircle,
   Loader2,
-  CheckCircle2,
   MapPin
 } from "lucide-react";
 import { universityConfig } from "@/config/university";
@@ -56,7 +55,6 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isFocusedPassword, setIsFocusedPassword] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
 
@@ -116,7 +114,12 @@ export default function RegisterPage() {
       return;
     }
 
-    setSuccess(true);
+    if (result.needsEmailConfirmation) {
+  window.location.href = `${routes.verify}?email=${encodeURIComponent(normalizedEmail)}`;
+  return;
+}
+
+window.location.href = routes.profileSetup;
   };
 
   return (
@@ -223,37 +226,7 @@ export default function RegisterPage() {
         {/* Registration Form Card */}
         <div className="relative w-full rounded-3xl border border-zinc-200/90 bg-white/95 pt-8 px-5 pb-6 backdrop-blur-xl shadow-[0_12px_35px_rgba(0,0,0,0.06)]">
           
-          <AnimatePresence mode="wait">
-            {success ? (
-              <motion.div
-                key="success"
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="space-y-4 text-center py-4"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center mx-auto text-emerald-700 shadow-xs">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-
-                <div className="space-y-1">
-                  <h2 className="text-lg font-bold text-zinc-950 tracking-tight">Check Your BU Inbox</h2>
-                  <p className="text-xs text-zinc-600 max-w-xs mx-auto leading-relaxed">
-                    We dispatched an activation link to <span className="text-emerald-700 font-semibold">{email}</span>.
-                  </p>
-                </div>
-
-                <div className="pt-2">
-                  <Link
-                    href={routes.login}
-                    className="inline-flex items-center justify-center w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all"
-                  >
-                    Continue to Login <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </motion.div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-3.5">
+          <form onSubmit={handleSubmit} className="space-y-3.5">
                 
                 <div className="text-center space-y-1 pb-1">
                   <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-semibold text-emerald-700">
@@ -385,11 +358,9 @@ export default function RegisterPage() {
                 </div>
 
               </form>
-            )}
-          </AnimatePresence>
 
-        </div>
-      </main>
+          </div>
+        </main>
 
       {/* Discrete Footer */}
       <footer className="py-3 text-center text-[10px] text-zinc-400">

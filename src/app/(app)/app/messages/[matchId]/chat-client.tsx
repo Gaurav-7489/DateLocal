@@ -342,6 +342,7 @@ export default function ChatClient({
                 >
                   Cancel
                 </Button>
+                
                 <Button
                   type="submit"
                   variant="primary"

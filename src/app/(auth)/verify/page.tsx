@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -20,7 +21,22 @@ import { routes } from "@/config/routes";
 import { resendVerificationEmail } from "@/services/auth.service";
 
 export default function VerifyPage() {
-  const [email, setEmail] = useState("");
+  return (
+    <Suspense fallback={<div className="min-h-[100dvh] bg-[#f7fbf9]" />}>
+      <VerifyPageWithParams />
+    </Suspense>
+  );
+}
+
+function VerifyPageWithParams() {
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email")?.trim().toLowerCase() ?? "";
+
+  return <VerifyPageContent initialEmail={email} />;
+}
+
+function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
+  const [email, setEmail] = useState(initialEmail);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");

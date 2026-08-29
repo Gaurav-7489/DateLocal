@@ -20,7 +20,10 @@ export async function registerWithEmail(
     email,
     password,
     options: {
-      emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/app` : undefined,
+      emailRedirectTo:
+  typeof window !== "undefined"
+    ? `${window.location.origin}/auth/callback`
+    : undefined,
     },
   });
 
@@ -69,7 +72,10 @@ export async function resendVerificationEmail(
     type: "signup",
     email,
     options: {
-      emailRedirectTo: typeof window !== "undefined" ? `${window.location.origin}/app` : undefined,
+      emailRedirectTo:
+  typeof window !== "undefined"
+    ? `${window.location.origin}/auth/callback`
+    : undefined,
     },
   });
 

@@ -68,8 +68,8 @@ interface ProfileSetupFormProps {
   userId: string;
   interests: Interest[];
   existingProfile: ExistingProfile | null;
-  existingPhotoUrl: string | null;
-  existingPhotoPath: string | null;
+  existingPhotoUrls: string[];
+  existingPhotoPaths: string[];
   existingInterestIds: string[];
   existingPreferences: ExistingPreferences | null;
 }
@@ -84,8 +84,8 @@ export function ProfileSetupForm({
   userId,
   interests,
   existingProfile,
-  existingPhotoUrl,
-  existingPhotoPath,
+  existingPhotoUrls,
+  existingPhotoPaths,
   existingInterestIds,
   existingPreferences,
 }: ProfileSetupFormProps) {
@@ -103,7 +103,7 @@ export function ProfileSetupForm({
   const [department, setDepartment] = useState(existingProfile?.department ?? "");
   const [academicYear, setAcademicYear] = useState(existingProfile?.academic_year ?? "");
   const [bio, setBio] = useState(existingProfile?.bio ?? "");
-  const [photoPath, setPhotoPath] = useState<string | null>(existingPhotoPath);
+const [photoPaths, setPhotoPaths] = useState<string[]>(existingPhotoPaths);
   const [selectedInterests, setSelectedInterests] = useState<Set<string>>(new Set(existingInterestIds));
   const [interestedIn, setInterestedIn] = useState(deriveInterestedIn(existingPreferences?.interested_in));
   const [minAge, setMinAge] = useState(existingPreferences?.min_age ?? 18);
@@ -131,6 +131,17 @@ export function ProfileSetupForm({
 
   return (
     <form action={formAction} className="relative pb-24 max-w-lg mx-auto w-full">
+
+      {/* Persist values from previous steps when submitting Step 3 */}
+      <input type="hidden" name="display_name" value={displayName} />
+      <input type="hidden" name="date_of_birth" value={dob} />
+      <input type="hidden" name="gender" value={gender} />
+      <input type="hidden" name="department" value={department} />
+      <input type="hidden" name="academic_year" value={academicYear} />
+      <input type="hidden" name="bio" value={bio} />
+{photoPaths.map((path) => (
+  <input key={path} type="hidden" name="photo_paths" value={path} />
+))}
       
       {/* Step Indicator Header */}
       <div className="mb-6 space-y-2">
@@ -318,15 +329,16 @@ export function ProfileSetupForm({
               <h2 className="text-sm font-bold text-zinc-900">Campus Profile Photo</h2>
             </div>
             
-            <ProfilePhotoUploader
-              userId={userId}
-              existingPhotoUrl={existingPhotoUrl}
-              onPhotoUploaded={(path) => setPhotoPath(path)}
-            />
+<ProfilePhotoUploader
+  userId={userId}
+  existingPhotoUrls={existingPhotoUrls}
+  existingPhotoPaths={existingPhotoPaths}
+  onPhotosUploaded={(paths) => setPhotoPaths(paths)}
+/>
 
-            {photoPath && (
-              <input type="hidden" name="photo_path" value={photoPath} />
-            )}
+            {photoPaths.map((path) => (
+              <input key={path} type="hidden" name="photo_paths" value={path} />
+            ))}
           </div>
 
           {/* Bio Card */}

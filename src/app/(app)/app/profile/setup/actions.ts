@@ -43,7 +43,10 @@ export async function saveProfile(
   const department = (formData.get("department") as string)?.trim() ?? "";
   const academicYear = formData.get("academic_year") as string;
   const bio = (formData.get("bio") as string)?.trim() ?? "";
-  const photoPath = (formData.get("photo_path") as string)?.trim() ?? "";
+  const photoPaths = formData
+    .getAll("photo_paths")
+    .map((value) => String(value).trim())
+    .filter(Boolean);
   const interestIds = formData.getAll("interests") as string[];
   const interestedIn = formData.get("interested_in") as string;
   const minAge = parseInt(formData.get("min_age") as string, 10);
@@ -140,28 +143,41 @@ export async function saveProfile(
     return { error: "Failed to save profile. Please try again." };
   }
 
-  // ---- Save profile photo if provided ----
-  if (photoPath) {
-    const { error: photoDeleteError } = await supabase
-      .from("profile_photos")
-      .delete()
-      .eq("profile_id", user.id);
+  // ---- Save profile photos ----
+  // Only accept paths belonging to the currently authenticated user.
+  const safePhotoPaths = photoPaths.filter((path) =>
+    path.startsWith(`${user.id}/`),
+  );
 
-    if (photoDeleteError) {
-      console.error("Profile photo delete error:", photoDeleteError);
-    }
+  const { error: photoDeleteError } = await supabase
+    .from("profile_photos")
+    .delete()
+    .eq("profile_id", user.id);
+
+  if (photoDeleteError) {
+    console.error("Profile photo delete error:", photoDeleteError);
+    return {
+      error: "Failed to update profile photos. Please try again.",
+    };
+  }
+
+  if (safePhotoPaths.length > 0) {
+    const photoRows = safePhotoPaths.map((storage_path, index) => ({
+      profile_id: user.id,
+      storage_path,
+      display_order: index,
+      is_primary: index === 0,
+    }));
 
     const { error: photoInsertError } = await supabase
       .from("profile_photos")
-      .insert({
-        profile_id: user.id,
-        storage_path: photoPath,
-        display_order: 0,
-        is_primary: true,
-      });
+      .insert(photoRows);
 
     if (photoInsertError) {
       console.error("Profile photo insert error:", photoInsertError);
+      return {
+        error: "Failed to save profile photos. Please try again.",
+      };
     }
   }
 

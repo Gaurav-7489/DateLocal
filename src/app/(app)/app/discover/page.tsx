@@ -191,38 +191,41 @@ export default async function DiscoverPage() {
     });
   }
 
-  // Resolve photo URLs
-  const profilesWithPhotoUrls = await Promise.all(
-    filteredProfiles.map(async (profile) => {
-      const photos = [...(profile.profile_photos ?? [])].sort((a, b) => {
+// Resolve URLs for up to 5 profile photos
+const profilesWithPhotoUrls = await Promise.all(
+  filteredProfiles.map(async (profile) => {
+    const photos = [...(profile.profile_photos ?? [])]
+      .sort((a, b) => {
         if (a.is_primary && !b.is_primary) return -1;
         if (!a.is_primary && b.is_primary) return 1;
         return a.display_order - b.display_order;
-      });
+      })
+      .slice(0, 5);
 
-      const photoPath = photos[0]?.storage_path;
+    const photosWithUrls = await Promise.all(
+      photos.map(async (photo) => {
+        const { data: signedUrlData } = await supabase.storage
+          .from("profile-photos")
+          .createSignedUrl(photo.storage_path, 60 * 60);
 
-      if (!photoPath) {
+        const url =
+          signedUrlData?.signedUrl ||
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${photo.storage_path}`;
+
         return {
-          ...profile,
-          profile_photo_url: null,
+          ...photo,
+          url,
         };
-      }
+      }),
+    );
 
-      const { data: signedUrlData } = await supabase.storage
-        .from("profile-photos")
-        .createSignedUrl(photoPath, 60 * 60);
-
-      const photoUrl =
-        signedUrlData?.signedUrl ||
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${photoPath}`;
-
-      return {
-        ...profile,
-        profile_photo_url: photoUrl,
-      };
-    }),
-  );
+    return {
+      ...profile,
+      profile_photo_url: photosWithUrls[0]?.url ?? null,
+      profile_photos: photosWithUrls,
+    };
+  }),
+);
 
   return (
     <DiscoverClient
