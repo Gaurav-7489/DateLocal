@@ -30,6 +30,10 @@
   --campus-green: 16 185 129;    /* #10B981 */
   --campus-orange: 249 115 22;   /* #F97316 */
   --dept-blue: 37 99 235;        /* #2563EB */
+
+  /* Neutral Grey Skeleton (Light Mode) */
+  --skeleton-base: 228 232 238;   /* Light Slate Grey */
+  --skeleton-shimmer: 241 245 249; /* Bright Highlight */
 }
 
 .dark {
@@ -44,6 +48,10 @@
   --campus-green: 52 211 153;    /* Bright Emerald */
   --campus-orange: 251 146 60;   /* Bright Coral Orange */
   --dept-blue: 96 165 250;       /* Sky-Blue Glow */
+
+  /* Neutral Grey Skeleton (Dark Mode) */
+  --skeleton-base: 39 39 42;      /* Zinc 800 Charcoal Grey */
+  --skeleton-shimmer: 63 63 70;   /* Zinc 700 Soft Highlight */
 }
 
 /* Base Body Styles & Smooth Transitions */
@@ -114,4 +122,41 @@ body {
 
 .glass-card:hover {
   border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* 
+ * ==========================================
+ * Neutral Grey GPU Skeleton & Shimmer
+ * ==========================================
+ */
+.skeleton {
+  background-color: rgb(var(--skeleton-base));
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translate3d(-100%, 0, 0);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(var(--skeleton-shimmer)) 50%,
+    transparent 100%
+  );
+  animation: gpu-shimmer 1.6s infinite ease-in-out;
+  will-change: transform;
+}
+
+@keyframes gpu-shimmer {
+  0% {
+    transform: translate3d(-100%, 0, 0);
+  }
+  100% {
+    transform: translate3d(100%, 0, 0);
+  }
 }
