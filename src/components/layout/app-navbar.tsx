@@ -13,7 +13,6 @@ import { universityConfig } from "@/config/university";
 import { routes } from "@/config/routes";
 import { signOut } from "@/app/(app)/actions";
 import {
-  Home,
   Compass,
   Heart,
   MessageSquare,
@@ -31,11 +30,10 @@ import {
 } from "lucide-react";
 
 const appLinks = [
-  { href: routes.app, label: "Home", icon: Home },
   { href: routes.discover, label: "Discover", icon: Compass, badge: "New" },
   { href: routes.matches, label: "Matches", icon: Heart },
-  { href: routes.messages, label: "Chat", icon: MessageSquare },
-  { href: routes.profile, label: "Profile", icon: User },
+  { href: routes.messages, label: "Chats", icon: MessageSquare },
+  { href: routes.profile, label: "You", icon: User },
 ];
 
 const menuVariants: Variants = {
@@ -380,7 +378,7 @@ export function AppNavbar({
                       <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 group-hover:bg-emerald-100 group-hover:text-emerald-700 transition-colors">
                         <User className="w-3.5 h-3.5" />
                       </div>
-                      Your Profile
+                      You
                     </Link>
 
                     <Link
@@ -391,7 +389,7 @@ export function AppNavbar({
                       <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 group-hover:bg-emerald-100 group-hover:text-emerald-700 transition-colors">
                         <Settings className="w-3.5 h-3.5" />
                       </div>
-                      Settings & Preferences
+                      Settings & privacy
                     </Link>
                   </div>
 

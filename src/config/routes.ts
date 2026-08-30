@@ -17,8 +17,10 @@ export const routes = {
   matches: "/app/matches",
   messages: "/app/messages",
   profile: "/app/profile",
+  profilePreferences: "/app/profile/preferences",
   profileSetup: "/app/profile/setup",
   settings: "/app/settings",
+  extrovert: "/app/extrovert",
 
   admin: {
     root: "/admin",

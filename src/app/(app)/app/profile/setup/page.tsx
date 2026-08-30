@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { universityConfig } from "@/config/university";
+import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import { ProfileSetupForm } from "./profile-setup-form";
 
 export const metadata: Metadata = { title: "Profile Setup" };
@@ -21,49 +22,46 @@ export default async function ProfileSetupPage() {
     redirect(routes.login);
   }
 
-  // Load all available interests
-  const { data: interests } = await supabase
-    .from("interests")
-    .select("id, name")
-    .order("name");
-
-  // Load existing profile (if any)
-  const { data: existingProfile } = await supabase
-    .from("profiles")
-    .select("display_name, date_of_birth, gender, department, academic_year, bio")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  // Load all existing profile photos in display order
-  const { data: existingPhotos } = await supabase
-    .from("profile_photos")
-    .select("storage_path, display_order, is_primary")
-    .eq("profile_id", user.id)
-    .order("display_order", { ascending: true });
+  // All setup data is independent once the authenticated user is known.
+  const [
+    { data: interests },
+    { data: existingProfile },
+    { data: existingPhotos },
+    { data: existingPi },
+    { data: existingPreferences },
+  ] = await Promise.all([
+    supabase.from("interests").select("id, name").order("name"),
+    supabase
+      .from("profiles")
+      .select("display_name, date_of_birth, gender, department, academic_year, bio")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("profile_photos")
+      .select("storage_path, display_order, is_primary")
+      .eq("profile_id", user.id)
+      .order("display_order", { ascending: true }),
+    supabase
+      .from("profile_interests")
+      .select("interest_id")
+      .eq("profile_id", user.id),
+    supabase
+      .from("dating_preferences")
+      .select("interested_in, min_age, max_age, preferred_department")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
 
   const existingPhotoPaths = (existingPhotos ?? []).map(
     (photo) => photo.storage_path,
   );
 
-  const existingPhotoUrls = existingPhotoPaths.map(
-    (path) =>
-      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${path}`,
-  );
-
-  // Load existing selected interest IDs
-  const { data: existingPi } = await supabase
-    .from("profile_interests")
-    .select("interest_id")
-    .eq("profile_id", user.id);
+  const existingPhotoUrls = existingPhotoPaths.flatMap((path) => {
+    const url = getProfilePhotoUrl(path, 320);
+    return url ? [url] : [];
+  });
 
   const existingInterestIds = (existingPi ?? []).map((row) => row.interest_id);
-
-  // Load existing dating preferences
-  const { data: existingPreferences } = await supabase
-    .from("dating_preferences")
-    .select("interested_in, min_age, max_age, preferred_department")
-    .eq("user_id", user.id)
-    .maybeSingle();
 
   const isEditing = !!existingProfile;
 

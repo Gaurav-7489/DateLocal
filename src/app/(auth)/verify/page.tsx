@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   Mail, 
   CheckCircle2, 
@@ -11,7 +11,6 @@ import {
   Loader2, 
   ArrowRight, 
   RefreshCw, 
-  ExternalLink,
   ShieldCheck,
   Inbox,
   Sparkles

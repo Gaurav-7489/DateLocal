@@ -118,8 +118,7 @@ export default function RegisterPage() {
   window.location.href = `${routes.verify}?email=${encodeURIComponent(normalizedEmail)}`;
   return;
 }
-
-window.location.href = routes.profileSetup;
+window.location.href = routes.app;
   };
 
   return (

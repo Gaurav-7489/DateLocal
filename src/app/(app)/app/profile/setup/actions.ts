@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
+import { isUuid } from "@/lib/validation";
 
 export type ProfileFormState = {
   error?: string;
@@ -94,6 +95,14 @@ export async function saveProfile(
 
   if (bio.length > 500) {
     fieldErrors.bio = "Bio must be 500 characters or less.";
+  }
+
+  if (photoPaths.length > 6 || new Set(photoPaths).size !== photoPaths.length) {
+    fieldErrors.photo_paths = "You can save up to 6 unique photos.";
+  }
+
+  if (interestIds.some((interestId) => !isUuid(interestId))) {
+    fieldErrors.interests = "One or more selected interests are invalid.";
   }
 
   if (interestIds.length === 0) {

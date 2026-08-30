@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
+import { isUuid } from "@/lib/validation";
 
 export type SendMessageResult = {
   error: string | null;
@@ -18,6 +19,10 @@ export async function sendMessage(
   matchId: string,
   content: string,
 ): Promise<SendMessageResult> {
+  if (!isUuid(matchId)) {
+    return { error: "Invalid conversation." };
+  }
+
   const supabase = await createServerSupabaseClient();
 
   const {

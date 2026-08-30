@@ -25,6 +25,6 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.redirect(
-    new URL(routes.profileSetup, requestUrl.origin),
+  new URL(routes.app, requestUrl.origin),
   );
 }

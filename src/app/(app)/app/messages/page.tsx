@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { EmptyState } from "@/components/shared/empty-state";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
+import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import { MessageSquare, User } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -40,28 +41,25 @@ export default async function MessagesPage() {
 
   if (!user) return null;
 
-  // Load blocked user IDs
-  const { data: blocksCreated } = await supabase
-    .from("blocks")
-    .select("blocked_id")
-    .eq("blocker_id", user.id);
-
-  const { data: blocksReceived } = await supabase
-    .from("blocks")
-    .select("blocker_id")
-    .eq("blocked_id", user.id);
+  // These queries have no dependencies, so make one network round trip.
+  const [
+    { data: blocksCreated },
+    { data: blocksReceived },
+    { data: rawMatches, error: matchesError },
+  ] = await Promise.all([
+    supabase.from("blocks").select("blocked_id").eq("blocker_id", user.id),
+    supabase.from("blocks").select("blocker_id").eq("blocked_id", user.id),
+    supabase
+      .from("matches")
+      .select("id, user_a, user_b, created_at")
+      .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
+      .order("created_at", { ascending: false }),
+  ]);
 
   const blockedUserIds = new Set<string>([
     ...(blocksCreated ?? []).map((b) => b.blocked_id),
     ...(blocksReceived ?? []).map((b) => b.blocker_id),
   ]);
-
-  // Load the current user's matches
-  const { data: rawMatches, error: matchesError } = await supabase
-    .from("matches")
-    .select("id, user_a, user_b, created_at")
-    .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
-    .order("created_at", { ascending: false });
 
   if (matchesError) {
     console.error("Failed to load matches:", matchesError);
@@ -103,10 +101,14 @@ export default async function MessagesPage() {
     match.user_a === user.id ? match.user_b : match.user_a,
   );
 
-  // Load the profiles of the matched students
-  const { data: profiles, error: profilesError } = await supabase
-    .from("profiles")
-    .select(`
+  // Profiles and messages depend on the match IDs, but not on each other.
+  const [
+    { data: profiles, error: profilesError },
+    { data: messages },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(`
       id,
       display_name,
       department,
@@ -116,8 +118,14 @@ export default async function MessagesPage() {
         display_order,
         is_primary
       )
-    `)
-    .in("id", otherUserIds);
+      `)
+      .in("id", otherUserIds),
+    supabase
+      .from("messages")
+      .select("id, match_id, sender_id, content, created_at")
+      .in("match_id", matches.map((m) => m.id))
+      .order("created_at", { ascending: false }),
+  ]);
 
   if (profilesError) {
     console.error("Failed to load matched profiles:", profilesError);
@@ -126,13 +134,6 @@ export default async function MessagesPage() {
   const profileMap = new Map(
     (profiles ?? []).map((profile) => [profile.id, profile]),
   );
-
-  // Load latest messages for these matches
-  const { data: messages } = await supabase
-    .from("messages")
-    .select("id, match_id, sender_id, content, created_at")
-    .in("match_id", matches.map((m) => m.id))
-    .order("created_at", { ascending: false });
 
   const latestMessageMap = new Map<
     string,
@@ -184,9 +185,7 @@ export default async function MessagesPage() {
           });
 
           const photoPath = photos[0]?.storage_path;
-          const photoUrl = photoPath
-            ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${photoPath}`
-            : null;
+          const photoUrl = getProfilePhotoUrl(photoPath, 160);
 
           const latestMessage = latestMessageMap.get(match.id);
 

@@ -6,6 +6,7 @@ import { routes } from "@/config/routes";
 import { universityConfig } from "@/config/university";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import {
   ShieldCheck,
   Edit,
@@ -40,10 +41,10 @@ export default async function ProfilePage() {
 
   if (!user) return null;
 
-  // Load profile with photos and interests
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select(`
+  const [{ data: profile }, { data: preferences }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(`
       id,
       display_name,
       date_of_birth,
@@ -65,16 +66,15 @@ export default async function ProfilePage() {
           name
         )
       )
-    `)
-    .eq("id", user.id)
-    .maybeSingle();
-
-  // Load dating preferences
-  const { data: preferences } = await supabase
-    .from("dating_preferences")
-    .select("interested_in, min_age, max_age, preferred_department")
-    .eq("user_id", user.id)
-    .maybeSingle();
+      `)
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("dating_preferences")
+      .select("interested_in, min_age, max_age, preferred_department")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
 
   const isCompleted = Boolean(profile?.profile_completed);
 
@@ -85,9 +85,7 @@ export default async function ProfilePage() {
   });
 
   const photoPath = photos[0]?.storage_path;
-  const photoUrl = photoPath
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${photoPath}`
-    : null;
+  const photoUrl = getProfilePhotoUrl(photoPath, 640);
 
   const interests =
     profile?.profile_interests?.flatMap((pi) => {

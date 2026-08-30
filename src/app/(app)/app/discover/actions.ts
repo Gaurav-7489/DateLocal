@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
+import { isUuid } from "@/lib/validation";
 
 export type LikeResult = {
   error: string | null;
@@ -16,6 +17,10 @@ export type ActionResult = {
 };
 
 export async function likeProfile(profileId: string): Promise<LikeResult> {
+  if (!isUuid(profileId)) {
+    return { error: "Invalid profile.", matched: false };
+  }
+
   const supabase = await createServerSupabaseClient();
 
   const {
@@ -218,6 +223,10 @@ export async function likeProfile(profileId: string): Promise<LikeResult> {
 }
 
 export async function passProfile(profileId: string): Promise<ActionResult> {
+  if (!isUuid(profileId)) {
+    return { error: "Invalid profile." };
+  }
+
   const supabase = await createServerSupabaseClient();
 
   const {
@@ -295,6 +304,10 @@ export async function resetPassedProfiles(): Promise<ActionResult> {
 }
 
 export async function blockUser(targetUserId: string): Promise<ActionResult> {
+  if (!isUuid(targetUserId)) {
+    return { error: "Invalid profile." };
+  }
+
   const supabase = await createServerSupabaseClient();
 
   const {
@@ -339,6 +352,10 @@ export async function blockUser(targetUserId: string): Promise<ActionResult> {
 }
 
 export async function unblockUser(targetUserId: string): Promise<ActionResult> {
+  if (!isUuid(targetUserId)) {
+    return { error: "Invalid profile." };
+  }
+
   const supabase = await createServerSupabaseClient();
 
   const {
@@ -370,6 +387,10 @@ export async function reportUser(
   reason: string,
   details?: string,
 ): Promise<ActionResult> {
+  if (!isUuid(targetUserId)) {
+    return { error: "Invalid profile." };
+  }
+
   const supabase = await createServerSupabaseClient();
 
   const {
@@ -386,6 +407,10 @@ export async function reportUser(
 
   if (!reason.trim()) {
     return { error: "Please select or provide a reason for the report." };
+  }
+
+  if (reason.trim().length > 120 || (details?.trim().length ?? 0) > 500) {
+    return { error: "Report details are too long." };
   }
 
   const { error: reportError } = await supabase.from("reports").insert({

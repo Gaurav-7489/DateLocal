@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import DiscoverClient from "./discover-client";
 import { Sparkles, ArrowRight } from "lucide-react";
 
@@ -13,6 +14,8 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const DISCOVER_BATCH_SIZE = 20;
 
 
 
@@ -55,35 +58,40 @@ export default async function DiscoverPage() {
     );
   }
 
-  // Load dating preferences
-  const { data: myPrefs } = await supabase
-    .from("dating_preferences")
-    .select("interested_in, min_age, max_age, preferred_department")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // Load all independent user data in parallel.
+  const [
+    { data: myPrefs },
+    { data: likes },
+    { data: passes },
+    { data: blocksCreated },
+    { data: blocksReceived },
+  ] = await Promise.all([
+    supabase
+      .from("dating_preferences")
+      .select("preferred_department")
+      .eq("user_id", user.id)
+      .maybeSingle(),
 
-  // 1. Get profiles the user already liked
-  const { data: likes } = await supabase
-    .from("likes")
-    .select("liked_id")
-    .eq("liker_id", user.id);
+    supabase
+      .from("likes")
+      .select("liked_id")
+      .eq("liker_id", user.id),
 
-  // 2. Get profiles the user already passed
-  const { data: passes } = await supabase
-    .from("passes")
-    .select("passed_id")
-    .eq("passer_id", user.id);
+    supabase
+      .from("passes")
+      .select("passed_id")
+      .eq("passer_id", user.id),
 
-  // 3. Get blocked users (both where current user is blocker or was blocked)
-  const { data: blocksCreated } = await supabase
-    .from("blocks")
-    .select("blocked_id")
-    .eq("blocker_id", user.id);
+    supabase
+      .from("blocks")
+      .select("blocked_id")
+      .eq("blocker_id", user.id),
 
-  const { data: blocksReceived } = await supabase
-    .from("blocks")
-    .select("blocker_id")
-    .eq("blocked_id", user.id);
+    supabase
+      .from("blocks")
+      .select("blocker_id")
+      .eq("blocked_id", user.id),
+  ]);
 
   const excludedIds = new Set<string>([
     user.id,
@@ -130,7 +138,7 @@ export default async function DiscoverPage() {
 
   const { data: rawProfiles, error: profilesError } = await profilesQuery
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(DISCOVER_BATCH_SIZE);
 
   if (profilesError) {
     console.error("Failed to load discover profiles:", profilesError);
@@ -165,46 +173,30 @@ export default async function DiscoverPage() {
     });
   }
 
-// Resolve URLs for up to 5 profile photos
-const profilesWithPhotoUrls = await Promise.all(
-  filteredProfiles.map(async (profile) => {
-    const photos = [...(profile.profile_photos ?? [])]
-      .sort((a, b) => {
-        if (a.is_primary && !b.is_primary) return -1;
-        if (!a.is_primary && b.is_primary) return 1;
-        return a.display_order - b.display_order;
-      })
-      .slice(0, 5);
+const profilesWithPhotoUrls = filteredProfiles.map((profile) => {
+  const photos = [...(profile.profile_photos ?? [])]
+    .sort((a, b) => {
+      if (a.is_primary && !b.is_primary) return -1;
+      if (!a.is_primary && b.is_primary) return 1;
+      return a.display_order - b.display_order;
+    })
+    .slice(0, 5);
 
-    const photosWithUrls = await Promise.all(
-      photos.map(async (photo) => {
-        const { data: signedUrlData } = await supabase.storage
-          .from("profile-photos")
-          .createSignedUrl(photo.storage_path, 60 * 60);
+  const photosWithUrls = photos.map((photo) => ({
+    ...photo,
+    url: getProfilePhotoUrl(photo.storage_path, 1080),
+  }));
 
-        const url =
-          signedUrlData?.signedUrl ||
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${photo.storage_path}`;
-
-        return {
-          ...photo,
-          url,
-        };
-      }),
-    );
-
-    return {
-      ...profile,
-      profile_photo_url: photosWithUrls[0]?.url ?? null,
-      profile_photos: photosWithUrls,
-    };
-  }),
-);
+  return {
+    ...profile,
+    profile_photo_url: photosWithUrls[0]?.url ?? null,
+    profile_photos: photosWithUrls,
+  };
+});
 
   return (
     <DiscoverClient
       profiles={profilesWithPhotoUrls}
-      currentUserId={user.id}
     />
   );
 }

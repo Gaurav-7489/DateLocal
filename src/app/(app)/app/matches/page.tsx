@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/empty-state";
+import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import { MessageSquare, Heart, ShieldCheck, User } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -12,11 +13,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-function getPhotoUrl(storagePath: string | null) {
-  if (!storagePath) return null;
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${storagePath}`;
-}
 
 export default async function MatchesPage() {
   const supabase = await createServerSupabaseClient();
@@ -27,28 +23,24 @@ export default async function MatchesPage() {
 
   if (!user) return null;
 
-  // Load blocked user IDs to filter out
-  const { data: blocksCreated } = await supabase
-    .from("blocks")
-    .select("blocked_id")
-    .eq("blocker_id", user.id);
-
-  const { data: blocksReceived } = await supabase
-    .from("blocks")
-    .select("blocker_id")
-    .eq("blocked_id", user.id);
+  const [
+    { data: blocksCreated },
+    { data: blocksReceived },
+    { data: rawMatches, error: matchesError },
+  ] = await Promise.all([
+    supabase.from("blocks").select("blocked_id").eq("blocker_id", user.id),
+    supabase.from("blocks").select("blocker_id").eq("blocked_id", user.id),
+    supabase
+      .from("matches")
+      .select("id, user_a, user_b, created_at")
+      .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
+      .order("created_at", { ascending: false }),
+  ]);
 
   const blockedUserIds = new Set<string>([
     ...(blocksCreated ?? []).map((b) => b.blocked_id),
     ...(blocksReceived ?? []).map((b) => b.blocker_id),
   ]);
-
-  // Load matches
-  const { data: rawMatches, error: matchesError } = await supabase
-    .from("matches")
-    .select("id, user_a, user_b, created_at")
-    .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
-    .order("created_at", { ascending: false });
 
   if (matchesError) {
     console.error("Failed to load matches:", matchesError);
@@ -148,7 +140,7 @@ export default async function MatchesPage() {
             return a.display_order - b.display_order;
           });
 
-          const photoUrl = getPhotoUrl(photos[0]?.storage_path ?? null);
+          const photoUrl = getProfilePhotoUrl(photos[0]?.storage_path, 640);
 
           return (
             <div

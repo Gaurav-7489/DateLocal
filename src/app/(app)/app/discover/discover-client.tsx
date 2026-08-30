@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useMotionValue, useTransform, AnimatePresence, type PanInfo } from "framer-motion";
-import confetti from "canvas-confetti";
 import {
   Heart,
   X,
@@ -44,7 +43,7 @@ type ProfilePhoto = {
   storage_path: string;
   display_order: number;
   is_primary: boolean;
-  url?: string;
+  url?: string | null;
 };
 
 export type DiscoverProfile = {
@@ -76,7 +75,6 @@ export default function DiscoverClient({
   profiles,
 }: {
   profiles: DiscoverProfile[];
-  currentUserId?: string;
 }) {
   const router = useRouter();
   const [deck, setDeck] = useState<DiscoverProfile[]>(profiles);
@@ -136,12 +134,14 @@ async function handleLike(profileId: string) {
         name: target.display_name,
       });
 
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        startVelocity: 35,
-        origin: { y: 0.55 },
-        colors: ["#10B981", "#F97316", "#3B82F6", "#EC4899"],
+      void import("canvas-confetti").then(({ default: confetti }) => {
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          startVelocity: 35,
+          origin: { y: 0.55 },
+          colors: ["#10B981", "#F97316", "#3B82F6", "#EC4899"],
+        });
       });
 
       setMatchModal({
@@ -158,7 +158,6 @@ async function handleLike(profileId: string) {
 
     setLoading(false);
 
-    router.refresh();
   } catch (error) {
     console.error("[DateBu] Like action crashed:", error);
 
@@ -181,7 +180,6 @@ async function handleLike(profileId: string) {
 
     setDeck((prev) => prev.filter((p) => p.id !== profileId));
     setLoading(false);
-    router.refresh();
   }
 
   async function handleBlock(targetProfile: DiscoverProfile) {
@@ -198,7 +196,6 @@ async function handleLike(profileId: string) {
 
     setDeck((prev) => prev.filter((p) => p.id !== targetProfile.id));
     showToast(`${targetProfile.display_name} has been blocked.`);
-    router.refresh();
   }
 
   async function handleReportSubmit(e: React.FormEvent) {
@@ -218,7 +215,6 @@ async function handleLike(profileId: string) {
     setReportModalProfile(null);
     setReportDetails("");
     showToast("Report submitted. This user has been blocked from your feed.");
-    router.refresh();
   }
 async function handleReviewPassed() {
   if (loading) return;
@@ -234,7 +230,7 @@ async function handleReviewPassed() {
       return;
     }
 
-    window.location.reload();
+    router.refresh();
   } catch (error) {
     console.error("Failed to review passed profiles:", error);
     showToast("Couldn't reload passed profiles. Please try again.");
@@ -680,6 +676,7 @@ function DiscoverCard({
                   alt={profile.display_name ?? "Student"}
                   fill
                   priority
+                  quality={70}
                   className="object-cover object-center"
                   sizes="(max-width: 768px) 100vw, 500px"
                 />

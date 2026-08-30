@@ -4,6 +4,8 @@ import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
+import { getProfilePhotoUrl } from "@/lib/profile-photo";
+import { isUuid } from "@/lib/validation";
 import ChatClient from "./chat-client";
 import { ArrowLeft, User, ShieldCheck } from "lucide-react";
 
@@ -21,6 +23,10 @@ type Props = {
 
 export default async function ChatPage({ params }: Props) {
   const { matchId } = await params;
+
+  if (!isUuid(matchId)) {
+    notFound();
+  }
 
   const supabase = await createServerSupabaseClient();
 
@@ -84,7 +90,8 @@ export default async function ChatPage({ params }: Props) {
     .from("messages")
     .select("id, sender_id, content, created_at")
     .eq("match_id", matchId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false })
+    .limit(100);
 
   if (messagesError) {
     console.error("Failed to load messages:", messagesError);
@@ -97,9 +104,7 @@ export default async function ChatPage({ params }: Props) {
   });
 
   const photoPath = photos[0]?.storage_path;
-  const photoUrl = photoPath
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${photoPath}`
-    : null;
+  const photoUrl = getProfilePhotoUrl(photoPath, 160);
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-7rem)] max-w-3xl flex-col px-4 py-3">
@@ -154,7 +159,7 @@ export default async function ChatPage({ params }: Props) {
         currentUserId={user.id}
         otherUserId={otherUserId}
         otherUserName={profile.display_name || "Student"}
-        initialMessages={messages ?? []}
+        initialMessages={[...(messages ?? [])].reverse()}
       />
     </div>
   );

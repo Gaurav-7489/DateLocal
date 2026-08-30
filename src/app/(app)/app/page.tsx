@@ -6,6 +6,7 @@ import { routes } from "@/config/routes";
 import { universityConfig } from "@/config/university";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import {
   Compass,
   Heart,
@@ -72,9 +73,7 @@ export default async function DashboardPage() {
   });
 
   const photoPath = photos[0]?.storage_path;
-  const photoUrl = photoPath
-    ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${photoPath}`
-    : null;
+  const photoUrl = getProfilePhotoUrl(photoPath, 160);
 
   const quickActions = [
     {
