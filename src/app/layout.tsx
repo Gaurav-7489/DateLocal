@@ -19,8 +19,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: `${universityConfig.appName} — Bahra University Social Space`,
-  description: `Exclusive verified dating and social network for ${universityConfig.name} students.`,
+  title: `${universityConfig.appName} — Campus Social Space`,
+  description: `Student dating and social network for ${universityConfig.name}.`,
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icon.svg",

@@ -216,7 +216,7 @@ export default function HomePage() {
                     <Sparkles className="w-12 h-12 text-orange-500 animate-bounce mb-2" />
                     <h3 className="text-xl font-bold text-zinc-900">All Caught Up!</h3>
                     <p className="text-xs text-zinc-500 max-w-[210px] leading-relaxed">
-                      You&apos;ve checked all verified students in this demo batch.
+                      You&apos;ve checked all campus profiles in this demo batch.
                     </p>
                     <button
                       onClick={() => setDeck(DEMO_PROFILES)}
@@ -255,7 +255,7 @@ export default function HomePage() {
               Engineered for real campus life.
             </h2>
             <p className="text-zinc-600 text-xs sm:text-sm leading-relaxed max-w-md mx-auto">
-              No random outsiders. Tap on any feature card below to experience direct student interactions.
+          No random outsiders. Tap on any feature card below to experience direct campus interactions.
             </p>
           </div>
 
@@ -267,9 +267,9 @@ export default function HomePage() {
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div className="space-y-1.5">
-                <h3 className="text-xl font-bold text-zinc-900">100% Student Verified.</h3>
+                <h3 className="text-xl font-bold text-zinc-900">Campus email check.</h3>
                 <p className="text-zinc-600 text-xs sm:text-sm leading-relaxed">
-                  Zero fake accounts or bots. Registration requires direct single sign-on verification via <span className="text-emerald-700 font-mono text-xs bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-medium">@bahrauniversity.edu.in</span>.
+                  Zero fake accounts or bots. New sign-ups use a valid student email and confirmation flow so campus access stays real.
                 </p>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
@@ -323,33 +323,25 @@ export default function HomePage() {
   </div>
 
   <div className="grid grid-cols-2 gap-2.5 pt-1">
-    <button
-      type="button"
-      className="group flex items-center justify-center rounded-xl border border-purple-200 bg-purple-50 px-3 py-2.5 text-xs font-semibold text-purple-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-purple-300 hover:bg-purple-100 hover:shadow-sm active:translate-y-0"
-    >
+    <div className="group flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2.5 text-xs font-semibold text-purple-700">
+      <Lock className="w-3.5 h-3.5" />
       Blind Date
-    </button>
+    </div>
 
-    <button
-      type="button"
-      className="group flex items-center justify-center rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs font-semibold text-orange-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-orange-300 hover:bg-orange-100 hover:shadow-sm active:translate-y-0"
-    >
+    <div className="group flex items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs font-semibold text-orange-700">
+      <Lock className="w-3.5 h-3.5" />
       Random Rush
-    </button>
+    </div>
 
-    <button
-      type="button"
-      className="group flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold text-rose-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-100 hover:shadow-sm active:translate-y-0"
-    >
+    <div className="group flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold text-rose-700">
+      <Lock className="w-3.5 h-3.5" />
       Vibe Matcher
-    </button>
+    </div>
 
-    <button
-      type="button"
-      className="group flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-100 hover:shadow-sm active:translate-y-0"
-    >
+    <div className="group flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700">
+      <Lock className="w-3.5 h-3.5" />
       Study Buddies
-    </button>
+    </div>
   </div>
 </div>
 
@@ -364,12 +356,12 @@ export default function HomePage() {
                   Toggle ghost mode during exams, control who sees your department, and block or report in 1-tap.
                 </p>
               </div>
-              <div className="flex items-center justify-between text-xs text-zinc-600 bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200">
+              <div className="flex items-center justify-between gap-2 text-xs text-zinc-600 bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  Zero Outside Visibility
+                  <Lock className="w-4 h-4 text-amber-600" />
+                  Premium feature
                 </span>
-                <span className="text-emerald-700 font-semibold">Student Built &amp; Protected</span>
+                <span className="text-amber-700 font-semibold">Coming Soon</span>
               </div>
             </div>
 
@@ -587,7 +579,7 @@ function InteractiveCard({
 }
 
 const marqueeItems = [
-  "🎓 Verified Students Only",
+  "🎓 Campus community",
   "☕ Canteen Maggi & Chai Breaks",
   "💻 Midnight Hackathons & Devs",
   "🏸 Campus Badminton & Sports",

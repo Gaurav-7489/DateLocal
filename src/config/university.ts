@@ -10,3 +10,17 @@ export const universityConfig = {
   appName: process.env.NEXT_PUBLIC_APP_NAME ?? "DateBu",
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 } as const;
+
+export function isUniversityEmail(email?: string | null): boolean {
+  const normalizedEmail = email?.trim().toLowerCase();
+  const normalizedDomain = universityConfig.emailDomain
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, "");
+
+  if (!normalizedEmail || !normalizedEmail.includes("@")) {
+    return false;
+  }
+
+  return normalizedEmail.endsWith(`@${normalizedDomain}`);
+}

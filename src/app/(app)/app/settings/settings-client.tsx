@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toggleGhostMode, unblockUser } from "../discover/actions";
+import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
 import {
   Eye,
@@ -50,6 +51,11 @@ export function SettingsClient({
   } | null>(null);
 
   async function handleToggleGhost() {
+    if (!isPremium) {
+      router.push(routes.extrovert);
+      return;
+    }
+
     const nextState = !ghostMode;
 
     setGhostLoading(true);
@@ -151,12 +157,14 @@ export function SettingsClient({
             type="button"
             variant={ghostMode ? "primary" : "secondary"}
             size="sm"
-            disabled={ghostLoading}
+            disabled={ghostLoading || !isPremium}
             onClick={handleToggleGhost}
             className={ghostMode ? "bg-amber-600 hover:bg-amber-700 text-white" : ""}
           >
             {ghostLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
+            ) : !isPremium ? (
+              "Unlock"
             ) : ghostMode ? (
               "Turn Off"
             ) : (
@@ -170,10 +178,16 @@ export function SettingsClient({
           <span>
             Current Status:{" "}
             <strong>
-              {ghostMode ? "Invisible in Discovery" : "Visible to Students"}
+              {!isPremium ? "Premium required" : ghostMode ? "Invisible in Discovery" : "Visible to Students"}
             </strong>
           </span>
         </div>
+
+        {!isPremium && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+            Ghost Mode is a premium feature. Upgrade from the payment page to unlock it.
+          </div>
+        )}
       </div>
 
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">

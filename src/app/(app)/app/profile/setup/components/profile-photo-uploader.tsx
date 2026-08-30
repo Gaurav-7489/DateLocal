@@ -164,7 +164,7 @@ export function ProfilePhotoUploader({
               src={url}
               alt={`Profile photo ${index + 1}`}
               fill
-              className="object-cover"
+              className="object-contain bg-white p-1"
               sizes="120px"
             />
 

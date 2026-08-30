@@ -12,7 +12,7 @@ export type ProfileFormState = {
   fieldErrors?: Record<string, string>;
 };
 
-const GENDER_OPTIONS = ["man", "woman", "non-binary", "other", "prefer-not-to-say"] as const;
+const GENDER_OPTIONS = ["man", "woman", "other"] as const;
 const YEAR_OPTIONS = ["1st-year", "2nd-year", "3rd-year", "4th-year", "5th-year", "postgraduate"] as const;
 const INTERESTED_IN_OPTIONS = ["men", "women", "everyone"] as const;
 
@@ -64,9 +64,9 @@ export async function saveProfile(
       fieldErrors.date_of_birth = "Invalid date format.";
     } else {
       const age = calculateAge(dob);
-      if (age !== null && age < 18) {
-        fieldErrors.date_of_birth = "You must be at least 18 years old to use DateBu.";
-      } else if (age !== null && age > 99) {
+      if (age !== null && age < 14) {
+        fieldErrors.date_of_birth = "You must be at least 14 years old to use DateBu.";
+      } else if (age !== null && age > 60) {
         fieldErrors.date_of_birth = "Please enter a valid date of birth.";
       } else if (age === null) {
         fieldErrors.date_of_birth = "Invalid date of birth.";
@@ -108,11 +108,11 @@ export async function saveProfile(
     fieldErrors.interested_in = "Please select who you are interested in.";
   }
 
-  if (isNaN(minAge) || minAge < 18 || minAge > 99) {
-    fieldErrors.min_age = "Minimum age must be between 18 and 99.";
+  if (isNaN(minAge) || minAge < 14 || minAge > 60) {
+    fieldErrors.min_age = "Minimum age must be between 14 and 60.";
   }
-  if (isNaN(maxAge) || maxAge < 18 || maxAge > 99) {
-    fieldErrors.max_age = "Maximum age must be between 18 and 99.";
+  if (isNaN(maxAge) || maxAge < 14 || maxAge > 60) {
+    fieldErrors.max_age = "Maximum age must be between 14 and 60.";
   }
   if (!isNaN(minAge) && !isNaN(maxAge) && minAge > maxAge) {
     fieldErrors.min_age = "Minimum age cannot be greater than maximum age.";

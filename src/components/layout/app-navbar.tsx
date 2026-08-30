@@ -9,7 +9,7 @@ import {
   type Variants,
 } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { universityConfig } from "@/config/university";
+import { isUniversityEmail, universityConfig } from "@/config/university";
 import { routes } from "@/config/routes";
 import { signOut } from "@/app/(app)/actions";
 import {
@@ -96,6 +96,7 @@ export function AppNavbar({
   isSuperAdmin = false,
 }: AppNavbarProps) {
   const pathname = usePathname();
+  const isVerifiedUser = isUniversityEmail(userEmail);
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -343,9 +344,15 @@ const Icon = link.icon;
                 <span className="text-xs font-bold text-zinc-800 max-w-[110px] truncate leading-tight">
                   {userEmail.split("@")[0]}
                 </span>
-                <span className="text-[10px] font-medium text-emerald-600 leading-none mt-0.5 flex items-center gap-0.5">
-                  <ShieldCheck className="w-3 h-3 inline" /> Verified
-                </span>
+                {isVerifiedUser ? (
+                  <span className="text-[10px] font-medium text-emerald-600 leading-none mt-0.5 flex items-center gap-0.5">
+                    <ShieldCheck className="w-3 h-3 inline" /> Verified
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-medium text-zinc-500 leading-none mt-0.5">
+                    Student account
+                  </span>
+                )}
               </div>
 
               <ChevronDown

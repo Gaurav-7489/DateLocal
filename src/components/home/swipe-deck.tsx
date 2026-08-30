@@ -101,7 +101,7 @@ export function SwipeDeck() {
             </div>
             <h3 className="text-xl font-extrabold text-zinc-950 tracking-tight">All Caught Up!</h3>
             <p className="text-xs text-zinc-500 max-w-[220px] leading-relaxed">
-              You&apos;ve checked all verified student profiles in this demo deck batch.
+              You&apos;ve checked all campus profiles in this demo deck batch.
             </p>
             <button
               onClick={() => setProfiles(MOCK_PROFILES)}

@@ -86,12 +86,12 @@ export default function RegisterPage() {
       .replace(/^@/, "");
 
     if (!normalizedEmail) {
-      setError("Please enter your university email address.");
+      setError("Please enter your email address.");
       return;
     }
 
-    if (!normalizedEmail.endsWith(`@${normalizedDomain}`)) {
-      setError(`Access limited: Please use your @${normalizedDomain} address.`);
+    if (!normalizedEmail.includes("@") || normalizedEmail.split("@").length !== 2) {
+      setError("Please enter a valid email address.");
       return;
     }
 
@@ -229,7 +229,7 @@ window.location.href = routes.app;
                 
                 <div className="text-center space-y-1 pb-1">
                   <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-semibold text-emerald-700">
-                    <ShieldCheck className="w-3 h-3" /> Bahra University Only
+                    <ShieldCheck className="w-3 h-3" /> Student Email Access
                   </div>
                   <h1 className="text-lg font-black text-zinc-950 tracking-tight">
                     Join {universityConfig.appName}
@@ -363,7 +363,7 @@ window.location.href = routes.app;
 
       {/* Discrete Footer */}
       <footer className="py-3 text-center text-[10px] text-zinc-400">
-        © 2026 {universityConfig.appName} • Verified Student Network
+        © 2026 {universityConfig.appName} • Campus Network
       </footer>
 
     </div>

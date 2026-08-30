@@ -443,6 +443,18 @@ export async function toggleGhostMode(enabled: boolean): Promise<ActionResult> {
     return { error: "You must be logged in." };
   }
 
+  const { data: subscription } = await supabase
+    .from("subscriptions")
+    .select("status, plan")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!subscription || subscription.status !== "active" || subscription.plan === "free") {
+    return {
+      error: "Ghost Mode is a premium feature. Upgrade from the payment page to unlock it.",
+    };
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({ ghost_mode: enabled })

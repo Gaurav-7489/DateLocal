@@ -55,7 +55,7 @@ export function Footer() {
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-bold text-emerald-700 shadow-2xs transition-all hover:bg-emerald-100/70">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> 
-                100% Student Verified
+                Campus email check
               </div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[11px] font-bold text-blue-700 shadow-2xs transition-all hover:bg-blue-100/70">
                 <GraduationCap className="w-3.5 h-3.5 text-blue-600" /> 

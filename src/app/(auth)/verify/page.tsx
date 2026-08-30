@@ -225,7 +225,7 @@ function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
 
       {/* Discrete Footer */}
       <footer className="py-3 text-center text-[10px] text-zinc-400">
-        © 2026 {universityConfig.appName} • Bahra University Network
+        © 2026 {universityConfig.appName} • Campus Network
       </footer>
 
     </div>

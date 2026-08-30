@@ -510,7 +510,7 @@ if (!currentProfile && !matchModal) {
                       src={matchModal.profile.profile_photo_url}
                       alt={matchModal.profile.display_name ?? "Match"}
                       fill
-                      className="object-cover"
+                      className="object-contain bg-white p-1"
                       sizes="80px"
                     />
                   ) : (
@@ -658,7 +658,7 @@ function DiscoverCard({
                   fill
                   priority
                   quality={70}
-                  className="object-cover object-center"
+                  className="object-contain bg-white/90 p-2"
                   sizes="(max-width: 768px) 100vw, 500px"
                 />
               ) : (

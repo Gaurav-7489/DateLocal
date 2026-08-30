@@ -70,7 +70,7 @@ export function Hero() {
               className="inline-flex items-center justify-center px-7 py-4 text-sm font-bold text-zinc-700 bg-white border border-zinc-200/90 rounded-full hover:bg-zinc-50 hover:text-zinc-950 transition-all shadow-xs active:scale-95"
             >
               <ShieldCheck className="mr-2 w-4 h-4 text-emerald-600" />
-              100% Student Verified
+              Campus email check
             </Link>
           </div>
 

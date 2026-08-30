@@ -30,8 +30,8 @@ interface LoginSlide {
 const LOGIN_STORIES: LoginSlide[] = [
   {
     image: "/images/buphoto.jpeg",
-    tag: "Bahra Central Campus",
-    caption: "Welcome back to your verified campus network",
+    tag: "Campus Life",
+    caption: "Welcome back to your community",
     glowColor: "rgba(37, 99, 235, 0.22)", // Soft Sapphire Blue
   },
   {
@@ -326,7 +326,7 @@ export default function LoginPage() {
 
       {/* Clean Footer */}
       <footer className="py-3 text-center text-[10px] text-zinc-400">
-        © 2026 {universityConfig.appName} • Bahra University
+        © 2026 {universityConfig.appName} • Campus Community
       </footer>
 
     </div>

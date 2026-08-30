@@ -9,9 +9,7 @@ import { ProfilePhotoUploader } from "./components/profile-photo-uploader";
 const GENDER_OPTIONS = [
   { value: "man", label: "Man" },
   { value: "woman", label: "Woman" },
-  { value: "non-binary", label: "Non-binary" },
   { value: "other", label: "Other" },
-  { value: "prefer-not-to-say", label: "Prefer not to say" },
 ];
 
 const YEAR_OPTIONS = [
@@ -187,7 +185,7 @@ export function ProfileSetupForm({
             />
 
             <p className="mt-1 text-xs text-muted-foreground">
-              You must be at least 18 years old.
+              You must be at least 14 years old.
             </p>
 
             {fieldErrors.date_of_birth && (
@@ -472,10 +470,10 @@ export function ProfileSetupForm({
                 id="min_age"
                 name="min_age"
                 type="number"
-                min={18}
-                max={99}
+                min={14}
+                max={60}
                 defaultValue={
-                  existingPreferences?.min_age ?? 18
+                  existingPreferences?.min_age ?? 14
                 }
                 required
                 className="w-full rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-uni-primary"
@@ -501,10 +499,10 @@ export function ProfileSetupForm({
                 id="max_age"
                 name="max_age"
                 type="number"
-                min={18}
-                max={99}
+                min={14}
+                max={60}
                 defaultValue={
-                  existingPreferences?.max_age ?? 25
+                  existingPreferences?.max_age ?? 60
                 }
                 required
                 className="w-full rounded-[var(--radius-md)] border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-uni-primary"

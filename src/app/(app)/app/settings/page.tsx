@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
-import { universityConfig } from "@/config/university";
+import { isUniversityEmail, universityConfig } from "@/config/university";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SettingsClient } from "./settings-client";
@@ -82,6 +82,8 @@ export default async function SettingsPage() {
     .eq("user_id", user.id)
     .maybeSingle();
 
+  const isVerifiedUser = isUniversityEmail(user.email);
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
       <div>
@@ -117,10 +119,16 @@ export default async function SettingsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
-              <ShieldCheck className="h-4 w-4" />
-              Verified Student
-            </span>
+            {isVerifiedUser ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                <ShieldCheck className="h-4 w-4" />
+                Email verified
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600 border border-zinc-200">
+                Pending verification
+              </span>
+            )}
           </div>
         </div>
       </Card>

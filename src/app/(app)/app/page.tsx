@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
-import { universityConfig } from "@/config/university";
+import { isUniversityEmail, universityConfig } from "@/config/university";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
@@ -75,12 +75,14 @@ export default async function DashboardPage() {
   const photoPath = photos[0]?.storage_path;
   const photoUrl = getProfilePhotoUrl(photoPath, 160);
 
+  const isVerifiedUser = isUniversityEmail(user.email);
+
   const quickActions = [
     {
       href: routes.discover,
       icon: Compass,
       title: "Discover",
-      description: "Browse verified students from your university",
+      description: "Browse campus profiles from your university",
       color: "bg-emerald-50 text-emerald-700 border-emerald-200",
     },
     {
@@ -111,10 +113,12 @@ export default async function DashboardPage() {
       {/* Welcome header */}
       <section className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700 mb-2">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Verified {universityConfig.shortName} Student
-          </div>
+          {isVerifiedUser && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700 mb-2">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Email verified
+            </div>
+          )}
           <h1 className="text-2xl font-black text-foreground sm:text-3xl tracking-tight">
             Welcome back, {displayName} 👋
           </h1>
@@ -181,7 +185,7 @@ export default async function DashboardPage() {
                     src={photoUrl}
                     alt={displayName}
                     fill
-                    className="object-cover"
+                    className="object-contain bg-white p-1"
                     sizes="80px"
                   />
                 ) : (

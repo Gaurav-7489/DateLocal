@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
-import { universityConfig } from "@/config/university";
+import { isUniversityEmail, universityConfig } from "@/config/university";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
@@ -85,6 +85,7 @@ export default async function ProfilePage() {
     }) ?? [];
 
   const age = profile?.date_of_birth ? calculateAge(profile.date_of_birth) : null;
+  const isVerifiedUser = isUniversityEmail(user.email);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
@@ -95,7 +96,7 @@ export default async function ProfilePage() {
             Your Profile
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage how other verified {universityConfig.shortName} students see you
+            Manage how others on campus see your profile
           </p>
         </div>
 
@@ -150,7 +151,7 @@ export default async function ProfilePage() {
                     src={photoUrl}
                     alt={profile?.display_name ?? "Profile"}
                     fill
-                    className="object-cover"
+                    className="object-contain bg-white p-1"
                     sizes="176px"
                   />
                 ) : (
@@ -173,10 +174,12 @@ export default async function ProfilePage() {
                         </span>
                       )}
                     </h2>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                      Verified
-                    </span>
+                    {isVerifiedUser && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        Verified
+                      </span>
+                    )}
                   </div>
 
                   <p className="mt-1 text-sm font-medium text-emerald-700">
@@ -266,8 +269,8 @@ export default async function ProfilePage() {
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 {profile?.ghost_mode
-                  ? "Ghost mode is currently ON. You are hidden from public student discovery. Existing matches can still message you."
-                  : "Your profile is active and visible to verified students matching your preferences."}
+                  ? "Ghost mode is currently ON. You are hidden from public discovery. Existing matches can still message you."
+                  : "Your profile is active and visible to matching campus peers based on your preferences."}
               </p>
               <div className="pt-1">
                 <Link href={routes.settings}>
