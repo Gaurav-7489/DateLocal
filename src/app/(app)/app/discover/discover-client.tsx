@@ -28,6 +28,7 @@ import {
 } from "./actions";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
+import { calculateAge } from "@/lib/utils";
 
 
 type Interest = {
@@ -58,18 +59,6 @@ export type DiscoverProfile = {
   profile_interests: ProfileInterest[] | null;
   profile_photo_url: string | null;
 };
-
-function calculateAge(dateOfBirth: string | null): number | null {
-  if (!dateOfBirth) return null;
-  const birth = new Date(dateOfBirth);
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-    age--;
-  }
-  return isNaN(age) ? null : age;
-}
 
 export default function DiscoverClient({
   profiles,
@@ -115,8 +104,6 @@ async function handleLike(profileId: string) {
   try {
     const result = await likeProfile(profileId);
 
-    console.log("[DateBu] Like result:", result);
-
     if (result.error) {
       showToast(result.error);
       setLoading(false);
@@ -128,12 +115,6 @@ async function handleLike(profileId: string) {
 
     // MUTUAL MATCH
     if (result.matched) {
-      console.log("[DateBu] MATCH FOUND:", {
-        profileId,
-        matchId: result.matchId,
-        name: target.display_name,
-      });
-
       void import("canvas-confetti").then(({ default: confetti }) => {
         confetti({
           particleCount: 120,
