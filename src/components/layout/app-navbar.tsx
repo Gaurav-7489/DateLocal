@@ -179,12 +179,8 @@ export function AppNavbar({
           onMouseLeave={() => setHoveredPath(null)}
         >
           {appLinks.map((link) => {
-            const isActive =
-              link.href === routes.app
-                ? pathname === routes.app
-                : pathname.startsWith(link.href);
-
-            const Icon = link.icon;
+const isActive = pathname.startsWith(link.href);
+const Icon = link.icon;
 
             return (
               <Link
@@ -449,11 +445,7 @@ export function AppNavbar({
           >
             <div className="flex flex-col gap-1.5 pb-3">
               {appLinks.map((link) => {
-                const isActive =
-                  link.href === routes.app
-                    ? pathname === routes.app
-                    : pathname.startsWith(link.href);
-
+                const isActive = pathname.startsWith(link.href);
                 const Icon = link.icon;
 
                 return (
