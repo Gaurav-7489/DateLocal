@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -51,6 +51,7 @@ const LOGIN_STORIES: LoginSlide[] = [
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
+  const [isPending, startTransition] = useTransition();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -60,6 +61,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [greeting, setGreeting] = useState("Welcome back!");
+
+  // Non-blocking prefetch on mount to eliminate routing delay
+  useEffect(() => {
+    router.prefetch("/app");
+    router.prefetch("/app/discover");
+  }, [router]);
 
   // Story cycle (7s slow loop)
   useEffect(() => {
@@ -105,13 +112,26 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/app");
-    router.refresh();
+    // Wrap navigation in startTransition to keep UI responsive
+    startTransition(() => {
+      router.push("/app");
+      router.refresh();
+    });
   }
 
   return (
     <div className="relative min-h-[100dvh] flex flex-col bg-[#f8fafc] text-zinc-900 selection:bg-blue-600 selection:text-white font-sans overflow-x-hidden antialiased">
       
+      {/* Optimistic Transition Overlay during page handoff */}
+      {isPending && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/20 backdrop-blur-xs transition-opacity duration-200">
+          <div className="flex items-center gap-2.5 rounded-full bg-white/95 px-4 py-2 shadow-lg border border-zinc-200">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+            <span className="text-xs font-semibold text-zinc-800">Entering campus...</span>
+          </div>
+        </div>
+      )}
+
       {/* ================= BACKGROUND GLOW ================= */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <motion.div
@@ -298,10 +318,10 @@ export default function LoginPage() {
             {/* Submit Action */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || isPending}
               className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold shadow-md shadow-blue-600/25 active:scale-[0.98] transition-all disabled:opacity-60 cursor-pointer mt-1"
             >
-              {loading ? (
+              {loading || isPending ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" /> Signing In...
                 </span>

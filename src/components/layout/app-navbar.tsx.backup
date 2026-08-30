@@ -116,8 +116,6 @@ export function AppNavbar({
   const [scrolled, setScrolled] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
-
-  const menuRef = useRef<HTMLDivElement>(null);
   const [isInstalling, setIsInstalling] = useState(false);
 
   useEffect(() => {
@@ -517,7 +515,7 @@ export function AppNavbar({
             <button
               type="button"
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white/90 text-zinc-700 shadow-sm backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+              className="absolute left-1/2 -translate-x-1/2 flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white/90 text-zinc-700 shadow-sm backdrop-blur-md transition-all active:scale-95 cursor-pointer"
               aria-expanded={mobileOpen}
               aria-label="Toggle navigation menu"
             >
@@ -546,19 +544,13 @@ export function AppNavbar({
               <Crown className="h-4 w-4" />
             </Link>
 
-            {/* Mobile Admin Icon shortcut */}
             {isSuperAdmin && (
               <Link
                 href={routes.admin.root}
-                className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-full border transition-all active:scale-95",
-                  pathname.startsWith("/admin")
-                    ? "border-zinc-950 bg-zinc-950 text-white shadow-sm"
-                    : "border-zinc-800 bg-zinc-900 text-white"
-                )}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-900 bg-zinc-900 text-white transition-all active:scale-95"
                 aria-label="Open admin dashboard"
               >
-                <Shield className="h-4 w-4 text-white" />
+                <Shield className="h-4 w-4" />
               </Link>
             )}
           </div>
@@ -572,9 +564,8 @@ export function AppNavbar({
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="absolute top-16 left-4 right-4 rounded-3xl border border-zinc-200/90 bg-white/95 p-5 backdrop-blur-3xl shadow-[0_24px_50px_rgba(0,0,0,0.12)] md:hidden z-50 origin-top overflow-hidden divide-y divide-zinc-100"
+              className="absolute top-18 left-4 right-4 rounded-3xl border border-zinc-200/90 bg-white/95 p-5 backdrop-blur-3xl shadow-[0_24px_50px_rgba(0,0,0,0.12)] md:hidden z-50 origin-top overflow-hidden divide-y divide-zinc-100"
             >
-              {/* Primary Links */}
               <div className="flex flex-col gap-1.5 pb-3">
                 <motion.div variants={itemVariants}>
                   <Link
@@ -608,7 +599,43 @@ export function AppNavbar({
                 </motion.div>
               </div>
 
-              {/* Install & Account Footer */}
+              {isSuperAdmin && (
+                <motion.div variants={itemVariants} className="py-4">
+                  <div className="mb-2 px-1 text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">
+                    Admin Controls
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link
+                      href={routes.app}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-xs font-bold transition-all",
+                        !pathname.startsWith("/admin")
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-600"
+                      )}
+                    >
+                      Student View
+                    </Link>
+
+                    <Link
+                      href={routes.admin.root}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-xs font-bold transition-all",
+                        pathname.startsWith("/admin")
+                          ? "border-zinc-900 bg-zinc-900 text-white"
+                          : "border-zinc-200 bg-zinc-50 text-zinc-600"
+                      )}
+                    >
+                      <Shield className="h-3.5 w-3.5" />
+                      Admin View
+                    </Link>
+                  </div>
+                </motion.div>
+              )}
+
               <div className="pt-4 flex flex-col gap-2.5">
                 {!isStandalone && (
                   <motion.div variants={itemVariants}>
@@ -643,6 +670,19 @@ export function AppNavbar({
                 </motion.div>
 
                 <motion.div variants={itemVariants}>
+                  <Link
+                    href={routes.settings}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3.5 rounded-2xl px-4 py-3 text-xs font-bold text-zinc-700 hover:bg-zinc-100 transition-colors"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500">
+                      <Settings className="w-4 h-4 stroke-2" />
+                    </div>
+                    Settings & Preferences
+                  </Link>
+                </motion.div>
+
+                <motion.div variants={itemVariants}>
                   <form action={signOut}>
                     <button
                       type="submit"
@@ -661,7 +701,7 @@ export function AppNavbar({
         </AnimatePresence>
       </header>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation (Rendered via Portal to body) */}
       {mounted &&
         createPortal(
           <nav

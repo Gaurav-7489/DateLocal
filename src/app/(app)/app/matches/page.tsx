@@ -68,7 +68,7 @@ export default async function MatchesPage() {
           title="No matches yet"
           description="Your connections will appear here once you and another student swipe right on each other."
         >
-          <Link href={routes.discover}>
+          <Link href={routes.discover} prefetch={true}>
             <Button variant="primary" size="md">
               Start Discovering
             </Button>
@@ -119,7 +119,7 @@ export default async function MatchesPage() {
           </p>
         </div>
 
-        <Link href={routes.discover}>
+        <Link href={routes.discover} prefetch={true}>
           <Button variant="outline" size="sm">
             Keep Swiping
           </Button>
@@ -187,6 +187,7 @@ export default async function MatchesPage() {
 
                 <Link
                   href={`${routes.messages}/${match.id}`}
+                  prefetch={true}
                   className="block w-full pt-2"
                 >
                   <Button

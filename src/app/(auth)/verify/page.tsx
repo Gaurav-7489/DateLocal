@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { 
@@ -35,11 +35,19 @@ function VerifyPageWithParams() {
 }
 
 function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
+  const router = useRouter();
   const [email, setEmail] = useState(initialEmail);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
+
+  // Non-blocking prefetch on mount to make next screen loading instant
+  useEffect(() => {
+    router.prefetch(routes.login);
+    router.prefetch(routes.app);
+    router.prefetch("/app/discover");
+  }, [router]);
 
   // Resend cooldown timer countdown
   useEffect(() => {

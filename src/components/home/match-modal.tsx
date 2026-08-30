@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useTransition } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { MessageSquare, Sparkles, X, Heart } from "lucide-react";
+import { MessageSquare, Sparkles, X, Heart, Loader2 } from "lucide-react";
+import { routes } from "@/config/routes";
 
 interface MatchModalProps {
   isOpen: boolean;
@@ -17,8 +19,15 @@ interface MatchModalProps {
 }
 
 export function MatchModal({ isOpen, onClose, matchedUser }: MatchModalProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  // Non-blocking prefetch on modal open so navigating to chats is instantaneous
   useEffect(() => {
     if (isOpen) {
+      router.prefetch(routes.messages);
+      router.prefetch(routes.matches);
+
       // Multi-stage celebratory confetti burst
       const duration = 1.5 * 1000;
       const end = Date.now() + duration;
@@ -45,7 +54,15 @@ export function MatchModal({ isOpen, onClose, matchedUser }: MatchModalProps) {
       };
       frame();
     }
-  }, [isOpen]);
+  }, [isOpen, router]);
+
+  const handleSendMessage = () => {
+    onClose();
+    startTransition(() => {
+      router.push(routes.messages);
+      router.refresh();
+    });
+  };
 
   return (
     <AnimatePresence>
@@ -117,10 +134,19 @@ export function MatchModal({ isOpen, onClose, matchedUser }: MatchModalProps) {
             <div className="space-y-2.5 relative z-10">
               <button
                 type="button"
-                onClick={onClose}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-md shadow-emerald-600/25 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                onClick={handleSendMessage}
+                disabled={isPending}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-md shadow-emerald-600/25 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer disabled:opacity-60"
               >
-                <MessageSquare className="w-4 h-4" /> Send Icebreaker
+                {isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Opening Chat...
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare className="w-4 h-4" /> Send Icebreaker
+                  </>
+                )}
               </button>
 
               <button

@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { AppNavbar } from "@/components/layout/app-navbar";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Authenticated app layout.
  * Protects all /app/* routes — redirects unauthenticated users to login.
@@ -24,17 +26,25 @@ export default async function AppLayout({
     redirect(routes.login);
   }
 
-  // Get the user's authorization role.
+  // Get the user's authorization role directly from Supabase
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .maybeSingle();
 
-  // Only the designated owner account gets the direct Admin button.
+  const userRole = (profile?.role ?? "").toUpperCase();
+  const ownerId = process.env.DATEBU_OWNER_ID?.trim();
+  const adminEmails = (process.env.SUPER_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
   const isSuperAdmin =
-    profile?.role === "SUPER_ADMIN" &&
-    user.id === process.env.DATEBU_OWNER_ID;
+    userRole === "SUPER_ADMIN" ||
+    userRole === "ADMIN" ||
+    (Boolean(ownerId) && user.id === ownerId) ||
+    (Boolean(user.email) && adminEmails.includes(user.email!.toLowerCase()));
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-background">

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { routes } from "@/config/routes";
 
 type BillingPlan = "weekly" | "monthly";
 
@@ -117,10 +119,23 @@ export function DateBuExtrovertCheckout({
   name,
   phone,
 }: DateBuExtrovertCheckoutProps) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+
   const [loadingPlan, setLoadingPlan] =
     useState<BillingPlan | null>(null);
 
   const [error, setError] = useState<string | null>(null);
+
+  // Non-blocking prefetch on mount to make success redirect instant
+  useEffect(() => {
+    router.prefetch(routes.settings);
+    router.prefetch(`${routes.settings}?subscription=processing`);
+    router.prefetch(routes.discover);
+
+    // Passively warm up Razorpay script during browser idle
+    loadRazorpayScript().catch(() => {});
+  }, [router]);
 
   async function startCheckout(plan: BillingPlan) {
     try {
@@ -185,11 +200,11 @@ export function DateBuExtrovertCheckout({
         name: "DateBu",
         description: `${selectedPlan.name} — DateBu Extrovert`,
 
-     prefill: {
-  name: name || "DateBu Student",
-  email,
-  contact: phone,
-},
+        prefill: {
+          name: name || "DateBu Student",
+          email,
+          contact: phone,
+        },
 
         notes: {
           product: "DateBu Extrovert",
@@ -216,8 +231,10 @@ export function DateBuExtrovertCheckout({
           // This prevents users from unlocking Pro by
           // manipulating browser-side JavaScript.
 
-          window.location.href =
-            "/app/settings?subscription=processing";
+          startTransition(() => {
+            router.push("/app/settings?subscription=processing");
+            router.refresh();
+          });
         },
       };
 
@@ -268,7 +285,7 @@ export function DateBuExtrovertCheckout({
               type="button"
               onClick={() => startCheckout(plan)}
               disabled={loadingPlan !== null}
-              className="group relative rounded-2xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-400 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+              className="group relative rounded-2xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-400 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
               {plan === "monthly" && (
                 <div className="absolute right-4 top-4 rounded-full bg-zinc-950 px-3 py-1 text-xs font-bold text-white">

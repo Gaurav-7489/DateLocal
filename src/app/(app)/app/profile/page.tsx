@@ -101,13 +101,13 @@ export default async function ProfilePage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link href={routes.profileSetup}>
+          <Link href={routes.profileSetup} prefetch={true}>
             <Button variant="primary" size="md" className="gap-1.5">
               <Edit className="w-4 h-4" />
               {isCompleted ? "Edit Profile" : "Set Up Profile"}
             </Button>
           </Link>
-          <Link href={routes.settings}>
+          <Link href={routes.settings} prefetch={true}>
             <Button variant="secondary" size="md" className="gap-1.5">
               <Settings className="w-4 h-4" />
               Settings
@@ -131,7 +131,7 @@ export default async function ProfilePage() {
                 Complete your profile details, upload a photo, and set your dating preferences to start discovering and matching with peers at {universityConfig.name}.
               </p>
             </div>
-            <Link href={routes.profileSetup}>
+            <Link href={routes.profileSetup} prefetch={true}>
               <Button variant="primary" size="md">
                 Set up profile now
               </Button>
@@ -250,7 +250,7 @@ export default async function ProfilePage() {
                   </span>
                 </div>
               </div>
-              <Link href={routes.profileSetup} className="block pt-1">
+              <Link href={routes.profileSetup} prefetch={true} className="block pt-1">
                 <Button variant="outline" size="sm" className="w-full text-xs">
                   Change Preferences
                 </Button>
@@ -273,7 +273,7 @@ export default async function ProfilePage() {
                   : "Your profile is active and visible to matching campus peers based on your preferences."}
               </p>
               <div className="pt-1">
-                <Link href={routes.settings}>
+                <Link href={routes.settings} prefetch={true}>
                   <Button variant="secondary" size="sm" className="w-full text-xs">
                     {profile?.ghost_mode ? "Disable Ghost Mode" : "Manage in Settings"}
                   </Button>

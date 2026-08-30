@@ -29,7 +29,7 @@ const INTERESTED_IN_OPTIONS = [
   "everyone",
 ] as const;
 
-const MINIMUM_AGE = 18;
+const MINIMUM_AGE = 17;
 const MAXIMUM_AGE = 60;
 const MAX_PHOTOS = 6;
 const MAX_INTERESTS = 20;
@@ -59,23 +59,23 @@ export async function saveProfile(
   // EXTRACT FORM DATA
   // ---------------------------------------------------------
 
-  const displayName =
-    String(formData.get("display_name") ?? "").trim();
+  const displayName = String(formData.get("display_name") ?? "").trim();
+  const dateOfBirth = String(formData.get("date_of_birth") ?? "").trim();
+  const gender = String(formData.get("gender") ?? "").trim();
+  const department = String(formData.get("department") ?? "").trim();
+  const academicYear = String(formData.get("academic_year") ?? "").trim();
+  const bio = String(formData.get("bio") ?? "").trim();
 
-  const dateOfBirth =
-    String(formData.get("date_of_birth") ?? "").trim();
-
-  const gender =
-    String(formData.get("gender") ?? "").trim();
-
-  const department =
-    String(formData.get("department") ?? "").trim();
-
-  const academicYear =
-    String(formData.get("academic_year") ?? "").trim();
-
-  const bio =
-    String(formData.get("bio") ?? "").trim();
+  // Campus Identity & Badges
+  const campusResidency = String(formData.get("campus_residency") ?? "").trim();
+  const campusHangout = String(formData.get("campus_hangout") ?? "").trim();
+  const relationshipGoal = String(formData.get("relationship_goal") ?? "").trim();
+  const zodiac = String(formData.get("zodiac") ?? "").trim();
+  const sleepHabit = String(formData.get("sleep_habit") ?? "").trim();
+  const caffeinePref = String(formData.get("caffeine_pref") ?? "").trim();
+  const weekendVibe = String(formData.get("weekend_vibe") ?? "").trim();
+  const promptQuestion = String(formData.get("prompt_question") ?? "").trim();
+  const promptAnswer = String(formData.get("prompt_answer") ?? "").trim();
 
   const photoPaths = Array.from(
     new Set(
@@ -95,23 +95,12 @@ export async function saveProfile(
     ),
   );
 
-  const interestedIn =
-    String(formData.get("interested_in") ?? "").trim();
-
-  const minAge = Number.parseInt(
-    String(formData.get("min_age") ?? ""),
-    10,
-  );
-
-  const maxAge = Number.parseInt(
-    String(formData.get("max_age") ?? ""),
-    10,
-  );
-
-  const preferredDepartment =
-    String(
-      formData.get("preferred_department") ?? "",
-    ).trim();
+  const interestedIn = String(formData.get("interested_in") ?? "").trim();
+  const minAge = Number.parseInt(String(formData.get("min_age") ?? ""), 10);
+  const maxAge = Number.parseInt(String(formData.get("max_age") ?? ""), 10);
+  const preferredDepartment = String(
+    formData.get("preferred_department") ?? "",
+  ).trim();
 
   // ---------------------------------------------------------
   // SERVER-SIDE VALIDATION
@@ -121,35 +110,34 @@ export async function saveProfile(
 
   // Display name
   if (!displayName) {
-    fieldErrors.display_name =
-      "Display name is required.";
+    fieldErrors.display_name = "Display name is required.";
   } else if (displayName.length > 50) {
-    fieldErrors.display_name =
-      "Display name must be 50 characters or less.";
+    fieldErrors.display_name = "Display name must be 50 characters or less.";
   }
 
-  // Date of birth
+  // Timezone-safe Date of birth calculation
   if (!dateOfBirth) {
-    fieldErrors.date_of_birth =
-      "Date of birth is required.";
+    fieldErrors.date_of_birth = "Date of birth is required.";
   } else {
-    const dob = new Date(`${dateOfBirth}T00:00:00`);
-
-    if (Number.isNaN(dob.getTime())) {
-      fieldErrors.date_of_birth =
-        "Invalid date format.";
+    const parts = dateOfBirth.split("-").map((p) => Number.parseInt(p, 10));
+    if (parts.length !== 3 || parts.some(Number.isNaN)) {
+      fieldErrors.date_of_birth = "Invalid date format.";
     } else {
-      const age = calculateAge(dob);
+      const [year, month, day] = parts as [number, number, number];
+      const dob = new Date(year, month - 1, day);
 
-      if (age === null) {
-        fieldErrors.date_of_birth =
-          "Invalid date of birth.";
-      } else if (age < MINIMUM_AGE) {
-        fieldErrors.date_of_birth =
-          `You must be at least ${MINIMUM_AGE} years old to use DateBu.`;
-      } else if (age > MAXIMUM_AGE) {
-        fieldErrors.date_of_birth =
-          "Please enter a valid date of birth.";
+      if (Number.isNaN(dob.getTime())) {
+        fieldErrors.date_of_birth = "Invalid date format.";
+      } else {
+        const age = calculateAge(dob);
+
+        if (age === null) {
+          fieldErrors.date_of_birth = "Invalid date of birth.";
+        } else if (age < MINIMUM_AGE) {
+          fieldErrors.date_of_birth = `You must be at least ${MINIMUM_AGE} years old to use DateBu.`;
+        } else if (age > MAXIMUM_AGE) {
+          fieldErrors.date_of_birth = "Please enter a valid date of birth.";
+        }
       }
     }
   }
@@ -157,87 +145,46 @@ export async function saveProfile(
   // Gender
   if (
     !gender ||
-    !GENDER_OPTIONS.includes(
-      gender as (typeof GENDER_OPTIONS)[number],
-    )
+    !GENDER_OPTIONS.includes(gender as (typeof GENDER_OPTIONS)[number])
   ) {
-    fieldErrors.gender =
-      "Please select your gender.";
+    fieldErrors.gender = "Please select your gender.";
   }
 
   // Department
   if (!department) {
-    fieldErrors.department =
-      "Department is required.";
-  } else if (department.length > 100) {
-    fieldErrors.department =
-      "Department name is too long (max 100 characters).";
+    fieldErrors.department = "Department is required.";
   }
 
   // Academic year
   if (
     !academicYear ||
-    !YEAR_OPTIONS.includes(
-      academicYear as (typeof YEAR_OPTIONS)[number],
-    )
+    !YEAR_OPTIONS.includes(academicYear as (typeof YEAR_OPTIONS)[number])
   ) {
-    fieldErrors.academic_year =
-      "Please select your academic year.";
+    fieldErrors.academic_year = "Please select your academic year.";
   }
 
   // Bio
   if (bio.length > 500) {
-    fieldErrors.bio =
-      "Bio must be 500 characters or less.";
+    fieldErrors.bio = "Bio must be 500 characters or less.";
   }
 
-  // Preferred department
-  if (preferredDepartment.length > 100) {
-    fieldErrors.preferred_department =
-      "Preferred department must be 100 characters or less.";
+  // Campus Prompt length check
+  if (promptAnswer.length > 300) {
+    fieldErrors.prompt_answer = "Prompt answer must be 300 characters or less.";
   }
 
   // Photos
   if (photoPaths.length > MAX_PHOTOS) {
-    fieldErrors.photo_paths =
-      `You can save up to ${MAX_PHOTOS} photos.`;
-  }
-
-  if (
-    new Set(photoPaths).size !==
-    photoPaths.length
-  ) {
-    fieldErrors.photo_paths =
-      "Duplicate photos were detected.";
-  }
-
-  // Verify every submitted photo belongs to this user.
-  const hasInvalidPhotoPath = photoPaths.some(
-    (path) =>
-      !path.startsWith(`${user.id}/`),
-  );
-
-  if (hasInvalidPhotoPath) {
-    fieldErrors.photo_paths =
-      "One or more photos are invalid.";
+    fieldErrors.photo_paths = `You can save up to ${MAX_PHOTOS} photos.`;
   }
 
   // Interests
   if (interestIds.length === 0) {
-    fieldErrors.interests =
-      "Select at least one interest.";
-  } else if (
-    interestIds.length > MAX_INTERESTS
-  ) {
-    fieldErrors.interests =
-      "Too many interests selected.";
-  } else if (
-    interestIds.some(
-      (interestId) => !isUuid(interestId),
-    )
-  ) {
-    fieldErrors.interests =
-      "One or more selected interests are invalid.";
+    fieldErrors.interests = "Select at least one interest.";
+  } else if (interestIds.length > MAX_INTERESTS) {
+    fieldErrors.interests = "Too many interests selected.";
+  } else if (interestIds.some((interestId) => !isUuid(interestId))) {
+    fieldErrors.interests = "One or more selected interests are invalid.";
   }
 
   // Interested in
@@ -247,8 +194,7 @@ export async function saveProfile(
       interestedIn as (typeof INTERESTED_IN_OPTIONS)[number],
     )
   ) {
-    fieldErrors.interested_in =
-      "Please select who you are interested in.";
+    fieldErrors.interested_in = "Please select who you are interested in.";
   }
 
   // Dating preference age range
@@ -257,8 +203,7 @@ export async function saveProfile(
     minAge < MINIMUM_AGE ||
     minAge > MAXIMUM_AGE
   ) {
-    fieldErrors.min_age =
-      `Minimum age must be between ${MINIMUM_AGE} and ${MAXIMUM_AGE}.`;
+    fieldErrors.min_age = `Minimum age must be between ${MINIMUM_AGE} and ${MAXIMUM_AGE}.`;
   }
 
   if (
@@ -266,25 +211,13 @@ export async function saveProfile(
     maxAge < MINIMUM_AGE ||
     maxAge > MAXIMUM_AGE
   ) {
-    fieldErrors.max_age =
-      `Maximum age must be between ${MINIMUM_AGE} and ${MAXIMUM_AGE}.`;
+    fieldErrors.max_age = `Maximum age must be between ${MINIMUM_AGE} and ${MAXIMUM_AGE}.`;
   }
 
-  if (
-    !Number.isNaN(minAge) &&
-    !Number.isNaN(maxAge) &&
-    minAge > maxAge
-  ) {
-    fieldErrors.min_age =
-      "Minimum age cannot be greater than maximum age.";
-
-    fieldErrors.max_age =
-      "Maximum age cannot be less than minimum age.";
+  if (!Number.isNaN(minAge) && !Number.isNaN(maxAge) && minAge > maxAge) {
+    fieldErrors.min_age = "Minimum age cannot be greater than maximum age.";
+    fieldErrors.max_age = "Maximum age cannot be less than minimum age.";
   }
-
-  // ---------------------------------------------------------
-  // STOP BEFORE DATABASE CHANGES
-  // ---------------------------------------------------------
 
   if (Object.keys(fieldErrors).length > 0) {
     return {
@@ -303,44 +236,38 @@ export async function saveProfile(
 
   // ---------------------------------------------------------
   // SAVE PROFILE
-  //
-  // IMPORTANT:
-  // Do NOT mark profile_completed=true yet.
-  //
-  // The profile is only considered complete after every
-  // onboarding section has successfully saved.
   // ---------------------------------------------------------
 
-  const { error: profileError } =
-    await supabase
-      .from("profiles")
-      .upsert(
-        {
-          id: user.id,
-          display_name: displayName,
-          date_of_birth: dateOfBirth,
-          gender,
-          department,
-          academic_year: academicYear,
-          bio: bio || null,
-          profile_completed: false,
-          updated_at:
-            new Date().toISOString(),
-        },
-        {
-          onConflict: "id",
-        },
-      );
+  const { error: profileError } = await supabase.from("profiles").upsert(
+    {
+      id: user.id,
+      display_name: displayName,
+      date_of_birth: dateOfBirth,
+      gender,
+      department,
+      academic_year: academicYear,
+      bio: bio || null,
+      campus_residency: campusResidency || null,
+      campus_hangout: campusHangout || null,
+      relationship_goal: relationshipGoal || null,
+      zodiac: zodiac || null,
+      sleep_habit: sleepHabit || null,
+      caffeine_pref: caffeinePref || null,
+      weekend_vibe: weekendVibe || null,
+      prompt_question: promptQuestion || null,
+      prompt_answer: promptAnswer || null,
+      profile_completed: false,
+      updated_at: new Date().toISOString(),
+    },
+    {
+      onConflict: "id",
+    },
+  );
 
   if (profileError) {
-    console.error(
-      "Profile save error:",
-      profileError,
-    );
-
+    console.error("Profile save error:", profileError);
     return {
-      error:
-        "Failed to save your profile. Please try again.",
+      error: "Failed to save your profile. Please try again.",
     };
   }
 
@@ -348,66 +275,38 @@ export async function saveProfile(
   // SAVE PROFILE PHOTOS
   // ---------------------------------------------------------
 
-  const safePhotoPaths =
-    photoPaths.filter((path) =>
-      path.startsWith(`${user.id}/`),
-    );
+  const safePhotoPaths = photoPaths.filter((path) =>
+    path.startsWith(`${user.id}/`),
+  );
 
-  if (
-    safePhotoPaths.length !==
-    photoPaths.length
-  ) {
-    return {
-      error:
-        "One or more photos are invalid. Please remove them and upload again.",
-    };
-  }
-
-  const {
-    error: photoDeleteError,
-  } = await supabase
+  const { error: photoDeleteError } = await supabase
     .from("profile_photos")
     .delete()
     .eq("profile_id", user.id);
 
   if (photoDeleteError) {
-    console.error(
-      "Profile photo delete error:",
-      photoDeleteError,
-    );
-
+    console.error("Profile photo delete error:", photoDeleteError);
     return {
-      error:
-        "Failed to update profile photos. Please try again.",
+      error: "Failed to update profile photos. Please try again.",
     };
   }
 
   if (safePhotoPaths.length > 0) {
-    const photoRows =
-      safePhotoPaths.map(
-        (storage_path, index) => ({
-          profile_id: user.id,
-          storage_path,
-          display_order: index,
-          is_primary: index === 0,
-        }),
-      );
+    const photoRows = safePhotoPaths.map((storage_path, index) => ({
+      profile_id: user.id,
+      storage_path,
+      display_order: index,
+      is_primary: index === 0,
+    }));
 
-    const {
-      error: photoInsertError,
-    } = await supabase
+    const { error: photoInsertError } = await supabase
       .from("profile_photos")
       .insert(photoRows);
 
     if (photoInsertError) {
-      console.error(
-        "Profile photo insert error:",
-        photoInsertError,
-      );
-
+      console.error("Profile photo insert error:", photoInsertError);
       return {
-        error:
-          "Failed to save profile photos. Please try again.",
+        error: "Failed to save profile photos. Please try again.",
       };
     }
   }
@@ -416,49 +315,32 @@ export async function saveProfile(
   // SAVE INTERESTS
   // ---------------------------------------------------------
 
-  const {
-    error: deleteInterestsError,
-  } = await supabase
+  const { error: deleteInterestsError } = await supabase
     .from("profile_interests")
     .delete()
     .eq("profile_id", user.id);
 
   if (deleteInterestsError) {
-    console.error(
-      "Interest delete error:",
-      deleteInterestsError,
-    );
-
+    console.error("Interest delete error:", deleteInterestsError);
     return {
-      error:
-        "Failed to update your interests. Please try again.",
+      error: "Failed to update your interests. Please try again.",
     };
   }
 
   if (interestIds.length > 0) {
-    const interestRows =
-      interestIds.map(
-        (interest_id) => ({
-          profile_id: user.id,
-          interest_id,
-        }),
-      );
+    const interestRows = interestIds.map((interest_id) => ({
+      profile_id: user.id,
+      interest_id,
+    }));
 
-    const {
-      error: insertInterestsError,
-    } = await supabase
+    const { error: insertInterestsError } = await supabase
       .from("profile_interests")
       .insert(interestRows);
 
     if (insertInterestsError) {
-      console.error(
-        "Interest insert error:",
-        insertInterestsError,
-      );
-
+      console.error("Interest insert error:", insertInterestsError);
       return {
-        error:
-          "Failed to save your interests. Please try again.",
+        error: "Failed to save your interests. Please try again.",
       };
     }
   }
@@ -467,21 +349,16 @@ export async function saveProfile(
   // SAVE DATING PREFERENCES
   // ---------------------------------------------------------
 
-  const {
-    error: prefError,
-  } = await supabase
+  const { error: prefError } = await supabase
     .from("dating_preferences")
     .upsert(
       {
         user_id: user.id,
-        interested_in:
-          interestedInArray,
+        interested_in: interestedInArray,
         min_age: minAge,
         max_age: maxAge,
-        preferred_department:
-          preferredDepartment || null,
-        updated_at:
-          new Date().toISOString(),
+        preferred_department: preferredDepartment || null,
+        updated_at: new Date().toISOString(),
       },
       {
         onConflict: "user_id",
@@ -489,49 +366,30 @@ export async function saveProfile(
     );
 
   if (prefError) {
-    console.error(
-      "Preferences save error:",
-      prefError,
-    );
-
+    console.error("Preferences save error:", prefError);
     return {
-      error:
-        "Failed to save your dating preferences. Please try again.",
+      error: "Failed to save your dating preferences. Please try again.",
     };
   }
 
   // ---------------------------------------------------------
-  // EVERYTHING SUCCEEDED
-  //
-  // Only NOW mark the profile as completed.
+  // SUCCESS & ONBOARDING COMPLETION
   // ---------------------------------------------------------
 
-  const {
-    error: completionError,
-  } = await supabase
+  const { error: completionError } = await supabase
     .from("profiles")
     .update({
       profile_completed: true,
-      updated_at:
-        new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);
 
   if (completionError) {
-    console.error(
-      "Profile completion error:",
-      completionError,
-    );
-
+    console.error("Profile completion error:", completionError);
     return {
-      error:
-        "Your profile was saved, but we could not finish onboarding. Please try again.",
+      error: "Your profile was saved, but we could not finish onboarding. Please try again.",
     };
   }
-
-  // ---------------------------------------------------------
-  // CACHE INVALIDATION
-  // ---------------------------------------------------------
 
   revalidatePath(routes.app);
   revalidatePath(routes.profile);
@@ -539,10 +397,6 @@ export async function saveProfile(
   revalidatePath(routes.matches);
   revalidatePath(routes.messages);
   revalidatePath(routes.settings);
-
-  // ---------------------------------------------------------
-  // SUCCESS
-  // ---------------------------------------------------------
 
   redirect(routes.profile);
 }

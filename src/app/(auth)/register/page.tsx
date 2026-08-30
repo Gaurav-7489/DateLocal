@@ -1,9 +1,10 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ShieldCheck, 
@@ -49,6 +50,9 @@ const CAMPUS_STORIES: StorySlide[] = [
 ];
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -58,6 +62,13 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [verifiedMode, setVerifiedMode] = useState(true);
+
+  // Non-blocking prefetch on mount to eliminate routing delay
+  useEffect(() => {
+    router.prefetch(routes.verify);
+    router.prefetch(routes.app);
+    router.prefetch("/app/discover");
+  }, [router]);
 
   // Auto-advance campus story images (7s slow smooth loop)
   useEffect(() => {
@@ -116,16 +127,30 @@ export default function RegisterPage() {
       return;
     }
 
-    if (result.needsEmailConfirmation) {
-  window.location.href = `${routes.verify}?email=${encodeURIComponent(normalizedEmail)}`;
-  return;
-}
-window.location.href = routes.app;
+    // Wrap navigation in startTransition to keep UI completely responsive
+    startTransition(() => {
+      if (result.needsEmailConfirmation) {
+        router.push(`${routes.verify}?email=${encodeURIComponent(normalizedEmail)}`);
+      } else {
+        router.push(routes.app);
+        router.refresh();
+      }
+    });
   };
 
   return (
     <div className="relative min-h-[100dvh] flex flex-col bg-[#f7fbf9] text-zinc-900 selection:bg-emerald-500 selection:text-white font-sans overflow-x-hidden antialiased">
       
+      {/* Optimistic Transition Overlay during page handoff */}
+      {isPending && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/20 backdrop-blur-xs transition-opacity duration-200">
+          <div className="flex items-center gap-2.5 rounded-full bg-white/95 px-4 py-2 shadow-lg border border-zinc-200">
+            <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
+            <span className="text-xs font-semibold text-zinc-800">Setting up your profile...</span>
+          </div>
+        </div>
+      )}
+
       {/* Slow & Smooth Emerald Ambient Background Glow */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <motion.div
@@ -262,8 +287,8 @@ window.location.href = routes.app;
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-[10px]">
-                  <button type="button" onClick={() => setVerifiedMode(true)} className={`rounded-xl border px-2 py-2 font-semibold ${verifiedMode ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-zinc-200 text-zinc-500"}`}>University email<br />Verified batch</button>
-                  <button type="button" onClick={() => setVerifiedMode(false)} className={`rounded-xl border px-2 py-2 font-semibold ${!verifiedMode ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-zinc-200 text-zinc-500"}`}>Any email<br />Basic signup</button>
+                  <button type="button" onClick={() => setVerifiedMode(true)} className={`rounded-xl border px-2 py-2 font-semibold cursor-pointer ${verifiedMode ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-zinc-200 text-zinc-500"}`}>University email<br />Verified batch</button>
+                  <button type="button" onClick={() => setVerifiedMode(false)} className={`rounded-xl border px-2 py-2 font-semibold cursor-pointer ${!verifiedMode ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-zinc-200 text-zinc-500"}`}>Any email<br />Basic signup</button>
                 </div>
 
                 {/* Password */}
@@ -337,10 +362,10 @@ window.location.href = routes.app;
                 {/* Submit Action */}
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isPending}
                   className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all disabled:opacity-60 cursor-pointer mt-1"
                 >
-                  {isSubmitting ? (
+                  {isSubmitting || isPending ? (
                     <span className="flex items-center justify-center gap-2">
                       <Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying...
                     </span>
