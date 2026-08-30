@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,7 +20,13 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { likeProfile, passProfile, blockUser, reportUser } from "./actions";
+import {
+  likeProfile,
+  passProfile,
+  resetPassedProfiles,
+  blockUser,
+  reportUser,
+} from "./actions";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
 
@@ -75,6 +81,9 @@ export default function DiscoverClient({
   const router = useRouter();
   const [deck, setDeck] = useState<DiscoverProfile[]>(profiles);
   const [loading, setLoading] = useState(false);
+  useEffect(() => {
+  setDeck(profiles);
+}, [profiles]);
   const [matchModal, setMatchModal] = useState<{
     profile: DiscoverProfile;
     matchId?: string;
@@ -93,12 +102,22 @@ export default function DiscoverClient({
     setTimeout(() => setToastMessage(null), 3000);
   }
 
-  async function handleLike(profileId: string) {
-    if (loading) return;
-    setLoading(true);
+async function handleLike(profileId: string) {
+  if (loading) return;
 
-    const target = deck.find((p) => p.id === profileId);
+  setLoading(true);
+
+  const target = deck.find((p) => p.id === profileId);
+
+  if (!target) {
+    setLoading(false);
+    return;
+  }
+
+  try {
     const result = await likeProfile(profileId);
+
+    console.log("[DateBu] Like result:", result);
 
     if (result.error) {
       showToast(result.error);
@@ -106,21 +125,47 @@ export default function DiscoverClient({
       return;
     }
 
+    // Remove the liked profile from the deck immediately.
     setDeck((prev) => prev.filter((p) => p.id !== profileId));
 
-    if (result.matched && target) {
+    // MUTUAL MATCH
+    if (result.matched) {
+      console.log("[DateBu] MATCH FOUND:", {
+        profileId,
+        matchId: result.matchId,
+        name: target.display_name,
+      });
+
       confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
+        particleCount: 120,
+        spread: 80,
+        startVelocity: 35,
+        origin: { y: 0.55 },
         colors: ["#10B981", "#F97316", "#3B82F6", "#EC4899"],
       });
-      setMatchModal({ profile: target, matchId: result.matchId });
+
+      setMatchModal({
+        profile: target,
+        matchId: result.matchId,
+      });
+
+      // IMPORTANT:
+      // Do NOT router.refresh() here.
+      // The celebration must remain open.
+      setLoading(false);
+      return;
     }
 
     setLoading(false);
+
     router.refresh();
+  } catch (error) {
+    console.error("[DateBu] Like action crashed:", error);
+
+    showToast("Something went wrong. Please try again.");
+    setLoading(false);
   }
+}
 
   async function handlePass(profileId: string) {
     if (loading) return;
@@ -175,10 +220,31 @@ export default function DiscoverClient({
     showToast("Report submitted. This user has been blocked from your feed.");
     router.refresh();
   }
+async function handleReviewPassed() {
+  if (loading) return;
+
+  setLoading(true);
+
+  try {
+    const result = await resetPassedProfiles();
+
+    if (result.error) {
+      showToast(result.error);
+      setLoading(false);
+      return;
+    }
+
+    window.location.reload();
+  } catch (error) {
+    console.error("Failed to review passed profiles:", error);
+    showToast("Couldn't reload passed profiles. Please try again.");
+    setLoading(false);
+  }
+}
 
   const currentProfile = deck[0];
 
-  if (!currentProfile) {
+if (!currentProfile && !matchModal) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center space-y-4">
         <div className="rounded-3xl border border-border bg-card p-10 shadow-sm space-y-4">
@@ -198,14 +264,16 @@ export default function DiscoverClient({
                 <SlidersHorizontal className="w-3.5 h-3.5" /> Adjust Preferences
               </Button>
             </Link>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => router.refresh()}
-              className="gap-2 text-xs w-full sm:w-auto"
-            >
-              <RotateCcw className="w-3.5 h-3.5" /> Check for New Arrivals
-            </Button>
+<Button
+  variant="secondary"
+  size="sm"
+  onClick={handleReviewPassed}
+  disabled={loading}
+  className="gap-2 text-xs w-full sm:w-auto"
+>
+  <RotateCcw className="w-3.5 h-3.5" />
+  Review Passed Profiles Again
+</Button>
           </div>
         </div>
       </div>
@@ -255,27 +323,30 @@ export default function DiscoverClient({
       </div>
 
       {/* Action Controls */}
-      <div className="flex items-center justify-center gap-6 pt-2">
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => handlePass(currentProfile.id)}
-          className="flex h-14 w-14 items-center justify-center rounded-full border border-orange-200 bg-white text-orange-600 shadow-md shadow-orange-500/10 transition-all hover:bg-orange-50 hover:scale-110 active:scale-95 disabled:opacity-50 cursor-pointer"
-          aria-label="Pass profile"
-        >
-          <X className="h-7 w-7 stroke-[2.5]" />
-        </button>
+{/* Action Controls */}
+{currentProfile && (
+  <div className="flex items-center justify-center gap-6 pt-2">
+    <button
+      type="button"
+      disabled={loading}
+      onClick={() => handlePass(currentProfile.id)}
+      className="flex h-14 w-14 items-center justify-center rounded-full border border-orange-200 bg-white text-orange-600 shadow-md shadow-orange-500/10 transition-all hover:bg-orange-50 hover:scale-110 active:scale-95 disabled:opacity-50 cursor-pointer"
+      aria-label="Pass profile"
+    >
+      <X className="h-7 w-7 stroke-[2.5]" />
+    </button>
 
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => handleLike(currentProfile.id)}
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xl shadow-emerald-600/30 transition-all hover:bg-emerald-700 hover:scale-110 active:scale-95 disabled:opacity-50 cursor-pointer"
-          aria-label="Like profile"
-        >
-          <Heart className="h-8 w-8 fill-current" />
-        </button>
-      </div>
+    <button
+      type="button"
+      disabled={loading}
+      onClick={() => handleLike(currentProfile.id)}
+      className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xl shadow-emerald-600/30 transition-all hover:bg-emerald-700 hover:scale-110 active:scale-95 disabled:opacity-50 cursor-pointer"
+      aria-label="Like profile"
+    >
+      <Heart className="h-8 w-8 fill-current" />
+    </button>
+  </div>
+)}
 
       {/* Safety Dropdown Menu */}
       <AnimatePresence>
@@ -388,8 +459,7 @@ export default function DiscoverClient({
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
-               <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+<div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
   <Button
     type="button"
     variant="secondary"
@@ -413,16 +483,6 @@ export default function DiscoverClient({
     {reportSubmitting ? "Submitting..." : "Submit Report & Block"}
   </Button>
 </div>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="sm"
-                    disabled={reportSubmitting}
-                    className="bg-rose-600 hover:bg-rose-700 text-white"
-                  >
-                    {reportSubmitting ? "Submitting..." : "Submit Report & Block"}
-                  </Button>
-                </div>
               </form>
             </motion.div>
           </div>

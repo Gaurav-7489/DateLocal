@@ -37,11 +37,17 @@ export async function likeProfile(profileId: string): Promise<LikeResult> {
   }
 
   // Check if either user has blocked the other
-  const { data: blockRecord } = await supabase
+  const { data: blockRecord, error: blockError } = await supabase
     .from("blocks")
     .select("id")
-    .or(`and(blocker_id.eq.${user.id},blocked_id.eq.${profileId}),and(blocker_id.eq.${profileId},blocked_id.eq.${user.id})`)
+    .or(
+      `and(blocker_id.eq.${user.id},blocked_id.eq.${profileId}),and(blocker_id.eq.${profileId},blocked_id.eq.${user.id})`,
+    )
     .maybeSingle();
+
+  if (blockError) {
+    console.error("Block check failed:", blockError);
+  }
 
   if (blockRecord) {
     return {
@@ -50,21 +56,26 @@ export async function likeProfile(profileId: string): Promise<LikeResult> {
     };
   }
 
-  // Ensure target profile exists and is complete
+  // Make sure target profile exists and is available
   const { data: targetProfile, error: targetError } = await supabase
     .from("profiles")
     .select("id, display_name, profile_completed, ghost_mode")
     .eq("id", profileId)
     .maybeSingle();
 
-  if (targetError || !targetProfile || !targetProfile.profile_completed || targetProfile.ghost_mode) {
+  if (
+    targetError ||
+    !targetProfile ||
+    !targetProfile.profile_completed ||
+    targetProfile.ghost_mode
+  ) {
     return {
       error: "That profile is no longer available.",
       matched: false,
     };
   }
 
-  // Create the like
+  // Save our like
   const { error: likeError } = await supabase.from("likes").insert({
     liker_id: user.id,
     liked_id: profileId,
@@ -72,13 +83,15 @@ export async function likeProfile(profileId: string): Promise<LikeResult> {
 
   if (likeError && likeError.code !== "23505") {
     console.error("Like failed:", likeError);
+
     return {
       error: "Couldn't save your like. Please try again.",
       matched: false,
     };
   }
 
-  // Check whether the other user already liked us
+  // Check whether they already liked us.
+  // RLS allows users to read likes they sent OR received.
   const { data: reciprocalLike, error: reciprocalError } = await supabase
     .from("likes")
     .select("id")
@@ -87,25 +100,62 @@ export async function likeProfile(profileId: string): Promise<LikeResult> {
     .maybeSingle();
 
   if (reciprocalError) {
-    console.error("Match check failed:", reciprocalError);
+    console.error("Reciprocal like check failed:", reciprocalError);
+
     return {
-      error: null,
+      error: "Your like was saved, but we couldn't check for a match.",
       matched: false,
     };
   }
 
+  // No mutual like yet.
   if (!reciprocalLike) {
+    revalidatePath(routes.discover);
+
     return {
       error: null,
       matched: false,
     };
   }
 
-  // Order UUIDs canonically: user_a < user_b
+  // Canonical ordering required by matches CHECK constraint.
   const [userA, userB] =
-    user.id < profileId ? [user.id, profileId] : [profileId, user.id];
+    user.id < profileId
+      ? [user.id, profileId]
+      : [profileId, user.id];
 
-  const { data: matchData, error: matchError } = await supabase
+  // Check whether the match already exists.
+  const { data: existingMatch, error: existingMatchError } = await supabase
+    .from("matches")
+    .select("id")
+    .eq("user_a", userA)
+    .eq("user_b", userB)
+    .maybeSingle();
+
+  if (existingMatchError) {
+    console.error("Existing match check failed:", existingMatchError);
+
+    return {
+      error: "Mutual like detected, but we couldn't load the match.",
+      matched: false,
+    };
+  }
+
+  // Match already exists.
+  if (existingMatch) {
+    revalidatePath(routes.discover);
+    revalidatePath(routes.matches);
+    revalidatePath(routes.messages);
+
+    return {
+      error: null,
+      matched: true,
+      matchId: existingMatch.id,
+    };
+  }
+
+  // Create the match.
+  const { data: newMatch, error: matchError } = await supabase
     .from("matches")
     .insert({
       user_a: userA,
@@ -114,10 +164,44 @@ export async function likeProfile(profileId: string): Promise<LikeResult> {
     .select("id")
     .single();
 
-  if (matchError && matchError.code !== "23505") {
+  // Race condition: both sides may create the match at almost
+  // exactly the same time. If that happens, fetch the existing one.
+  if (matchError) {
+    if (matchError.code === "23505") {
+      const { data: raceMatch, error: raceMatchError } = await supabase
+        .from("matches")
+        .select("id")
+        .eq("user_a", userA)
+        .eq("user_b", userB)
+        .maybeSingle();
+
+      if (raceMatchError || !raceMatch) {
+        console.error(
+          "Match already existed but could not be loaded:",
+          raceMatchError,
+        );
+
+        return {
+          error: "You matched, but we couldn't load the match.",
+          matched: false,
+        };
+      }
+
+      revalidatePath(routes.discover);
+      revalidatePath(routes.matches);
+      revalidatePath(routes.messages);
+
+      return {
+        error: null,
+        matched: true,
+        matchId: raceMatch.id,
+      };
+    }
+
     console.error("Match creation failed:", matchError);
+
     return {
-      error: "Mutual like registered, but match record could not be finalized.",
+      error: "Mutual like registered, but match creation failed.",
       matched: false,
     };
   }
@@ -129,7 +213,7 @@ export async function likeProfile(profileId: string): Promise<LikeResult> {
   return {
     error: null,
     matched: true,
-    matchId: matchData?.id,
+    matchId: newMatch.id,
   };
 }
 
@@ -163,6 +247,44 @@ export async function passProfile(profileId: string): Promise<ActionResult> {
       error: "Couldn't save your pass. Please try again.",
     };
   }
+
+  revalidatePath(routes.discover);
+
+  return {
+    error: null,
+    success: true,
+  };
+}
+
+export async function resetPassedProfiles(): Promise<ActionResult> {
+  const supabase = await createServerSupabaseClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      error: "You must be logged in.",
+    };
+  }
+
+  const { data: deletedPasses, error } = await supabase
+    .from("passes")
+    .delete()
+    .eq("passer_id", user.id)
+    .select("id");
+
+  if (error) {
+    console.error("Failed to reset passed profiles:", error);
+    return {
+      error: "Couldn't bring back passed profiles. Please try again.",
+    };
+  }
+
+  console.log(
+    `[DateBu] Reset passed profiles: deleted ${deletedPasses?.length ?? 0} passes`,
+  );
 
   revalidatePath(routes.discover);
 
