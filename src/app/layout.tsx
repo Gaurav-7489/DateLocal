@@ -1,6 +1,8 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { universityConfig } from "@/config/university";
 
 const inter = Inter({
@@ -13,8 +15,6 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -37,6 +37,9 @@ export default function RootLayout({
             {children}
           </div>
         </div>
+
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
