@@ -323,25 +323,29 @@ export default function HomePage() {
   </div>
 
   <div className="grid grid-cols-2 gap-2.5 pt-1">
-    <div className="group flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2.5 text-xs font-semibold text-purple-700">
+    <button type="button" disabled className="group flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2.5 text-xs font-semibold text-purple-700 disabled:cursor-not-allowed">
       <Lock className="w-3.5 h-3.5" />
       Blind Date
-    </div>
+      Coming Soon
+    </button>
 
-    <div className="group flex items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs font-semibold text-orange-700">
+    <button type="button" disabled className="group flex items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs font-semibold text-orange-700 disabled:cursor-not-allowed">
       <Lock className="w-3.5 h-3.5" />
       Random Rush
-    </div>
+      Coming Soon
+    </button>
 
-    <div className="group flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold text-rose-700">
+    <button type="button" disabled className="group flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed">
       <Lock className="w-3.5 h-3.5" />
       Vibe Matcher
-    </div>
+      Coming Soon
+    </button>
 
-    <div className="group flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700">
+    <button type="button" disabled className="group flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700 disabled:cursor-not-allowed">
       <Lock className="w-3.5 h-3.5" />
-      Study Buddies
-    </div>
+      Study Buddy
+      Coming Soon
+    </button>
   </div>
 </div>
 

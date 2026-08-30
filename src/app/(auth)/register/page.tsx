@@ -358,7 +358,7 @@ window.location.href = routes.app;
                       href={routes.login}
                       className="font-bold text-emerald-600 hover:text-emerald-700 active:underline"
                     >
-                      Log in here
+                      Log In here
                     </Link>
                   </p>
                 </div>

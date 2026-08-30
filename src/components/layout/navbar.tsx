@@ -199,7 +199,7 @@ export function Navbar() {
             href={routes.login}
             className="text-xs font-bold text-zinc-600 hover:text-zinc-950 px-3 py-1.5 transition-colors"
           >
-            Log in
+            Log In
           </Link>
 
           <Link
@@ -301,7 +301,7 @@ export function Navbar() {
                   onClick={() => setMobileOpen(false)}
                   className="block w-full rounded-2xl px-4 py-3.5 text-sm font-bold text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950 text-center transition-colors active:scale-95"
                 >
-                  Log in
+                  Log In
                 </Link>
               </motion.div>
 

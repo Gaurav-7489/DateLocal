@@ -36,7 +36,7 @@ export default async function ExtrovertPage() {
           Unlock DateBu Extrovert
         </h1>
         <p className="text-sm text-zinc-600">
-          Free accounts get 5 likes. DateBu Extrovert unlocks every campus mode and unlimited likes.
+          Free accounts get 10 likes daily. DateBu Extrovert unlocks every campus mode and unlimited likes.
         </p>
       </div>
 
@@ -63,26 +63,11 @@ export default async function ExtrovertPage() {
             </div>
             Hide from discovery during exam week or when you want privacy.
           </div>
-          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
-            <div className="mb-1 flex items-center gap-1.5 font-semibold text-zinc-900">
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              Blind Date
-            </div>
-            Extra matchmaking experiments with a premium campus-only twist.
-          </div>
-          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
-            <div className="mb-1 flex items-center gap-1.5 font-semibold text-zinc-900">
-              <Lock className="h-3.5 w-3.5 text-blue-600" />
-              Coming Soon
-            </div>
-            Random Rush, Vibe Matcher, Study Buddies and other modes are still in development.
-          </div>
           {([
             ["Blind Date", "A photo-free matching experience is coming soon.", Sparkles],
             ["Random Rush", "Fast campus matching windows are coming soon.", Zap],
             ["Vibe Matcher", "Match by shared energy and interests. Coming soon.", Users],
             ["Study Buddy", "Find focused campus partners. Coming soon.", Users],
-            ["Blind Mode", "Meet people without seeing profile photos first.", Zap],
             ["Quick Chat", "Start lightweight conversations with active students.", MessageCircle],
           ] as [string, string, LucideIcon][]).map(([title, description, Icon]) => (
             <div key={String(title)} className={`rounded-2xl border p-3 text-xs ${isPremium ? "border-emerald-200 bg-emerald-50/50 text-zinc-700" : "border-zinc-200 bg-zinc-100/80 text-zinc-500"}`}>

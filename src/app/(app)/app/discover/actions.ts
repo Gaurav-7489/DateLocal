@@ -53,16 +53,19 @@ export async function likeProfile(profileId: string): Promise<LikeResult> {
     new Date(subscription.current_period_end).getTime() > Date.now();
 
   if (!isPremium) {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
     const { count: likeCount, error: likeCountError } = await supabase
       .from("likes")
       .select("id", { count: "exact", head: true })
-      .eq("liker_id", user.id);
+      .eq("liker_id", user.id)
+      .gte("created_at", startOfDay.toISOString());
     if (likeCountError) {
       console.error("Like limit check failed:", likeCountError);
       return { error: "We couldn't check your like limit. Please try again.", matched: false };
     }
-    if ((likeCount ?? 0) >= 5) {
-      return { error: "You've used all 5 free likes. Unlock DateBu Extrovert for unlimited likes.", matched: false };
+    if ((likeCount ?? 0) >= 10) {
+      return { error: "You've used all 10 free likes for today. DateBu Extrovert unlocks unlimited likes.", matched: false };
     }
   }
 
