@@ -255,7 +255,7 @@ window.location.href = routes.app;
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={() => setIsFocusedPassword(false)}
-                    placeholder={`username@${universityConfig.emailDomain.replace(/^@/, "")}`}
+                    placeholder={verifiedMode ? `student@${universityConfig.emailDomain.replace(/^@/, "")}` : "you@example.com"}
                     required
                     className="w-full rounded-xl border border-zinc-200 bg-zinc-50/70 px-3.5 py-3 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition duration-200 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
                   />

@@ -232,7 +232,7 @@ export default function LoginPage() {
               >
                 <span className="flex items-center gap-1">
                   <Mail className="w-3 h-3 text-blue-600" />
-                  Campus Email
+                  Email Address
                 </span>
                 <span className="text-[10px] text-zinc-400 font-mono">
                   @{universityConfig.emailDomain.replace(/^@/, "")}

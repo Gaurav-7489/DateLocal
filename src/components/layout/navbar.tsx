@@ -13,11 +13,12 @@ import type { Variants } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { universityConfig } from "@/config/university";
 import { routes } from "@/config/routes";
-import { ArrowRight, ShieldCheck, Menu, X } from "lucide-react";
+import { ArrowRight, ShieldCheck, Menu, X, Newspaper } from "lucide-react";
 
 const publicLinks = [
   { href: routes.about, label: "About" },
   { href: routes.safety, label: "Safety & Trust", icon: ShieldCheck },
+  { href: routes.news, label: "News & Feedback", icon: Newspaper },
 ];
 
 // Staggered animation variants for the mobile menu

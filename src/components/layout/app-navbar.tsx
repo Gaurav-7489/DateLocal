@@ -36,6 +36,7 @@ const appLinks = [
   { href: routes.messages, label: "Chats", icon: MessageSquare },
   { href: routes.profile, label: "You", icon: User },
   { href: routes.extrovert, label: "Extrovert", icon: Crown },
+  { href: routes.news, label: "News & Feedback", icon: Bell },
 ];
 
 const menuVariants: Variants = {
@@ -304,6 +305,13 @@ const Icon = link.icon;
           className="hidden items-center gap-2.5 md:flex"
           ref={menuRef}
         >
+          <Link
+            href={routes.news}
+            className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-[11px] font-bold text-blue-700 transition-all hover:bg-blue-100"
+          >
+            <Bell className="h-3.5 w-3.5" />
+            News
+          </Link>
           {!isStandalone && (
             <button
               type="button"
