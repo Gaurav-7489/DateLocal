@@ -14,15 +14,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-function calculateAge(dateOfBirth: string | null): number | null {
-  if (!dateOfBirth) return null;
-  const birth = new Date(dateOfBirth);
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const m = today.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-  return isNaN(age) ? null : age;
-}
+
 
 export default async function DiscoverPage() {
   const supabase = await createServerSupabaseClient();
@@ -134,20 +126,7 @@ export default async function DiscoverPage() {
     profilesQuery = profilesQuery.not("id", "in", `(${excludedArray.join(",")})`);
   }
 
-  // Gender preference filtering
-  if (myPrefs?.interested_in && myPrefs.interested_in.length > 0) {
-    const wantsMen = myPrefs.interested_in.includes("men");
-    const wantsWomen = myPrefs.interested_in.includes("women");
-    const wantsEveryone = myPrefs.interested_in.includes("everyone");
 
-    if (!wantsEveryone) {
-      if (wantsMen && !wantsWomen) {
-        profilesQuery = profilesQuery.in("gender", ["man"]);
-      } else if (wantsWomen && !wantsMen) {
-        profilesQuery = profilesQuery.in("gender", ["woman"]);
-      }
-    }
-  }
 
   const { data: rawProfiles, error: profilesError } = await profilesQuery
     .order("created_at", { ascending: false })
@@ -165,19 +144,14 @@ export default async function DiscoverPage() {
     );
   }
 
-  // In-memory filter for age range and department preference
-  const minAge = myPrefs?.min_age ?? 18;
-  const maxAge = myPrefs?.max_age ?? 99;
+   // Discover shows all eligible students.
+  // Preferences are used for ranking, not visibility filtering.
+
   const prefDept = myPrefs?.preferred_department?.trim().toLowerCase();
 
   const filteredProfiles = (rawProfiles ?? []).filter((p) => {
+    // Hard exclusions only.
     if (excludedIds.has(p.id)) return false;
-
-    // Age filter
-    const age = calculateAge(p.date_of_birth);
-    if (age !== null && (age < minAge || age > maxAge)) {
-      return false;
-    }
 
     return true;
   });
