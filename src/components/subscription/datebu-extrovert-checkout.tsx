@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useTransition, memo } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { Loader2, ShieldCheck, Zap } from "lucide-react";
 import { routes } from "@/config/routes";
 
 type BillingPlan = "weekly" | "monthly";
@@ -24,7 +24,9 @@ interface RazorpayOptions {
     email?: string;
     contact?: string;
   };
-  notes?: Record<string, string>;
+  notes?: {
+    [key: string]: string;
+  };
   theme?: {
     color?: string;
   };
@@ -83,9 +85,7 @@ function loadRazorpayScript(): Promise<boolean> {
       return;
     }
 
-    const existingScript = document.querySelector(
-      'script[src="https://checkout.razorpay.com/v1/checkout.js"]',
-    );
+    const existingScript = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
 
     if (existingScript) {
       existingScript.addEventListener("load", () => resolve(true));
@@ -108,7 +108,7 @@ interface DateBuExtrovertCheckoutProps {
   phone?: string;
 }
 
-export const DateBuExtrovertCheckout = memo(function DateBuExtrovertCheckout({
+export function DateBuExtrovertCheckout({
   email,
   name,
   phone,
@@ -123,7 +123,6 @@ export const DateBuExtrovertCheckout = memo(function DateBuExtrovertCheckout({
     router.prefetch(routes.settings);
     router.prefetch(`${routes.settings}?subscription=processing`);
     router.prefetch(routes.discover);
-
     loadRazorpayScript().catch(() => {});
   }, [router]);
 
@@ -224,7 +223,7 @@ export const DateBuExtrovertCheckout = memo(function DateBuExtrovertCheckout({
               type="button"
               onClick={() => startCheckout(plan)}
               disabled={loadingPlan !== null}
-              className="group relative rounded-3xl border border-zinc-200/90 bg-white p-5 text-left shadow-2xs transform-gpu transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer overflow-hidden"
+              className="group relative rounded-3xl border border-zinc-200/90 bg-white p-5 text-left shadow-2xs transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer overflow-hidden"
             >
               {config.badge && (
                 <div className="absolute right-4 top-4 rounded-full bg-emerald-600 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-xs">
@@ -261,10 +260,7 @@ export const DateBuExtrovertCheckout = memo(function DateBuExtrovertCheckout({
                     Initializing Checkout...
                   </>
                 ) : (
-                  <>
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Get Extrovert
-                  </>
+                  <>Get Extrovert</>
                 )}
               </div>
             </button>
@@ -274,7 +270,7 @@ export const DateBuExtrovertCheckout = memo(function DateBuExtrovertCheckout({
 
       <div className="flex items-center justify-center gap-1.5 text-[11px] font-semibold text-zinc-500">
         <ShieldCheck className="h-4 w-4 text-emerald-600" />
-        Encrypted payments processed securely via Razorpay
+        Encrypted payments processed via Razorpay
       </div>
 
       {error && (
@@ -287,6 +283,4 @@ export const DateBuExtrovertCheckout = memo(function DateBuExtrovertCheckout({
       )}
     </div>
   );
-});
-
-DateBuExtrovertCheckout.displayName = "DateBuExtrovertCheckout";
+}

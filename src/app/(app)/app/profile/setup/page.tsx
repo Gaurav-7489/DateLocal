@@ -33,7 +33,23 @@ export default async function ProfileSetupPage() {
     supabase.from("interests").select("id, name").order("name"),
     supabase
       .from("profiles")
-      .select("display_name, date_of_birth, gender, department, academic_year, bio")
+      .select(`
+        display_name,
+        date_of_birth,
+        gender,
+        department,
+        academic_year,
+        bio,
+        campus_residency,
+        campus_hangout,
+        relationship_goal,
+        zodiac,
+        sleep_habit,
+        caffeine_pref,
+        weekend_vibe,
+        prompt_question,
+        prompt_answer
+      `)
       .eq("id", user.id)
       .maybeSingle(),
     supabase

@@ -10,20 +10,32 @@ export type AuthResult =
       error: string;
     };
 
+// Cached client instance for rapid auth operations
+let cachedClient: ReturnType<typeof createClient> | null = null;
+function getClient() {
+  if (!cachedClient) {
+    cachedClient = createClient();
+  }
+  return cachedClient;
+}
+
+function getRedirectUrl(path: string): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  return `${window.location.origin}${path}`;
+}
+
 export async function registerWithEmail(
   email: string,
   password: string,
 ): Promise<AuthResult> {
-  const supabase = createClient();
+  const normalizedEmail = email.trim().toLowerCase();
+  const supabase = getClient();
 
   const { data, error } = await supabase.auth.signUp({
-    email,
+    email: normalizedEmail,
     password,
     options: {
-      emailRedirectTo:
-  typeof window !== "undefined"
-    ? `${window.location.origin}/auth/callback`
-    : undefined,
+      emailRedirectTo: getRedirectUrl("/auth/callback"),
     },
   });
 
@@ -44,17 +56,24 @@ export async function signInWithEmail(
   email: string,
   password: string,
 ): Promise<AuthResult> {
-  const supabase = createClient();
+  const normalizedEmail = email.trim().toLowerCase();
+  const supabase = getClient();
 
   const { error } = await supabase.auth.signInWithPassword({
-    email,
+    email: normalizedEmail,
     password,
   });
 
   if (error) {
+    const message = error.message.toLowerCase().includes("email not confirmed")
+      ? "Please verify your email before logging in. Check your inbox or spam folder."
+      : error.message.toLowerCase().includes("invalid login credentials")
+      ? "Incorrect email or password. Please check your credentials."
+      : error.message;
+
     return {
       success: false,
-      error: error.message,
+      error: message,
     };
   }
 
@@ -66,16 +85,14 @@ export async function signInWithEmail(
 export async function resendVerificationEmail(
   email: string,
 ): Promise<AuthResult> {
-  const supabase = createClient();
+  const normalizedEmail = email.trim().toLowerCase();
+  const supabase = getClient();
 
   const { error } = await supabase.auth.resend({
     type: "signup",
-    email,
+    email: normalizedEmail,
     options: {
-      emailRedirectTo:
-  typeof window !== "undefined"
-    ? `${window.location.origin}/auth/callback`
-    : undefined,
+      emailRedirectTo: getRedirectUrl("/auth/callback"),
     },
   });
 
@@ -91,15 +108,24 @@ export async function resendVerificationEmail(
   };
 }
 
-export async function sendPasswordResetEmail(email: string): Promise<AuthResult> {
-  const supabase = createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-    redirectTo: `${window.location.origin}/reset-password`,
+export async function sendPasswordResetEmail(
+  email: string,
+): Promise<AuthResult> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const supabase = getClient();
+
+  const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+    redirectTo: getRedirectUrl("/reset-password"),
   });
 
   if (error) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error.message,
+    };
   }
 
-  return { success: true };
+  return {
+    success: true,
+  };
 }

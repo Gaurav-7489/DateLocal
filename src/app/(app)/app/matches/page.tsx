@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { EmptyState } from "@/components/shared/empty-state";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/shared/empty-state";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
-import { MessageSquare, Heart, ShieldCheck, User } from "lucide-react";
+import { calculateAge } from "@/lib/utils";
+import {
+  MessageCircle,
+  Compass,
+  ShieldCheck,
+  MapPin,
+  } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Your Matches",
+  title: "Your Matches | DateBu",
 };
 
 export const dynamic = "force-dynamic";
@@ -21,8 +28,11 @@ export default async function MatchesPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return null;
+  if (!user) {
+    redirect(routes.login);
+  }
 
+  // Single round-trip parallel fetch
   const [
     { data: blocksCreated },
     { data: blocksReceived },
@@ -43,18 +53,16 @@ export default async function MatchesPage() {
   ]);
 
   if (matchesError) {
-    console.error("Failed to load matches:", matchesError);
     return (
-      <div className="mx-auto max-w-6xl px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-foreground">Something went wrong</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+      <div className="mx-auto max-w-md px-4 py-16 text-center font-sans">
+        <h1 className="text-xl font-bold text-foreground">Something went wrong</h1>
+        <p className="mt-2 text-xs text-muted-foreground">
           We couldn&apos;t load your matches right now.
         </p>
       </div>
     );
   }
 
-  // Filter out any matches involving blocked users
   const matches = (rawMatches ?? []).filter((m) => {
     const otherId = m.user_a === user.id ? m.user_b : m.user_a;
     return !blockedUserIds.has(otherId);
@@ -62,15 +70,15 @@ export default async function MatchesPage() {
 
   if (matches.length === 0) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-16">
+      <div className="mx-auto max-w-md px-4 py-16 font-sans">
         <EmptyState
-          icon="💚"
+          icon="💖"
           title="No matches yet"
-          description="Your connections will appear here once you and another student swipe right on each other."
+          description="Keep swiping in Discover! When you and another student match, they will appear right here."
         >
-          <Link href={routes.discover} prefetch={true}>
-            <Button variant="primary" size="md">
-              Start Discovering
+          <Link href={routes.discover}>
+            <Button variant="primary" size="md" className="gap-2 rounded-2xl">
+              <Compass className="w-4 h-4" /> Start Swiping
             </Button>
           </Link>
         </EmptyState>
@@ -82,14 +90,19 @@ export default async function MatchesPage() {
     match.user_a === user.id ? match.user_b : match.user_a,
   );
 
-  const { data: profiles, error: profilesError } = await supabase
+  const { data: profiles } = await supabase
     .from("profiles")
     .select(`
       id,
       display_name,
+      date_of_birth,
+      gender,
       department,
       academic_year,
       bio,
+      campus_residency,
+      relationship_goal,
+      zodiac,
       profile_photos (
         storage_path,
         display_order,
@@ -98,40 +111,38 @@ export default async function MatchesPage() {
     `)
     .in("id", otherUserIds);
 
-  if (profilesError) {
-    console.error("Failed to load matched profiles:", profilesError);
-  }
-
   const profileMap = new Map(
     (profiles ?? []).map((profile) => [profile.id, profile]),
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-md px-3.5 py-4 space-y-4 font-sans select-none pb-24">
+      {/* Header */}
+      <div className="flex items-center justify-between px-1">
         <div>
-          <h1 className="text-2xl font-black text-foreground sm:text-3xl tracking-tight flex items-center gap-2">
-            <Heart className="w-6 h-6 text-rose-600 fill-current" />
+          <h1 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-2">
             Your Matches
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
           </h1>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {matches.length} {matches.length === 1 ? "student" : "students"} connected with you
+          <p className="text-[11px] text-muted-foreground font-medium">
+            {matches.length} verified {matches.length === 1 ? "student" : "students"} connected with you
           </p>
         </div>
 
-        <Link href={routes.discover} prefetch={true}>
-          <Button variant="outline" size="sm">
-            Keep Swiping
-          </Button>
+        <Link
+          href={routes.discover}
+          className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full border border-emerald-200 transition-colors shadow-2xs active:scale-95"
+        >
+          Keep Swiping
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {matches.map((match) => {
+      {/* 2-Column Match Cards Grid */}
+      <div className="grid grid-cols-2 gap-2.5 pt-1">
+        {matches.map((match, idx) => {
           const otherUserId =
             match.user_a === user.id ? match.user_b : match.user_a;
           const profile = profileMap.get(otherUserId);
-
           if (!profile) return null;
 
           const photos = [...(profile.profile_photos ?? [])].sort((a, b) => {
@@ -140,63 +151,66 @@ export default async function MatchesPage() {
             return a.display_order - b.display_order;
           });
 
-          const photoUrl = getProfilePhotoUrl(photos[0]?.storage_path, 640);
+          const photoUrl = getProfilePhotoUrl(photos[0]?.storage_path, 320);
+          const age = calculateAge(profile.date_of_birth);
 
           return (
             <div
               key={match.id}
-              className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm hover:shadow-md transition flex flex-col justify-between"
+              className="group relative flex flex-col overflow-hidden rounded-3xl border border-border/80 bg-card shadow-2xs transition-all hover:shadow-md"
             >
-              <div className="relative aspect-square w-full bg-muted overflow-hidden">
+              {/* Photo Area */}
+              <div className="relative aspect-[4/5] w-full overflow-hidden bg-zinc-950">
                 {photoUrl ? (
                   <Image
                     src={photoUrl}
-                    alt={profile.display_name ?? "Matched student"}
+                    alt={profile.display_name ?? "Student"}
                     fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    priority={idx < 4}
+                    decoding="async"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    sizes="(max-width: 640px) 50vw, 200px"
                   />
                 ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center text-muted-foreground">
-                    <User className="h-16 w-16 stroke-1" />
-                    <span className="text-xs mt-1">No photo</span>
+                  <div className="flex h-full w-full items-center justify-center font-bold text-white bg-gradient-to-br from-emerald-600 to-teal-700 text-2xl">
+                    {profile.display_name?.charAt(0) ?? "?"}
                   </div>
                 )}
 
-                <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/90 backdrop-blur-md text-[10px] font-bold text-emerald-700 shadow-xs border border-zinc-200">
-                  <ShieldCheck className="w-3 h-3" /> Verified
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
+
+                {/* Verified Badge */}
+                <div className="absolute top-2.5 right-2.5 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-bold text-emerald-400 backdrop-blur-xs border border-white/10 shadow-xs pointer-events-none">
+                  <ShieldCheck className="w-2.5 h-2.5" /> Verified
+                </div>
+
+                {/* Overlaid Info */}
+                <div className="absolute bottom-2.5 left-2.5 right-2.5 text-white pointer-events-none">
+                  <h2 className="text-sm font-black truncate leading-tight">
+                    {profile.display_name || "Student"}
+                    {age !== null && <span className="font-light text-xs opacity-90">, {age}</span>}
+                  </h2>
+
+                  <p className="text-[10px] text-zinc-300 font-medium truncate mt-0.5">
+                    {profile.department?.split("&")[0].trim()} • {profile.academic_year}
+                  </p>
+
+                  {profile.campus_residency && (
+                    <span className="inline-flex items-center gap-0.5 text-[9px] text-zinc-300 mt-0.5">
+                      <MapPin className="w-2.5 h-2.5" /> {profile.campus_residency}
+                    </span>
+                  )}
                 </div>
               </div>
 
-              <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-foreground">
-                    {profile.display_name || "DateBu Student"}
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {profile.department || "Student"}
-                    {profile.academic_year ? ` • ${profile.academic_year}` : ""}
-                  </p>
-
-                  {profile.bio && (
-                    <p className="mt-2 line-clamp-2 text-xs text-muted-foreground leading-relaxed">
-                      &ldquo;{profile.bio}&rdquo;
-                    </p>
-                  )}
-                </div>
-
+              {/* Chat CTA Button */}
+              <div className="p-2 bg-card">
                 <Link
                   href={`${routes.messages}/${match.id}`}
-                  prefetch={true}
-                  className="block w-full pt-2"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 py-2 text-xs font-bold text-white shadow-xs active:scale-95 transition-all"
                 >
-                  <Button
-                    variant="primary"
-                    size="md"
-                    className="w-full gap-2 text-xs font-bold"
-                  >
-                    <MessageSquare className="w-4 h-4" /> Message
-                  </Button>
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>Chat</span>
                 </Link>
               </div>
             </div>

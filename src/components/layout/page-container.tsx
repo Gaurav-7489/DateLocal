@@ -41,14 +41,12 @@ export function PageContainer({
       )}
       {...props}
     >
-      {/* Optional Ambient Background Glow for immersive design depth */}
       {withAmbientGlow && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden -z-10" aria-hidden="true">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-gradient-to-tr from-emerald-100/50 via-blue-100/30 to-purple-100/20 rounded-full blur-[140px]" />
         </div>
       )}
 
-      {/* Optional Auto-Formatting Page Header */}
       {(title || description || badge || action) && (
         <div className="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 border-b border-zinc-200/60 pb-6">
           <div className="space-y-2.5">
@@ -80,7 +78,6 @@ export function PageContainer({
         </div>
       )}
 
-      {/* Page Content Container with Smooth Entrance */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}

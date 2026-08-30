@@ -7,10 +7,10 @@ import { routes } from "@/config/routes";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import { isUuid } from "@/lib/validation";
 import ChatClient from "./chat-client";
-import { ArrowLeft, User, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Chat",
+  title: "Chat | DateBu",
 };
 
 export const dynamic = "force-dynamic";
@@ -64,7 +64,7 @@ export default async function ChatPage({ params }: Props) {
     redirect(routes.messages);
   }
 
-  // Load the other user's profile
+  // Load the other user's profile with full badges & prompt info
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(`
@@ -72,6 +72,12 @@ export default async function ChatPage({ params }: Props) {
       display_name,
       department,
       academic_year,
+      relationship_goal,
+      campus_residency,
+      campus_hangout,
+      zodiac,
+      prompt_question,
+      prompt_answer,
       profile_photos (
         storage_path,
         display_order,
@@ -107,45 +113,47 @@ export default async function ChatPage({ params }: Props) {
   const photoUrl = getProfilePhotoUrl(photoPath, 160);
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-7rem)] max-w-3xl flex-col px-4 py-3">
-      {/* Chat header */}
-      <div className="mb-3 flex items-center justify-between border-b border-border pb-3">
+    <div className="mx-auto flex h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-4rem)] max-w-2xl flex-col px-2 sm:px-4 font-sans overflow-hidden pb-20 md:pb-4">
+      {/* Sleek Top Navigation Header */}
+      <div className="shrink-0 flex items-center justify-between border-b border-border/80 bg-background/80 backdrop-blur-md py-2.5 px-1 z-20">
         <div className="flex items-center gap-3">
           <Link
             href={routes.messages}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground transition"
-            aria-label="Back to conversations"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground shadow-2xs active:scale-95 transition-all"
+            aria-label="Back to messages"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
 
-          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-border bg-muted">
+          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-emerald-500/40 bg-zinc-900 shadow-xs">
             {photoUrl ? (
               <Image
                 src={photoUrl}
                 alt={profile.display_name ?? "Partner"}
                 fill
+                priority
                 className="object-cover"
-                sizes="40px"
+                sizes="44px"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                <User className="h-5 w-5 stroke-1" />
+              <div className="flex h-full w-full items-center justify-center font-bold text-white bg-gradient-to-br from-emerald-600 to-teal-700 text-sm">
+                {profile.display_name?.charAt(0) ?? "?"}
               </div>
             )}
+            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
           </div>
 
-          <div>
+          <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <h1 className="font-bold text-foreground text-sm">
+              <h1 className="font-bold text-foreground text-sm tracking-tight">
                 {profile.display_name || "DateBu Student"}
               </h1>
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-2 py-0.2 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
-                <ShieldCheck className="w-3 h-3" /> Verified
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.2 text-[9px] font-bold text-emerald-700 border border-emerald-200">
+                <ShieldCheck className="w-2.5 h-2.5" /> Verified
               </span>
             </div>
 
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground font-medium truncate max-w-[200px] sm:max-w-none">
               {profile.department || "Student"}
               {profile.academic_year ? ` • ${profile.academic_year}` : ""}
             </p>
@@ -158,7 +166,8 @@ export default async function ChatPage({ params }: Props) {
         matchId={matchId}
         currentUserId={user.id}
         otherUserId={otherUserId}
-        otherUserName={profile.display_name || "Student"}
+        otherProfile={profile}
+        otherPhotoUrl={photoUrl}
         initialMessages={[...(messages ?? [])].reverse()}
       />
     </div>

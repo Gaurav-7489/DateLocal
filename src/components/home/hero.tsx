@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, ShieldCheck, Sparkles, Users, Lock } from "lucide-react";
 import { SwipeDeck } from "./swipe-deck";
 import { universityConfig } from "@/config/university";
+import { routes } from "@/config/routes";
 
 export function Hero() {
   return (
@@ -55,7 +56,7 @@ export function Hero() {
 
           <div className="flex flex-wrap items-center gap-4 pt-2 w-full sm:w-auto">
             <Link
-              href="/register"
+              href={routes.register}
               className="group relative inline-flex items-center justify-center px-8 py-4 text-sm font-bold text-white bg-emerald-600 rounded-full shadow-[0_6px_24px_rgba(16,185,129,0.3)] hover:shadow-[0_8px_30px_rgba(16,185,129,0.4)] hover:scale-105 active:scale-95 transition-all duration-300 overflow-hidden"
             >
               <span className="absolute inset-0 w-full h-full -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-shimmer" />
@@ -66,14 +67,14 @@ export function Hero() {
             </Link>
 
             <Link
-              href="/register?mode=basic"
+              href={`${routes.register}?mode=basic`}
               className="inline-flex items-center justify-center px-7 py-4 text-sm font-bold text-zinc-700 bg-white border border-zinc-200/90 rounded-full hover:bg-zinc-50 hover:text-zinc-950 transition-all shadow-xs active:scale-95"
             >
               Sign up with any email
             </Link>
 
             <Link
-              href="/safety"
+              href={routes.safety}
               className="inline-flex items-center justify-center px-7 py-4 text-sm font-bold text-zinc-700 bg-white border border-zinc-200/90 rounded-full hover:bg-zinc-50 hover:text-zinc-950 transition-all shadow-xs active:scale-95"
             >
               <ShieldCheck className="mr-2 w-4 h-4 text-emerald-600" />
@@ -102,7 +103,6 @@ export function Hero() {
           transition={{ duration: 0.8, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
           className="lg:col-span-5 flex justify-center items-center py-6"
         >
-          {/* Renders your interactive swipe-deck.tsx component */}
           <SwipeDeck />
         </motion.div>
 

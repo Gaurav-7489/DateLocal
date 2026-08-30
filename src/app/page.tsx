@@ -18,7 +18,6 @@ import {
   MessageSquare,
   RotateCcw
 } from "lucide-react";
-import confetti from "canvas-confetti";
 import { universityConfig } from "@/config/university";
 import { routes } from "@/config/routes";
 import { Navbar } from "@/components/layout/navbar";
@@ -84,20 +83,22 @@ export default function HomePage() {
   const [deck, setDeck] = useState<Profile[]>(DEMO_PROFILES);
   const [matchUser, setMatchUser] = useState<Profile | null>(null);
 
-  const handleSwipe = (profileId: string, direction: "left" | "right") => {
+  const handleSwipe = async (profileId: string, direction: "left" | "right") => {
     const swipedCard = deck.find((p) => p.id === profileId);
 
     if (direction === "right" && swipedCard) {
       setMatchUser(swipedCard);
-      confetti({
-        particleCount: 70,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ["#10B981", "#F97316", "#3B82F6", "#F43F5E"],
-      });
+      try {
+        const confetti = (await import("canvas-confetti")).default;
+        confetti({
+          particleCount: 70,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#10B981", "#F97316", "#3B82F6", "#F43F5E"],
+        });
+      } catch {}
     }
 
-    // Remove swiped card so the card beneath smoothly scales up into active view
     setDeck((prev) => prev.filter((p) => p.id !== profileId));
   };
 

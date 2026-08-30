@@ -2,14 +2,10 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { AppNavbar } from "@/components/layout/app-navbar";
+import { NotificationListener } from "@/components/notifications/notification-listener";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Authenticated app layout.
- * Protects all /app/* routes — redirects unauthenticated users to login.
- * Provides the app shell: navbar, content area.
- */
 export default async function AppLayout({
   children,
 }: {
@@ -21,12 +17,10 @@ export default async function AppLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Route protection: redirect to login if not authenticated
   if (!user) {
     redirect(routes.login);
   }
 
-  // Get the user's authorization role directly from Supabase
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
@@ -44,16 +38,18 @@ export default async function AppLayout({
     userRole === "SUPER_ADMIN" ||
     userRole === "ADMIN" ||
     (Boolean(ownerId) && user.id === ownerId) ||
-    (Boolean(user.email) && adminEmails.includes(user.email!.toLowerCase()));
+    Boolean(user.email && adminEmails.includes(user.email.toLowerCase()));
 
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-background">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-background overscroll-none select-none">
+      <NotificationListener currentUserId={user.id} />
+
       <AppNavbar
         userEmail={user.email ?? "Unknown"}
         isSuperAdmin={isSuperAdmin}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto pb-4">{children}</div>
+      <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
     </div>
   );
 }

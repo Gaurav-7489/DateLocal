@@ -23,16 +23,12 @@ const footerNavigation = {
 export function Footer() {
   return (
     <footer className="relative w-full border-t border-zinc-200/90 bg-[#fafafa] text-zinc-900 font-sans overflow-hidden">
-      
-      {/* Subtle Bottom Ambient Glow */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-gradient-to-tr from-emerald-100/60 via-blue-100/40 to-pink-100/40 rounded-full blur-[120px]" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl px-6 pt-16 pb-12">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 pb-12 border-b border-zinc-200/80">
-          
-          {/* Brand Info Column */}
           <div className="lg:col-span-5 flex flex-col items-start gap-4">
             <div className="flex items-center gap-2.5 group">
               <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-sm font-black text-white shadow-md shadow-emerald-600/25 transition-transform duration-300 group-hover:scale-105 group-hover:rotate-3">
@@ -64,10 +60,7 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Links Columns */}
           <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
-            
-            {/* Platform */}
             <div className="space-y-3">
               <p className="text-xs font-bold uppercase tracking-wider text-zinc-950 flex items-center gap-1">
                 Platform
@@ -86,7 +79,6 @@ export function Footer() {
               </ul>
             </div>
 
-            {/* Trust & Safety */}
             <div className="space-y-3">
               <p className="text-xs font-bold uppercase tracking-wider text-zinc-950">
                 Trust & Safety
@@ -105,12 +97,10 @@ export function Footer() {
               </ul>
             </div>
 
-            {/* Project */}
             <div className="space-y-3 col-span-2 sm:col-span-1">
               <p className="text-xs font-bold uppercase tracking-wider text-zinc-950">
                 Project
               </p>
-
               <ul className="space-y-2.5">
                 {footerNavigation.about.map((item) => (
                   <li key={item.href}>
@@ -122,7 +112,6 @@ export function Footer() {
                     </Link>
                   </li>
                 ))}
-
                 <li>
                   <a
                     href="https://www.instagram.com/datebu.in"
@@ -147,12 +136,9 @@ export function Footer() {
                 </li>
               </ul>
             </div>
-
           </div>
-
         </div>
 
-        {/* Bottom Bar: Copyright & Made with Love */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 text-xs text-zinc-500">
           <p className="font-medium text-center sm:text-left flex items-center gap-1.5">
             <span>© {new Date().getFullYear()} {universityConfig.appName}. All rights reserved.</span>
@@ -165,7 +151,6 @@ export function Footer() {
             <span>for campus life.</span>
           </p>
         </div>
-
       </div>
     </footer>
   );

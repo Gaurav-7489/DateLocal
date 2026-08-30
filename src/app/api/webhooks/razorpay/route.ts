@@ -50,46 +50,26 @@ function verifyWebhookSignature(
 export async function POST(request: Request) {
   try {
     const rawBody = await request.text();
-
     if (!rawBody) {
-      return NextResponse.json(
-        { error: "Empty webhook body." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Empty webhook body." }, { status: 400 });
     }
 
     const signature = request.headers.get("x-razorpay-signature");
-
     if (!signature) {
-      return NextResponse.json(
-        { error: "Missing webhook signature." },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Missing webhook signature." }, { status: 401 });
     }
 
     const webhookSecret = getRazorpayWebhookSecret();
-
-    const validSignature = verifyWebhookSignature(
-      rawBody,
-      signature,
-      webhookSecret,
-    );
+    const validSignature = verifyWebhookSignature(rawBody, signature, webhookSecret);
 
     if (!validSignature) {
-      return NextResponse.json(
-        { error: "Invalid webhook signature." },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Invalid webhook signature." }, { status: 401 });
     }
 
     const payload = JSON.parse(rawBody) as RazorpayWebhookPayload;
     const eventType = payload.event;
-
     if (!eventType) {
-      return NextResponse.json(
-        { error: "Missing event type." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Missing event type." }, { status: 400 });
     }
 
     const eventId = crypto
@@ -99,35 +79,26 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient();
 
-    // 1. Idempotency Check
-    const { data: existingEvent, error: existingEventError } =
-      await admin
-        .from("razorpay_webhook_events")
-        .select("id")
-        .eq("razorpay_event_id", eventId)
-        .maybeSingle();
+    const { data: existingEvent, error: existingEventError } = await admin
+      .from("razorpay_webhook_events")
+      .select("id")
+      .eq("razorpay_event_id", eventId)
+      .maybeSingle();
 
     if (existingEventError) {
       console.error("Webhook idempotency check error:", existingEventError);
-      return NextResponse.json(
-        { error: "Unable to process webhook." },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: "Unable to process webhook." }, { status: 500 });
     }
 
     if (existingEvent) {
       return NextResponse.json({ success: true, duplicate: true });
     }
 
-    // 2. Extract Entities
     const subscriptionEntity = payload.payload?.subscription?.entity;
     const paymentEntity = payload.payload?.payment?.entity;
-
-    const razorpaySubscriptionId =
-      subscriptionEntity?.id || paymentEntity?.subscription_id;
+    const razorpaySubscriptionId = subscriptionEntity?.id || paymentEntity?.subscription_id;
     const paymentId = paymentEntity?.id;
-    const notesUserId =
-      subscriptionEntity?.notes?.user_id || paymentEntity?.notes?.user_id;
+    const notesUserId = subscriptionEntity?.notes?.user_id || paymentEntity?.notes?.user_id;
 
     let userId: string | null = notesUserId || null;
 
@@ -141,7 +112,6 @@ export async function POST(request: Request) {
       userId = subscriptionRow?.user_id ?? null;
     }
 
-    // 3. Handle Subscription Lifecycle
     if (userId) {
       const razorpayStatus = subscriptionEntity?.status;
       let status: "active" | "cancelled" | "expired" | null = null;
@@ -188,7 +158,6 @@ export async function POST(request: Request) {
           { onConflict: "user_id" },
         );
 
-        // Auto-disable Ghost Mode if plan expires or is cancelled
         if (!isPro) {
           await admin
             .from("profiles")
@@ -198,7 +167,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // 4. Mark Webhook as Processed
     await admin.from("razorpay_webhook_events").insert({
       razorpay_event_id: eventId,
       event_type: eventType,
@@ -207,9 +175,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Razorpay webhook error:", error);
-    return NextResponse.json(
-      { error: "Webhook processing failed." },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Webhook processing failed." }, { status: 500 });
   }
 }

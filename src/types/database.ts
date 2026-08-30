@@ -1,9 +1,9 @@
 /**
- * Supabase database types.
+ * Supabase Database Types
+ * Optimized with complete foreign key graphs, enum unions, and ergonomic query helpers.
  */
 
 import type { UserRole } from "@/types/roles";
-
 
 export type Json =
   | string
@@ -13,16 +13,26 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+export type GenderType = "male" | "female" | "non-binary" | "other";
+export type ReportStatus = "pending" | "reviewed" | "resolved" | "dismissed";
+export type SubscriptionPlan = "free" | "pro";
+export type SubscriptionStatus =
+  | "inactive"
+  | "trialing"
+  | "active"
+  | "cancelled"
+  | "expired";
+
 export interface Database {
   public: {
     Tables: {
       profiles: {
         Row: {
-          role: UserRole;
           id: string;
+          role: UserRole;
           display_name: string;
           date_of_birth: string;
-          gender: string;
+          gender: GenderType | string;
           department: string;
           academic_year: string;
           bio: string | null;
@@ -32,11 +42,11 @@ export interface Database {
           updated_at: string;
         };
         Insert: {
-          role?: UserRole;
           id: string;
+          role?: UserRole;
           display_name: string;
           date_of_birth: string;
-          gender: string;
+          gender: GenderType | string;
           department: string;
           academic_year: string;
           bio?: string | null;
@@ -50,7 +60,7 @@ export interface Database {
           role?: UserRole;
           display_name?: string;
           date_of_birth?: string;
-          gender?: string;
+          gender?: GenderType | string;
           department?: string;
           academic_year?: string;
           bio?: string | null;
@@ -61,6 +71,7 @@ export interface Database {
         };
         Relationships: [];
       };
+
       interests: {
         Row: {
           id: string;
@@ -79,6 +90,7 @@ export interface Database {
         };
         Relationships: [];
       };
+
       profile_interests: {
         Row: {
           profile_id: string;
@@ -112,6 +124,7 @@ export interface Database {
           },
         ];
       };
+
       profile_photos: {
         Row: {
           id: string;
@@ -147,10 +160,11 @@ export interface Database {
           },
         ];
       };
+
       dating_preferences: {
         Row: {
           user_id: string;
-          interested_in: string[];
+          interested_in: (GenderType | string)[];
           min_age: number;
           max_age: number;
           preferred_department: string | null;
@@ -159,7 +173,7 @@ export interface Database {
         };
         Insert: {
           user_id: string;
-          interested_in?: string[];
+          interested_in?: (GenderType | string)[];
           min_age?: number;
           max_age?: number;
           preferred_department?: string | null;
@@ -168,15 +182,24 @@ export interface Database {
         };
         Update: {
           user_id?: string;
-          interested_in?: string[];
+          interested_in?: (GenderType | string)[];
           min_age?: number;
           max_age?: number;
           preferred_department?: string | null;
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "dating_preferences_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
+
       likes: {
         Row: {
           id: string;
@@ -195,8 +218,24 @@ export interface Database {
           liked_id?: string;
           created_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "likes_liker_id_fkey";
+            columns: ["liker_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "likes_liked_id_fkey";
+            columns: ["liked_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
+
       passes: {
         Row: {
           id: string;
@@ -215,8 +254,24 @@ export interface Database {
           passed_id?: string;
           created_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "passes_passer_id_fkey";
+            columns: ["passer_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "passes_passed_id_fkey";
+            columns: ["passed_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
+
       matches: {
         Row: {
           id: string;
@@ -235,8 +290,24 @@ export interface Database {
           user_b?: string;
           created_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "matches_user_a_fkey";
+            columns: ["user_a"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "matches_user_b_fkey";
+            columns: ["user_b"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
+
       messages: {
         Row: {
           id: string;
@@ -266,8 +337,16 @@ export interface Database {
             referencedRelation: "matches";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "messages_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
         ];
       };
+
       blocks: {
         Row: {
           id: string;
@@ -286,8 +365,24 @@ export interface Database {
           blocked_id?: string;
           created_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "blocks_blocker_id_fkey";
+            columns: ["blocker_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "blocks_blocked_id_fkey";
+            columns: ["blocked_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
+
       reports: {
         Row: {
           id: string;
@@ -295,7 +390,7 @@ export interface Database {
           reported_id: string;
           reason: string;
           details: string | null;
-          status: "pending" | "reviewed" | "resolved" | "dismissed";
+          status: ReportStatus;
           created_at: string;
           updated_at: string;
         };
@@ -305,7 +400,7 @@ export interface Database {
           reported_id: string;
           reason: string;
           details?: string | null;
-          status?: "pending" | "reviewed" | "resolved" | "dismissed";
+          status?: ReportStatus;
           created_at?: string;
           updated_at?: string;
         };
@@ -314,18 +409,34 @@ export interface Database {
           reported_id?: string;
           reason?: string;
           details?: string | null;
-          status?: "pending" | "reviewed" | "resolved" | "dismissed";
+          status?: ReportStatus;
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "reports_reporter_id_fkey";
+            columns: ["reporter_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_reported_id_fkey";
+            columns: ["reported_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
+
       subscriptions: {
         Row: {
           id: string;
           user_id: string;
-          plan: "free" | "pro";
-          status: "inactive" | "trialing" | "active" | "cancelled" | "expired";
+          plan: SubscriptionPlan;
+          status: SubscriptionStatus;
           trial_started_at: string | null;
           trial_ends_at: string | null;
           current_period_start: string | null;
@@ -339,8 +450,8 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          plan?: "free" | "pro";
-          status?: "inactive" | "trialing" | "active" | "cancelled" | "expired";
+          plan?: SubscriptionPlan;
+          status?: SubscriptionStatus;
           trial_started_at?: string | null;
           trial_ends_at?: string | null;
           current_period_start?: string | null;
@@ -353,8 +464,8 @@ export interface Database {
         };
         Update: {
           user_id?: string;
-          plan?: "free" | "pro";
-          status?: "inactive" | "trialing" | "active" | "cancelled" | "expired";
+          plan?: SubscriptionPlan;
+          status?: SubscriptionStatus;
           trial_started_at?: string | null;
           trial_ends_at?: string | null;
           current_period_start?: string | null;
@@ -365,12 +476,44 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+
+      razorpay_webhook_events: {
+        Row: {
+          id: string;
+          razorpay_event_id: string;
+          event_type: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          razorpay_event_id: string;
+          event_type: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          razorpay_event_id?: string;
+          event_type?: string;
+          created_at?: string;
+        };
         Relationships: [];
       };
     };
+
     Views: {
       [_ in never]: never;
     };
+
     Functions: {
       is_datebu_pro: {
         Args: Record<PropertyKey, never>;
@@ -379,8 +522,8 @@ export interface Database {
       get_my_subscription: {
         Args: Record<PropertyKey, never>;
         Returns: {
-          plan: string;
-          status: string;
+          plan: SubscriptionPlan;
+          status: SubscriptionStatus;
           is_pro: boolean;
           trial_started_at: string | null;
           trial_ends_at: string | null;
@@ -389,11 +532,26 @@ export interface Database {
         }[];
       };
     };
+
     Enums: {
-      [_ in never]: never;
+      user_role: UserRole;
+      gender_type: GenderType;
+      report_status: ReportStatus;
+      subscription_plan: SubscriptionPlan;
+      subscription_status: SubscriptionStatus;
     };
+
     CompositeTypes: {
       [_ in never]: never;
     };
   };
 }
+
+/* ================= Type Utility Shorthands ================= */
+
+export type Tables<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Row"];
+export type InsertTables<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Insert"];
+export type UpdateTables<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Update"];

@@ -1,10 +1,20 @@
 import type { Metadata } from "next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { DateBuExtrovertCheckout } from "@/components/payments/datebu-extrovert-checkout";
-import { Card } from "@/components/ui/card";
-import { Lock, ShieldCheck, Sparkles, Zap, Users, MessageCircle, type LucideIcon } from "lucide-react";
+import { 
+  ShieldCheck, 
+  Sparkles, 
+  Zap, 
+  Users, 
+  MessageCircle, 
+  Flame, 
+  CheckCircle2, 
+  Infinity 
+} from "lucide-react";
 
-export const metadata: Metadata = { title: "DateBu Extrovert" };
+export const metadata: Metadata = { 
+  title: "DateBu Extrovert | Premium" 
+};
 
 export const dynamic = "force-dynamic";
 
@@ -19,76 +29,128 @@ export default async function ExtrovertPage() {
 
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("plan, status")
+    .select("plan, status, current_period_end")
     .eq("user_id", user.id)
     .maybeSingle();
 
   const isPremium = subscription?.status === "active" && subscription.plan !== "free";
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-      <div className="space-y-2">
-        <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">
-          <Sparkles className="h-3.5 w-3.5" />
-          Premium Features
+    <div className="mx-auto max-w-md px-3.5 py-4 space-y-4 font-sans select-none pb-24">
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card to-emerald-950/20 p-5 shadow-xs">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-[11px] font-black text-emerald-600 uppercase tracking-wider">
+            <Sparkles className="h-3 w-3" /> Premium Club
+          </span>
+          {isPremium ? (
+            <span className="flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs">
+              <CheckCircle2 className="w-3 h-3" /> Active Member
+            </span>
+          ) : (
+            <span className="rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground border border-border/60">
+              Free Tier
+            </span>
+          )}
         </div>
-        <h1 className="text-2xl font-black tracking-tight text-zinc-950 sm:text-3xl">
-          Unlock DateBu Extrovert
-        </h1>
-        <p className="text-sm text-zinc-600">
-          Free accounts get 10 likes daily. DateBu Extrovert unlocks every campus mode and unlimited likes.
-        </p>
+
+        <div className="mt-3 space-y-1">
+          <h1 className="text-2xl font-black tracking-tight text-foreground">
+            DateBu Extrovert
+          </h1>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Free accounts get 10 daily likes. Unlock unlimited campus swipes, exam-week privacy, and exclusive modes.
+          </p>
+        </div>
       </div>
 
-      <Card className="p-4 sm:p-6">
-        <div className="mb-5 flex items-start gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
-            <Lock className="h-5 w-5" />
+      {/* Feature Perks Bento Grid */}
+      <div className="rounded-3xl border border-border/80 bg-card p-4 space-y-3 shadow-xs">
+        <div className="flex items-center justify-between px-0.5">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+            <Zap className="w-3 h-3 text-amber-500" /> Exclusive Perks
+          </span>
+          <span className="text-[10px] font-bold text-emerald-600">
+            {isPremium ? "All Unlocked" : "6 Features"}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {/* Unlimited Likes */}
+          <div className="rounded-2xl border border-border/70 bg-muted/30 p-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+              <Infinity className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="truncate">Unlimited Likes</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-snug">
+              Never run out of campus likes or miss a connection.
+            </p>
           </div>
-          <div>
-            <h2 className="text-base font-bold text-zinc-950">Exclusive access</h2>
-            <p className="text-xs text-zinc-600">
-              {isPremium
-                ? "Your premium subscription is active. You already have access to the locked features."
-                : "Choose a plan below to unlock premium features and keep your experience private."}
+
+          {/* Ghost Mode */}
+          <div className="rounded-2xl border border-border/70 bg-muted/30 p-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span className="truncate">Ghost Mode</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-snug">
+              Hide your profile during exam weeks with 1 tap.
+            </p>
+          </div>
+
+          {/* Random Rush */}
+          <div className="rounded-2xl border border-border/70 bg-muted/30 p-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+              <Flame className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+              <span className="truncate">Random Rush</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-snug">
+              Fast live campus matching windows.
+            </p>
+          </div>
+
+          {/* Vibe Matcher */}
+          <div className="rounded-2xl border border-border/70 bg-muted/30 p-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+              <Users className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+              <span className="truncate">Vibe Matcher</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-snug">
+              Pair up by tea spots &amp; weekend energy.
+            </p>
+          </div>
+
+          {/* Study Buddy */}
+          <div className="rounded-2xl border border-border/70 bg-muted/30 p-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+              <Sparkles className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+              <span className="truncate">Study Buddy</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-snug">
+              Match with partners from your department.
+            </p>
+          </div>
+
+          {/* Quick Chat */}
+          <div className="rounded-2xl border border-border/70 bg-muted/30 p-3 space-y-1">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+              <MessageCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+              <span className="truncate">Quick Chat</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-snug">
+              Lightweight chat with active students.
             </p>
           </div>
         </div>
+      </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
-            <div className="mb-1 flex items-center gap-1.5 font-semibold text-zinc-900">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-              Ghost Mode
-            </div>
-            Hide from discovery during exam week or when you want privacy.
-          </div>
-          {([
-            ["Blind Date", "A photo-free matching experience is coming soon.", Sparkles],
-            ["Random Rush", "Fast campus matching windows are coming soon.", Zap],
-            ["Vibe Matcher", "Match by shared energy and interests. Coming soon.", Users],
-            ["Study Buddy", "Find focused campus partners. Coming soon.", Users],
-            ["Quick Chat", "Start lightweight conversations with active students.", MessageCircle],
-          ] as [string, string, LucideIcon][]).map(([title, description, Icon]) => (
-            <div key={String(title)} className={`rounded-2xl border p-3 text-xs ${isPremium ? "border-emerald-200 bg-emerald-50/50 text-zinc-700" : "border-zinc-200 bg-zinc-100/80 text-zinc-500"}`}>
-              <div className="mb-1 flex items-center gap-1.5 font-semibold text-zinc-900">
-                {!isPremium && <Lock className="h-3.5 w-3.5" />}
-                <Icon className="h-3.5 w-3.5 text-emerald-600" />
-                {String(title)}
-              </div>
-              {String(description)}
-              {!isPremium && <p className="mt-1 font-semibold text-amber-700">Locked on Free</p>}
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <Card className="p-4 sm:p-6">
+      {/* Checkout Section */}
+      <div className="rounded-3xl border border-border/80 bg-card p-4 shadow-xs">
         <DateBuExtrovertCheckout
           email={user.email ?? undefined}
           name={user.user_metadata?.full_name || user.user_metadata?.name || undefined}
         />
-      </Card>
+      </div>
     </div>
   );
 }

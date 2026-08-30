@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import Cropper, { type Area, type Point } from "react-easy-crop";
 import { createClient } from "@/lib/supabase/client";
@@ -14,7 +15,9 @@ import {
   RotateCw, 
   Check, 
   Camera, 
-  Sparkles 
+  Sparkles,
+  UserCheck,
+  ArrowLeftRight
 } from "lucide-react";
 
 interface ProfilePhotoUploaderProps {
@@ -37,12 +40,28 @@ export function ProfilePhotoUploader({
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [previewUrls, setPreviewUrls] = useState<string[]>(existingPhotoUrls);
-  const [photoPaths, setPhotoPaths] = useState<string[]>(existingPhotoPaths);
+  const [mounted, setMounted] = useState(false);
+
+  // Maintain strict 6-slot arrays so deleting an item leaves an empty slot instead of collapsing array
+  const [slotsUrls, setSlotsUrls] = useState<(string | null)[]>(() => {
+    const initial = Array(MAX_PHOTOS).fill(null);
+    existingPhotoUrls.forEach((url, i) => {
+      if (i < MAX_PHOTOS) initial[i] = url;
+    });
+    return initial;
+  });
+
+  const [slotsPaths, setSlotsPaths] = useState<(string | null)[]>(() => {
+    const initial = Array(MAX_PHOTOS).fill(null);
+    existingPhotoPaths.forEach((path, i) => {
+      if (i < MAX_PHOTOS) initial[i] = path;
+    });
+    return initial;
+  });
+
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
 
-  // Target slot index when tapping a specific empty placeholder or replacing an existing one
   const [targetSlotIndex, setTargetSlotIndex] = useState<number | null>(null);
 
   // Modal crop state
@@ -52,6 +71,10 @@ export function ProfilePhotoUploader({
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const onCropAreaComplete = useCallback((_: Area, croppedPixels: Area) => {
     setCroppedAreaPixels(croppedPixels);
@@ -96,7 +119,7 @@ export function ProfilePhotoUploader({
   }
 
   async function handleApplyCrop() {
-    if (!currentCropImage || !croppedAreaPixels) return;
+    if (!currentCropImage || !croppedAreaPixels || targetSlotIndex === null) return;
 
     try {
       setIsUploading(true);
@@ -138,22 +161,19 @@ export function ProfilePhotoUploader({
           ? signedUrlData.signedUrl
           : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${filePath}`;
 
-      let nextPaths = [...photoPaths];
-      let nextUrls = [...previewUrls];
+      const newUrls = [...slotsUrls];
+      const newPaths = [...slotsPaths];
 
-      if (targetSlotIndex !== null && targetSlotIndex < photoPaths.length) {
-        // Replacing existing slot
-        nextPaths[targetSlotIndex] = filePath;
-        nextUrls[targetSlotIndex] = photoUrl;
-      } else {
-        // Appending to next available slot
-        nextPaths = [...nextPaths, filePath];
-        nextUrls = [...nextUrls, photoUrl];
-      }
+      // Assign to target slot without disturbing others
+      newUrls[targetSlotIndex] = photoUrl;
+      newPaths[targetSlotIndex] = filePath;
 
-      setPhotoPaths(nextPaths);
-      setPreviewUrls(nextUrls);
-      onPhotosUploaded(nextPaths);
+      setSlotsUrls(newUrls);
+      setSlotsPaths(newPaths);
+
+      // Pass compacted active paths to form action
+      const compacted = newPaths.filter((p): p is string => Boolean(p));
+      onPhotosUploaded(compacted);
     } catch (err) {
       console.error("Cropping error:", err);
       setError("An error occurred while cropping the image.");
@@ -169,15 +189,49 @@ export function ProfilePhotoUploader({
     setTargetSlotIndex(null);
   }
 
+  // Deletes single slot in place WITHOUT shifting array
   function removePhoto(e: React.MouseEvent, index: number) {
     e.stopPropagation();
-    const nextPaths = photoPaths.filter((_, i) => i !== index);
-    const nextUrls = previewUrls.filter((_, i) => i !== index);
 
-    setPhotoPaths(nextPaths);
-    setPreviewUrls(nextUrls);
-    onPhotosUploaded(nextPaths);
+    const newUrls = [...slotsUrls];
+    const newPaths = [...slotsPaths];
+
+    newUrls[index] = null;
+    newPaths[index] = null;
+
+    setSlotsUrls(newUrls);
+    setSlotsPaths(newPaths);
+
+    const compacted = newPaths.filter((p): p is string => Boolean(p));
+    onPhotosUploaded(compacted);
   }
+
+  // Swap with Slot 1 deliberately
+  function makeMainPhoto(e: React.MouseEvent, index: number) {
+    e.stopPropagation();
+    if (index === 0) return;
+
+    const newUrls = [...slotsUrls];
+    const newPaths = [...slotsPaths];
+
+    const tempUrl = newUrls[0] ?? null;
+    const tempPath = newPaths[0] ?? null;
+
+    newUrls[0] = newUrls[index] ?? null;
+    newPaths[0] = newPaths[index] ?? null;
+
+    newUrls[index] = tempUrl;
+    newPaths[index] = tempPath;
+
+    setSlotsUrls(newUrls);
+    setSlotsPaths(newPaths);
+
+    const compacted = newPaths.filter((p): p is string => Boolean(p));
+    onPhotosUploaded(compacted);
+  }
+
+  const isMainSlot = targetSlotIndex === 0;
+  const activePhotosCount = slotsPaths.filter(Boolean).length;
 
   return (
     <div className="space-y-4 font-sans">
@@ -188,11 +242,11 @@ export function ProfilePhotoUploader({
             Profile Deck Photos
           </h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            Tap any slot to frame or replace your 6 deck photos.
+            Slot 1 is your Main Discovery & Avatar card. Photos never shift when deleted.
           </p>
         </div>
         <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-          {photoPaths.length}/6 Added
+          {activePhotosCount}/6 Photos
         </span>
       </div>
 
@@ -204,10 +258,9 @@ export function ProfilePhotoUploader({
         className="hidden"
       />
 
-      {/* 6-Slot Visual Card Grid */}
+      {/* 6 Fixed Slots Grid */}
       <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-        {Array.from({ length: MAX_PHOTOS }).map((_, slotIdx) => {
-          const url = previewUrls[slotIdx];
+        {slotsUrls.map((url, slotIdx) => {
           const isMain = slotIdx === 0;
 
           if (url) {
@@ -215,7 +268,9 @@ export function ProfilePhotoUploader({
               <div
                 key={slotIdx}
                 onClick={() => triggerUpload(slotIdx)}
-                className="group relative aspect-[4/5] overflow-hidden rounded-2xl border-2 border-emerald-500/40 bg-zinc-950 shadow-xs cursor-pointer hover:border-emerald-500 transition-all"
+                className={`group relative aspect-[4/5] overflow-hidden rounded-2xl border-2 bg-zinc-950 shadow-xs cursor-pointer transition-all ${
+                  isMain ? "border-emerald-500 ring-2 ring-emerald-500/20" : "border-zinc-200 hover:border-emerald-400"
+                }`}
               >
                 <Image
                   src={url}
@@ -235,6 +290,7 @@ export function ProfilePhotoUploader({
                   </div>
                 )}
 
+                {/* Delete Button */}
                 <button
                   type="button"
                   onClick={(e) => removePhoto(e, slotIdx)}
@@ -244,9 +300,16 @@ export function ProfilePhotoUploader({
                   <X className="h-3.5 w-3.5" />
                 </button>
 
-                <div className="absolute inset-x-0 bottom-0 py-1 bg-gradient-to-t from-black/80 to-transparent text-[9px] text-center text-white/90 opacity-0 group-hover:opacity-100 transition-opacity">
-                  Tap to replace
-                </div>
+                {/* "Make Main" Action for non-slot 1 items */}
+                {!isMain && (
+                  <button
+                    type="button"
+                    onClick={(e) => makeMainPhoto(e, slotIdx)}
+                    className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/75 px-2 py-1 text-[9px] font-bold text-emerald-300 backdrop-blur-xs hover:bg-emerald-600 hover:text-white transition-colors"
+                  >
+                    <ArrowLeftRight className="w-2.5 h-2.5" /> Set Main
+                  </button>
+                )}
               </div>
             );
           }
@@ -258,23 +321,29 @@ export function ProfilePhotoUploader({
               onClick={() => triggerUpload(slotIdx)}
               disabled={isUploading}
               className={`relative flex aspect-[4/5] flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed transition-all active:scale-95 cursor-pointer ${
-                slotIdx === photoPaths.length
-                  ? "border-emerald-400 bg-emerald-50/50 text-emerald-700 hover:border-emerald-500 hover:bg-emerald-100/60 shadow-2xs"
+                isMain
+                  ? "border-emerald-400 bg-emerald-50/40 text-emerald-700 hover:bg-emerald-50"
                   : "border-zinc-200 bg-zinc-50 text-zinc-400 hover:border-zinc-300"
               }`}
             >
               <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                slotIdx === photoPaths.length ? "bg-emerald-100 text-emerald-700" : "bg-zinc-200 text-zinc-500"
+                isMain ? "bg-emerald-100 text-emerald-700" : "bg-zinc-200 text-zinc-500"
               }`}>
                 <Plus className="h-4 w-4 stroke-[2.5]" />
               </div>
               <span className="text-[10px] font-bold">
-                {slotIdx === 0 ? "Main Photo" : `Slot ${slotIdx + 1}`}
+                {isMain ? "⭐ Main Photo" : `Slot ${slotIdx + 1}`}
               </span>
             </button>
           );
         })}
       </div>
+
+      {!slotsUrls[0] && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-2.5 text-xs font-semibold text-amber-800">
+          ⚠️ Please add a photo in Slot 1. This will be your main card and circular profile picture.
+        </div>
+      )}
 
       {error && (
         <p className="rounded-xl border border-rose-200 bg-rose-50 p-2.5 text-xs font-semibold text-rose-700">
@@ -283,15 +352,20 @@ export function ProfilePhotoUploader({
       )}
 
       {/* Frame Cropper Modal */}
-      {currentCropImage && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
-          <div className="relative flex h-[90dvh] w-full max-w-sm flex-col overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+      {mounted && currentCropImage && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/90 p-3 sm:p-4 backdrop-blur-md">
+          <div className="relative flex h-[92dvh] max-h-[700px] w-full max-w-sm flex-col overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 shadow-2xl">
+            
+            {/* Header */}
+            <div className="shrink-0 flex items-center justify-between border-b border-zinc-800 px-4 py-3 bg-zinc-950">
               <div>
                 <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-500" /> Frame Card Slot
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-500" /> 
+                  {isMainSlot ? "Frame Main Card (Slot 1)" : `Frame Slot ${targetSlotIndex! + 1}`}
                 </h3>
-                <p className="text-[10px] text-zinc-400">Pinch or zoom to fit the 4:5 deck card</p>
+                <p className="text-[10px] text-zinc-400">
+                  {isMainSlot ? "Align your face inside the circle guide" : "Pinch or zoom to fit the 4:5 deck card"}
+                </p>
               </div>
               <button
                 type="button"
@@ -303,7 +377,8 @@ export function ProfilePhotoUploader({
               </button>
             </div>
 
-            <div className="relative flex-1 bg-black">
+            {/* Cropper Viewport */}
+            <div className="relative flex-1 min-h-0 bg-black">
               <Cropper
                 image={currentCropImage}
                 crop={crop}
@@ -315,9 +390,21 @@ export function ProfilePhotoUploader({
                 onZoomChange={setZoom}
                 onCropComplete={onCropAreaComplete}
               />
+
+              {/* Avatar Safe-Zone Circle Overlay for Slot 1 */}
+              {isMainSlot && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <div className="h-48 w-48 rounded-full border-2 border-dashed border-emerald-400/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.25)]">
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full bg-emerald-950/80 px-2 py-0.5 text-[8px] font-bold text-emerald-300 backdrop-blur-xs">
+                      <UserCheck className="w-2.5 h-2.5" /> Avatar Safe Zone
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-3 border-t border-zinc-800 bg-zinc-900/95 p-4 backdrop-blur-md">
+            {/* Action Bar */}
+            <div className="shrink-0 space-y-3 border-t border-zinc-800 bg-zinc-900 p-4">
               <div className="flex items-center gap-3">
                 <ZoomOut className="h-4 w-4 text-zinc-400" />
                 <input
@@ -345,7 +432,7 @@ export function ProfilePhotoUploader({
                   type="button"
                   onClick={handleCancelCrop}
                   disabled={isUploading}
-                  className="rounded-xl border border-zinc-700 py-2.5 text-xs font-bold text-zinc-300 hover:bg-zinc-800"
+                  className="rounded-xl border border-zinc-700 py-2.5 text-xs font-bold text-zinc-300 hover:bg-zinc-800 active:scale-95"
                 >
                   Cancel
                 </button>
@@ -367,8 +454,10 @@ export function ProfilePhotoUploader({
                 </button>
               </div>
             </div>
+
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

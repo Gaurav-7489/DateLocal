@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,6 +18,7 @@ import {
   SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
+  MapPin,
 } from "lucide-react";
 import {
   likeProfile,
@@ -29,7 +30,6 @@ import {
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
 import { calculateAge } from "@/lib/utils";
-
 
 type Interest = {
   id: string;
@@ -55,6 +55,15 @@ export type DiscoverProfile = {
   department: string | null;
   academic_year: string | null;
   bio: string | null;
+  campus_residency?: string | null;
+  campus_hangout?: string | null;
+  relationship_goal?: string | null;
+  zodiac?: string | null;
+  sleep_habit?: string | null;
+  caffeine_pref?: string | null;
+  weekend_vibe?: string | null;
+  prompt_question?: string | null;
+  prompt_answer?: string | null;
   profile_photos: ProfilePhoto[] | null;
   profile_interests: ProfileInterest[] | null;
   profile_photo_url: string | null;
@@ -68,9 +77,31 @@ export default function DiscoverClient({
   const router = useRouter();
   const [deck, setDeck] = useState<DiscoverProfile[]>(profiles);
   const [loading, setLoading] = useState(false);
+
   useEffect(() => {
-  setDeck(profiles);
-}, [profiles]);
+    setDeck(profiles);
+  }, [profiles]);
+
+  // Zero-Latency In-Memory Image Pre-caching for Deck
+  useEffect(() => {
+    if (deck.length > 1) {
+      const nextPhotoUrl =
+        deck[1]?.profile_photos?.[0]?.url ?? deck[1]?.profile_photo_url;
+      if (nextPhotoUrl) {
+        const img = new window.Image();
+        img.src = nextPhotoUrl;
+      }
+    }
+    if (deck.length > 2) {
+      const thirdPhotoUrl =
+        deck[2]?.profile_photos?.[0]?.url ?? deck[2]?.profile_photo_url;
+      if (thirdPhotoUrl) {
+        const img = new window.Image();
+        img.src = thirdPhotoUrl;
+      }
+    }
+  }, [deck]);
+
   const [matchModal, setMatchModal] = useState<{
     profile: DiscoverProfile;
     matchId?: string;
@@ -79,7 +110,7 @@ export default function DiscoverClient({
   // Safety menu & report state
   const [safetyMenuOpen, setSafetyMenuOpen] = useState(false);
   const [reportModalProfile, setReportModalProfile] = useState<DiscoverProfile | null>(null);
-  const [reportReason, setReportReason] = useState("Inappropriate content");
+  const [reportReason, setReportReason] = useState("Inappropriate photo or content");
   const [reportDetails, setReportDetails] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -89,78 +120,80 @@ export default function DiscoverClient({
     setTimeout(() => setToastMessage(null), 3000);
   }
 
-async function handleLike(profileId: string) {
-  if (loading) return;
+  async function handleLike(profileId: string) {
+    if (loading) return;
+    setLoading(true);
 
-  setLoading(true);
-
-  const target = deck.find((p) => p.id === profileId);
-
-  if (!target) {
-    setLoading(false);
-    return;
-  }
-
-  try {
-    const result = await likeProfile(profileId);
-
-    if (result.error) {
-      showToast(result.error);
+    const target = deck.find((p) => p.id === profileId);
+    if (!target) {
       setLoading(false);
       return;
     }
 
-    // Remove the liked profile from the deck immediately.
+    // Instant optimistic pop off GPU render tree
     setDeck((prev) => prev.filter((p) => p.id !== profileId));
 
-    // MUTUAL MATCH
-    if (result.matched) {
-      void import("canvas-confetti").then(({ default: confetti }) => {
-        confetti({
-          particleCount: 120,
-          spread: 80,
-          startVelocity: 35,
-          origin: { y: 0.55 },
-          colors: ["#10B981", "#F97316", "#3B82F6", "#EC4899"],
+    try {
+      const result = await likeProfile(profileId);
+
+      if (result.error) {
+        showToast(result.error);
+        setDeck((prev) => [target, ...prev]);
+        setLoading(false);
+        return;
+      }
+
+      if (result.matched) {
+        void import("canvas-confetti").then(({ default: confetti }) => {
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            startVelocity: 30,
+            origin: { y: 0.6 },
+            colors: ["#10B981", "#F97316", "#3B82F6", "#EC4899"],
+          });
         });
-      });
 
-      setMatchModal({
-        profile: target,
-        matchId: result.matchId,
-      });
-
-      // IMPORTANT:
-      // Do NOT router.refresh() here.
-      // The celebration must remain open.
+        setMatchModal({
+          profile: target,
+          matchId: result.matchId,
+        });
+      }
+    } catch (error) {
+      console.error("[DateBu] Like action error:", error);
+      showToast("Something went wrong. Please try again.");
+      setDeck((prev) => [target, ...prev]);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setLoading(false);
-
-  } catch (error) {
-    console.error("[DateBu] Like action crashed:", error);
-
-    showToast("Something went wrong. Please try again.");
-    setLoading(false);
   }
-}
 
   async function handlePass(profileId: string) {
     if (loading) return;
     setLoading(true);
 
-    const result = await passProfile(profileId);
-
-    if (result.error) {
-      showToast(result.error);
+    const target = deck.find((p) => p.id === profileId);
+    if (!target) {
       setLoading(false);
       return;
     }
 
+    // Instant optimistic pop
     setDeck((prev) => prev.filter((p) => p.id !== profileId));
-    setLoading(false);
+
+    try {
+      const result = await passProfile(profileId);
+      if (result.error) {
+        showToast(result.error);
+        setDeck((prev) => [target, ...prev]);
+      }
+    } catch (error) {
+      console.error("[DateBu] Pass action error:", error);
+      showToast("Something went wrong. Please try again.");
+      setDeck((prev) => [target, ...prev]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleBlock(targetProfile: DiscoverProfile) {
@@ -195,62 +228,59 @@ async function handleLike(profileId: string) {
     setDeck((prev) => prev.filter((p) => p.id !== reportModalProfile.id));
     setReportModalProfile(null);
     setReportDetails("");
-    showToast("Report submitted. This user has been blocked from your feed.");
+    showToast("Report submitted. This user has been removed from your feed.");
   }
-async function handleReviewPassed() {
-  if (loading) return;
 
-  setLoading(true);
+  async function handleReviewPassed() {
+    if (loading) return;
+    setLoading(true);
 
-  try {
-    const result = await resetPassedProfiles();
-
-    if (result.error) {
-      showToast(result.error);
+    try {
+      const result = await resetPassedProfiles();
+      if (result.error) {
+        showToast(result.error);
+        setLoading(false);
+        return;
+      }
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to review passed profiles:", error);
+      showToast("Couldn't reload passed profiles. Please try again.");
       setLoading(false);
-      return;
     }
-
-    router.refresh();
-  } catch (error) {
-    console.error("Failed to review passed profiles:", error);
-    showToast("Couldn't reload passed profiles. Please try again.");
-    setLoading(false);
   }
-}
 
   const currentProfile = deck[0];
 
-if (!currentProfile && !matchModal) {
+  if (!currentProfile && !matchModal) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-16 text-center space-y-4">
+      <div className="mx-auto max-w-lg px-4 py-16 text-center space-y-4 font-sans">
         <div className="rounded-3xl border border-border bg-card p-10 shadow-sm space-y-4">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200">
             <Sparkles className="h-8 w-8" />
           </div>
 
-       
-
+          <h2 className="text-base font-bold text-foreground">You&apos;re all caught up!</h2>
           <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">
             You&apos;ve reviewed all available student profiles matching your current preferences.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link href={routes.profileSetup}>
-              <Button variant="outline" size="sm" className="gap-2 text-xs w-full sm:w-auto">
+              <Button variant="outline" size="sm" className="gap-2 text-xs w-full sm:w-auto cursor-pointer">
                 <SlidersHorizontal className="w-3.5 h-3.5" /> Adjust Preferences
               </Button>
             </Link>
-<Button
-  variant="secondary"
-  size="sm"
-  onClick={handleReviewPassed}
-  disabled={loading}
-  className="gap-2 text-xs w-full sm:w-auto"
->
-  <RotateCcw className="w-3.5 h-3.5" />
-  Review Passed Profiles Again
-</Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleReviewPassed}
+              disabled={loading}
+              className="gap-2 text-xs w-full sm:w-auto cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Review Passed Profiles Again
+            </Button>
           </div>
         </div>
       </div>
@@ -258,77 +288,71 @@ if (!currentProfile && !matchModal) {
   }
 
   return (
-<div className="relative mx-auto flex h-full w-full max-w-2xl flex-1 flex-col px-2 py-2 sm:px-4">
-
-
+    <div className="relative mx-auto flex h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-4rem)] w-full max-w-md flex-col justify-between px-3 pt-1 pb-20 md:pb-4 font-sans overflow-hidden select-none">
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="rounded-2xl border border-border bg-card p-3 text-center text-xs font-semibold text-foreground shadow-lg"
+            exit={{ opacity: 0, y: -10 }}
+            className="fixed top-16 z-50 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-center text-xs font-bold text-emerald-800 shadow-xl"
           >
             {toastMessage}
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Swipeable Card Stack Container */}
-  <div className="relative h-[min(70dvh,540px)] min-h-[360px] w-full max-w-lg flex items-center justify-center">
-        {deck.slice(0, 3).map((profile, index) => {
-          const isTop = index === 0;
-          const isSecond = index === 1;
-
-          return (
-            <DiscoverCard
-              key={profile.id}
-              profile={profile}
-              isTop={isTop}
-              isSecond={isSecond}
-              onSwipe={(dir) => {
-                if (dir === "right") handleLike(profile.id);
-                else handlePass(profile.id);
-              }}
-              onOpenSafety={() => {
-                setSafetyMenuOpen(true);
-              }}
-            />
-          );
-        })}
+      {/* Hardware-Composited Viewport Container */}
+      <div className="relative flex-1 min-h-0 w-full flex items-center justify-center my-auto">
+        <div className="relative h-full w-full max-h-[520px] aspect-[4/5] sm:aspect-auto">
+          {deck.slice(0, 2).map((profile, index) => {
+            const isTop = index === 0;
+            return (
+              <DiscoverCard
+                key={profile.id}
+                profile={profile}
+                isTop={isTop}
+                onSwipe={(dir) => {
+                  if (dir === "right") handleLike(profile.id);
+                  else handlePass(profile.id);
+                }}
+                onOpenSafety={() => setSafetyMenuOpen(true)}
+              />
+            );
+          })}
+        </div>
       </div>
 
-      {/* Action Controls */}
-{/* Action Controls */}
-{currentProfile && (
-  <div className="flex items-center justify-center gap-6 pt-2">
-    <button
-      type="button"
-      disabled={loading}
-      onClick={() => handlePass(currentProfile.id)}
-      className="flex h-14 w-14 items-center justify-center rounded-full border border-orange-200 bg-white text-orange-600 shadow-md shadow-orange-500/10 transition-all hover:bg-orange-50 hover:scale-110 active:scale-95 disabled:opacity-50 cursor-pointer"
-      aria-label="Pass profile"
-    >
-      <X className="h-7 w-7 stroke-[2.5]" />
-    </button>
+      {/* Floating Action Buttons */}
+      {currentProfile && (
+        <div className="shrink-0 flex items-center justify-center gap-7 pt-2 pb-1 z-30">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => handlePass(currentProfile.id)}
+            className="flex h-13 w-13 items-center justify-center rounded-full border border-orange-200 bg-white text-orange-600 shadow-md shadow-orange-500/10 transition-transform active:scale-90 disabled:opacity-50 cursor-pointer"
+            aria-label="Pass profile"
+          >
+            <X className="h-6 w-6 stroke-[2.5]" />
+          </button>
 
-    <button
-      type="button"
-      disabled={loading}
-      onClick={() => handleLike(currentProfile.id)}
-      className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xl shadow-emerald-600/30 transition-all hover:bg-emerald-700 hover:scale-110 active:scale-95 disabled:opacity-50 cursor-pointer"
-      aria-label="Like profile"
-    >
-      <Heart className="h-8 w-8 fill-current" />
-    </button>
-  </div>
-)}
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => handleLike(currentProfile.id)}
+            className="flex h-15 w-15 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 transition-transform active:scale-90 disabled:opacity-50 cursor-pointer"
+            aria-label="Like profile"
+          >
+            <Heart className="h-7 w-7 fill-current" />
+          </button>
+        </div>
+      )}
 
-      {/* Safety Dropdown Menu */}
+      {/* Safety Menu Modal */}
       <AnimatePresence>
         {safetyMenuOpen && currentProfile && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -339,7 +363,7 @@ if (!currentProfile && !matchModal) {
                 <span className="text-xs font-bold text-foreground">Safety Controls</span>
                 <button
                   onClick={() => setSafetyMenuOpen(false)}
-                  className="rounded-full p-1 text-muted-foreground hover:text-foreground"
+                  className="rounded-full p-1 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -355,7 +379,7 @@ if (!currentProfile && !matchModal) {
                   setSafetyMenuOpen(false);
                   setReportModalProfile(currentProfile);
                 }}
-                className="flex w-full items-center gap-2.5 rounded-2xl p-3 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition"
+                className="flex w-full items-center gap-2.5 rounded-2xl p-3 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
               >
                 <Flag className="w-4 h-4" /> Report Inappropriate Profile
               </button>
@@ -363,17 +387,18 @@ if (!currentProfile && !matchModal) {
               <button
                 type="button"
                 onClick={() => handleBlock(currentProfile)}
-                className="flex w-full items-center gap-2.5 rounded-2xl p-3 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition"
+                className="flex w-full items-center gap-2.5 rounded-2xl p-3 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition cursor-pointer"
               >
                 <UserX className="w-4 h-4" /> Block This User
               </button>
+
               <button
-  type="button"
-  onClick={() => setSafetyMenuOpen(false)}
-  className="flex w-full items-center justify-center rounded-2xl p-3 text-xs font-semibold text-muted-foreground bg-muted hover:bg-muted/80 border border-border transition"
->
-  Cancel
-</button>
+                type="button"
+                onClick={() => setSafetyMenuOpen(false)}
+                className="flex w-full items-center justify-center rounded-2xl p-2.5 text-xs font-semibold text-muted-foreground bg-muted hover:bg-muted/80 border border-border transition cursor-pointer"
+              >
+                Cancel
+              </button>
             </motion.div>
           </div>
         )}
@@ -382,21 +407,21 @@ if (!currentProfile && !matchModal) {
       {/* Report Modal Dialog */}
       <AnimatePresence>
         {reportModalProfile && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.94, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-             className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-2xl space-y-4"
+              exit={{ scale: 0.94, opacity: 0 }}
+              className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-2xl space-y-4"
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                   <Flag className="w-4 h-4 text-rose-600" />
                   Report {reportModalProfile.display_name}
                 </h3>
                 <button
                   onClick={() => setReportModalProfile(null)}
-                  className="rounded-full p-1 text-muted-foreground hover:text-foreground"
+                  className="rounded-full p-1 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -436,30 +461,30 @@ if (!currentProfile && !matchModal) {
                   />
                 </div>
 
-<div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
-  <Button
-    type="button"
-    variant="secondary"
-    size="sm"
-    onClick={() => {
-      setReportModalProfile(null);
-      setReportDetails("");
-    }}
-    className="w-full sm:w-auto"
-  >
-    Cancel
-  </Button>
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setReportModalProfile(null);
+                      setReportDetails("");
+                    }}
+                    className="w-full sm:w-auto cursor-pointer"
+                  >
+                    Cancel
+                  </Button>
 
-  <Button
-    type="submit"
-    variant="primary"
-    size="sm"
-    disabled={reportSubmitting}
-    className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white"
-  >
-    {reportSubmitting ? "Submitting..." : "Submit Report & Block"}
-  </Button>
-</div>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    disabled={reportSubmitting}
+                    className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white cursor-pointer"
+                  >
+                    {reportSubmitting ? "Submitting..." : "Submit Report & Block"}
+                  </Button>
+                </div>
               </form>
             </motion.div>
           </div>
@@ -469,9 +494,9 @@ if (!currentProfile && !matchModal) {
       {/* Match Celebration Dialog */}
       <AnimatePresence>
         {matchModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
             <motion.div
-              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              initial={{ scale: 0.85, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.85, opacity: 0, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 350 }}
@@ -488,7 +513,7 @@ if (!currentProfile && !matchModal) {
                 <Sparkles className="w-3.5 h-3.5" /> Mutual Connection!
               </div>
 
-              <h2 className="text-3xl font-black text-foreground tracking-tight">
+              <h2 className="text-2xl font-black text-foreground tracking-tight">
                 It&apos;s a Match!
               </h2>
 
@@ -496,7 +521,6 @@ if (!currentProfile && !matchModal) {
                 You and <span className="text-emerald-600 font-bold">{matchModal.profile.display_name}</span> liked each other.
               </p>
 
-              {/* Photos juxtaposition */}
               <div className="flex items-center justify-center -space-x-4 py-2">
                 <div className="w-20 h-20 rounded-full border-4 border-card bg-emerald-100 flex items-center justify-center text-sm font-bold text-emerald-800 shadow-md">
                   You
@@ -510,7 +534,7 @@ if (!currentProfile && !matchModal) {
                       src={matchModal.profile.profile_photo_url}
                       alt={matchModal.profile.display_name ?? "Match"}
                       fill
-                      className="object-contain bg-white p-1"
+                      className="object-cover"
                       sizes="80px"
                     />
                   ) : (
@@ -544,26 +568,24 @@ if (!currentProfile && !matchModal) {
   );
 }
 
-// ---------------- INDIVIDUAL DISCOVER CARD COMPONENT ----------------
+// ---------------- 120FPS GPU HARDWARE-COMPOSITED CARD ----------------
 
-function DiscoverCard({
+const DiscoverCard = memo(function DiscoverCard({
   profile,
   isTop,
-  isSecond,
   onSwipe,
   onOpenSafety,
 }: {
   profile: DiscoverProfile;
   isTop: boolean;
-  isSecond: boolean;
   onSwipe: (dir: "left" | "right") => void;
   onOpenSafety: () => void;
 }) {
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-300, 300], [-22, 22]);
+  const rotate = useTransform(x, [-240, 240], [-15, 15]);
 
-  const likeOpacity = useTransform(x, [20, 120], [0, 1]);
-  const passOpacity = useTransform(x, [-120, -20], [1, 0]);
+  const likeOpacity = useTransform(x, [35, 100], [0, 1]);
+  const passOpacity = useTransform(x, [-100, -35], [1, 0]);
 
   const photos = [...(profile.profile_photos ?? [])]
     .filter((photo) => photo.url)
@@ -572,7 +594,7 @@ function DiscoverCard({
       if (!a.is_primary && b.is_primary) return 1;
       return a.display_order - b.display_order;
     })
-    .slice(0, 5);
+    .slice(0, 6);
 
   const [photoIndex, setPhotoIndex] = useState(0);
 
@@ -584,30 +606,24 @@ function DiscoverCard({
       return Array.isArray(item.interests) ? item.interests : [item.interests];
     }) ?? [];
 
-  const currentPhoto =
-    photos[photoIndex]?.url ?? profile.profile_photo_url;
+  const currentPhoto = photos[photoIndex]?.url ?? profile.profile_photo_url;
 
   const handleDragEnd = (
     _event: MouseEvent | TouchEvent | PointerEvent,
     info: PanInfo,
   ) => {
-    if (Math.abs(info.offset.x) < 100) return;
-
+    if (Math.abs(info.offset.x) < 85) return;
     onSwipe(info.offset.x > 0 ? "right" : "left");
   };
 
   const previousPhoto = (event: React.MouseEvent) => {
     event.stopPropagation();
-
     setPhotoIndex((current) => Math.max(0, current - 1));
   };
 
   const nextPhoto = (event: React.MouseEvent) => {
     event.stopPropagation();
-
-    setPhotoIndex((current) =>
-      Math.min(photos.length - 1, current + 1),
-    );
+    setPhotoIndex((current) => Math.min(photos.length - 1, current + 1));
   };
 
   return (
@@ -615,41 +631,38 @@ function DiscoverCard({
       style={{
         x: isTop ? x : 0,
         rotate: isTop ? rotate : 0,
+        transform: "translate3d(0, 0, 0)",
+        WebkitTransform: "translate3d(0, 0, 0)",
+        backfaceVisibility: "hidden",
+        WebkitBackfaceVisibility: "hidden",
+        willChange: "transform",
       }}
       animate={{
-        scale: isTop ? 1 : isSecond ? 0.97 : 0.94,
-        y: isTop ? 0 : isSecond ? 12 : 24,
-        opacity: isTop ? 1 : 0.8,
+        scale: isTop ? 1 : 0.96,
+        y: isTop ? 0 : 8,
+        opacity: isTop ? 1 : 0.65,
       }}
       transition={{
         type: "spring",
-        stiffness: 320,
-        damping: 28,
+        stiffness: 400,
+        damping: 32,
       }}
       drag={isTop ? "x" : false}
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.8}
+      dragElastic={0.65}
       onDragEnd={handleDragEnd}
       className={`absolute inset-0 overflow-hidden rounded-[2rem] select-none ${
         isTop
-          ? "z-20 cursor-grab active:cursor-grabbing"
+          ? "z-20 cursor-grab active:cursor-grabbing touch-pan-y"
           : "z-10 pointer-events-none"
       }`}
     >
-      <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-black shadow-2xl">
-
-        {/* =========================================================
-            BACK CARDS
-        ========================================================== */}
-
+      <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-zinc-950 shadow-2xl">
         {!isTop ? (
-          <div className="absolute inset-0 bg-card" />
+          <div className="absolute inset-0 bg-zinc-900 border border-zinc-800" />
         ) : (
           <>
-            {/* =====================================================
-                PHOTO
-            ====================================================== */}
-
+            {/* Primary Photo Layer with Native Async Decoding */}
             <div className="absolute inset-0">
               {currentPhoto ? (
                 <Image
@@ -657,115 +670,93 @@ function DiscoverCard({
                   alt={profile.display_name ?? "Student"}
                   fill
                   priority
-                  quality={70}
-                  className="object-contain bg-white/90 p-2"
-                  sizes="(max-width: 768px) 100vw, 500px"
+                  decoding="async"
+                  className="object-cover"
+                  sizes="(max-width: 640px) 100vw, 420px"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-muted text-6xl">
+                <div className="flex h-full w-full items-center justify-center bg-zinc-900 text-5xl">
                   👤
                 </div>
               )}
 
-              {/* Dark gradient */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/90" />
-
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+              {/* Hardware Optimized Gradient Masks */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/95 pointer-events-none" />
             </div>
 
-            {/* =====================================================
-                PHOTO PROGRESS BARS
-            ====================================================== */}
-
-            {photos.length > 0 && (
-              <div className="absolute top-4 left-4 right-4 z-30 flex gap-1.5">
+            {/* Photo Progress Indicators */}
+            {photos.length > 1 && (
+              <div className="absolute top-3 left-4 right-4 z-30 flex gap-1.5 pointer-events-none">
                 {photos.map((photo, index) => (
                   <div
                     key={`${photo.storage_path}-${index}`}
-                    className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/30"
+                    className="h-1 flex-1 overflow-hidden rounded-full bg-white/30 backdrop-blur-xs"
                   >
-                    <motion.div
-                      className="h-full rounded-full bg-white"
-                      animate={{
-                        width:
-                          index <= photoIndex ? "100%" : "0%",
-                      }}
-                      transition={{ duration: 0.2 }}
+                    <div
+                      className={`h-full rounded-full transition-all duration-150 ${
+                        index <= photoIndex ? "bg-white" : "bg-transparent"
+                      }`}
                     />
                   </div>
                 ))}
               </div>
             )}
 
-            {/* =====================================================
-                SWIPE FEEDBACK
-            ====================================================== */}
-
+            {/* Gesture Visual Feedback Badges */}
             <motion.div
               style={{ opacity: likeOpacity }}
-              className="absolute top-20 left-6 z-40 rounded-2xl border-4 border-emerald-400 bg-emerald-500/90 px-5 py-2 text-2xl font-black uppercase tracking-widest text-white shadow-2xl"
+              className="absolute top-14 left-5 z-40 rounded-2xl border-2 border-emerald-400 bg-emerald-500/95 px-4 py-1.5 text-xl font-black uppercase tracking-wider text-white shadow-xl backdrop-blur-md pointer-events-none"
             >
               LIKE
             </motion.div>
 
             <motion.div
               style={{ opacity: passOpacity }}
-              className="absolute top-20 right-6 z-40 rounded-2xl border-4 border-orange-400 bg-orange-500/90 px-5 py-2 text-2xl font-black uppercase tracking-widest text-white shadow-2xl"
+              className="absolute top-14 right-5 z-40 rounded-2xl border-2 border-orange-400 bg-orange-500/95 px-4 py-1.5 text-xl font-black uppercase tracking-wider text-white shadow-xl backdrop-blur-md pointer-events-none"
             >
               PASS
             </motion.div>
 
-{/* =====================================================
-    PHOTO NAVIGATION
-====================================================== */}
+            {/* Dedicated Photo Tap Controls */}
+            {photos.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  aria-label="Previous photo"
+                  onClick={previousPhoto}
+                  disabled={photoIndex === 0}
+                  className="absolute left-0 top-14 bottom-40 z-20 w-1/2 cursor-pointer disabled:cursor-default"
+                />
+                <button
+                  type="button"
+                  aria-label="Next photo"
+                  onClick={nextPhoto}
+                  disabled={photoIndex === photos.length - 1}
+                  className="absolute right-0 top-14 bottom-40 z-20 w-1/2 cursor-pointer disabled:cursor-default"
+                />
 
-{photos.length > 1 && (
-  <>
-    {/* Invisible tap zones */}
-    <button
-      type="button"
-      aria-label="Previous photo"
-      onClick={previousPhoto}
-      disabled={photoIndex === 0}
-      className="absolute left-0 top-16 bottom-32 z-20 w-1/2 cursor-pointer disabled:cursor-default"
-    />
+                {photoIndex > 0 && (
+                  <div className="pointer-events-none absolute left-2.5 top-1/2 z-30 -translate-y-1/2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md">
+                      <ChevronLeft className="h-4 w-4 stroke-[2.5]" />
+                    </div>
+                  </div>
+                )}
 
-    <button
-      type="button"
-      aria-label="Next photo"
-      onClick={nextPhoto}
-      disabled={photoIndex === photos.length - 1}
-      className="absolute right-0 top-16 bottom-32 z-20 w-1/2 cursor-pointer disabled:cursor-default"
-    />
+                {photoIndex < photos.length - 1 && (
+                  <div className="pointer-events-none absolute right-2.5 top-1/2 z-30 -translate-y-1/2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md">
+                      <ChevronRight className="h-4 w-4 stroke-[2.5]" />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
-    {/* Visible left arrow */}
-    {photoIndex > 0 && (
-      <div className="pointer-events-none absolute left-3 top-1/2 z-30 -translate-y-1/2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/30 text-white shadow-lg backdrop-blur-md">
-          <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
-        </div>
-      </div>
-    )}
-
-    {/* Visible right arrow */}
-    {photoIndex < photos.length - 1 && (
-      <div className="pointer-events-none absolute right-3 top-1/2 z-30 -translate-y-1/2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-black/30 text-white shadow-lg backdrop-blur-md">
-          <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
-        </div>
-      </div>
-    )}
-  </>
-)}
-
-            {/* =====================================================
-                TOP CONTROLS
-            ====================================================== */}
-
-            <div className="absolute top-9 right-4 z-40 flex items-center gap-2">
-              <div className="flex items-center gap-1.5 rounded-full border border-white/30 bg-white/90 px-3 py-1.5 text-[10px] font-bold text-emerald-700 shadow-lg backdrop-blur-md">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Verified
+            {/* Top Verified & Safety Actions */}
+            <div className="absolute top-6 right-3.5 z-40 flex items-center gap-1.5">
+              <div className="flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-bold text-emerald-400 shadow-md backdrop-blur-md border border-white/15 pointer-events-none">
+                <ShieldCheck className="h-3 w-3" /> Verified
               </div>
 
               <button
@@ -774,70 +765,95 @@ function DiscoverCard({
                   event.stopPropagation();
                   onOpenSafety();
                 }}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-white/30 bg-white/90 text-zinc-700 shadow-lg backdrop-blur-md transition hover:bg-white hover:text-black"
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white shadow-md backdrop-blur-md border border-white/15 hover:bg-black/80 cursor-pointer active:scale-90 transition-transform"
                 aria-label="Safety menu"
               >
-                <MoreVertical className="h-4 w-4" />
+                <MoreVertical className="h-3.5 w-3.5" />
               </button>
             </div>
 
-            {/* =====================================================
-                PROFILE INFORMATION
-            ====================================================== */}
+            {/* Student Details Card Section */}
+            <div className="absolute bottom-3 left-4 right-4 z-30 space-y-1.5 pointer-events-none">
+              
+              {/* Name, Age, Major */}
+              <div>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <h2 className="text-2xl font-black text-white drop-shadow-md tracking-tight">
+                    {profile.display_name || "DateBu Student"}
+                    {age !== null && <span className="font-light text-xl opacity-90">, {age}</span>}
+                  </h2>
 
-            <div className="absolute bottom-5 left-5 right-5 z-30">
-              <div className="flex items-end gap-2">
-                <h2 className="text-3xl font-black leading-tight tracking-tight text-white drop-shadow-lg">
-                  {profile.display_name || "DateBu Student"}
-                  {age !== null && `, ${age}`}
-                </h2>
+                  {profile.department && (
+                    <span className="rounded-full bg-emerald-500/90 px-2 py-0.5 text-[9px] font-bold text-white shadow-xs backdrop-blur-md">
+                      {profile.department}
+                    </span>
+                  )}
+                </div>
 
-                {profile.department && (
-                  <span className="mb-1 rounded-full bg-blue-500/90 px-2.5 py-1 text-[10px] font-bold text-white shadow-lg backdrop-blur-md">
-                    {profile.department}
-                  </span>
-                )}
+                <div className="flex items-center gap-2 text-xs font-medium text-zinc-300 mt-0.5">
+                  <span>{profile.academic_year}</span>
+                  {profile.gender && <span>• {profile.gender}</span>}
+                  {profile.campus_residency && (
+                    <span className="flex items-center gap-0.5 text-zinc-300">
+                      <MapPin className="w-2.5 h-2.5" /> {profile.campus_residency}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <p className="mt-1 text-sm font-medium text-zinc-200">
-                {profile.academic_year}
-                {profile.gender && ` • ${profile.gender}`}
-              </p>
-
-              {profile.bio && (
-                <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-white/90 drop-shadow-md">
+              {/* Prompt / Bio snippet */}
+              {profile.prompt_question && profile.prompt_answer ? (
+                <div className="rounded-xl bg-black/50 p-2 border border-white/10 backdrop-blur-md">
+                  <span className="text-[10px] font-bold text-emerald-400 block mb-0.5">
+                    {profile.prompt_question}
+                  </span>
+                  <p className="text-xs text-white/95 leading-snug line-clamp-2">
+                    &ldquo;{profile.prompt_answer}&rdquo;
+                  </p>
+                </div>
+              ) : profile.bio ? (
+                <p className="text-xs text-white/90 line-clamp-2 leading-relaxed drop-shadow-xs">
                   &ldquo;{profile.bio}&rdquo;
                 </p>
-              )}
+              ) : null}
 
-              {interests.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {interests.slice(0, 5).map((interest) => (
-                    <span
-                      key={interest.id}
-                      className="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[10px] font-semibold text-white backdrop-blur-md"
-                    >
-                      {interest.name}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {/* Badges & Pills */}
+              <div className="flex flex-wrap gap-1 pt-0.5">
+                {profile.relationship_goal && (
+                  <span className="rounded-full bg-rose-500/80 px-2.5 py-0.5 text-[9px] font-bold text-white shadow-2xs">
+                    {profile.relationship_goal}
+                  </span>
+                )}
+                {profile.zodiac && (
+                  <span className="rounded-full bg-purple-500/80 px-2.5 py-0.5 text-[9px] font-bold text-white shadow-2xs">
+                    {profile.zodiac}
+                  </span>
+                )}
+                {interests.slice(0, 3).map((interest) => (
+                  <span
+                    key={interest.id}
+                    className="rounded-full bg-white/20 border border-white/15 px-2 py-0.5 text-[9px] font-medium text-white backdrop-blur-xs"
+                  >
+                    {interest.name}
+                  </span>
+                ))}
+              </div>
 
-              <div className="mt-4 flex items-center justify-between border-t border-white/20 pt-3 text-[10px] font-medium text-white/70">
+              {/* Swipe Direction Hint */}
+              <div className="flex items-center justify-between border-t border-white/15 pt-1.5 text-[9px] font-semibold text-white/60">
                 <span>← Pass</span>
-
                 {photos.length > 1 && (
                   <span>
                     {photoIndex + 1} / {photos.length}
                   </span>
                 )}
-
                 <span>Like →</span>
               </div>
+
             </div>
           </>
         )}
       </div>
     </motion.div>
   );
-}
+});

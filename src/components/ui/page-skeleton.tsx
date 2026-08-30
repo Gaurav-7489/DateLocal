@@ -30,7 +30,6 @@ export default function PageSkeleton({
   title = "Loading...",
   variant = "default",
 }: PageSkeletonProps) {
-  /* Matches Page Variant */
   if (variant === "matches" || variant === "list") {
     return (
       <div
@@ -72,7 +71,6 @@ export default function PageSkeleton({
     );
   }
 
-  /* News & Feedback Page Variant */
   if (variant === "news") {
     return (
       <div
@@ -110,7 +108,6 @@ export default function PageSkeleton({
     );
   }
 
-  /* Messages / Chats List Page Variant */
   if (variant === "chats") {
     return (
       <div
@@ -152,7 +149,6 @@ export default function PageSkeleton({
     );
   }
 
-  /* Single Conversation / Chat Room Variant */
   if (variant === "chat") {
     return (
       <div
@@ -200,7 +196,6 @@ export default function PageSkeleton({
     );
   }
 
-  /* Settings Page Variant */
   if (variant === "settings") {
     return (
       <div
@@ -243,7 +238,6 @@ export default function PageSkeleton({
     );
   }
 
-  /* Profile / You Page Variant */
   if (variant === "profile") {
     return (
       <div
@@ -291,7 +285,6 @@ export default function PageSkeleton({
     );
   }
 
-  /* Edit Profile Form Page Variant */
   if (variant === "edit-profile") {
     return (
       <div
@@ -323,7 +316,6 @@ export default function PageSkeleton({
     );
   }
 
-  /* Exclusive / Extrovert Variant */
   if (variant === "exclusive") {
     return (
       <div
@@ -360,7 +352,6 @@ export default function PageSkeleton({
     );
   }
 
-  /* Default generic fallback */
   return (
     <div className="mx-auto flex h-full w-full max-w-lg flex-1 flex-col gap-4 p-4 font-sans">
       <Bone className="h-8 w-1/2 rounded-xl" />

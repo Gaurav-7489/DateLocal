@@ -21,14 +21,8 @@ const publicLinks = [
   { href: routes.news, label: "News & Feedback", icon: Newspaper },
 ];
 
-// Staggered animation variants for the mobile menu
 const menuVariants: Variants = {
-  hidden: {
-    opacity: 0,
-    y: -15,
-    scale: 0.95,
-  },
-
+  hidden: { opacity: 0, y: -15, scale: 0.95 },
   visible: {
     opacity: 1,
     y: 0,
@@ -40,57 +34,41 @@ const menuVariants: Variants = {
       staggerChildren: 0.05,
     },
   },
-
   exit: {
     opacity: 0,
     y: -10,
     scale: 0.95,
-    transition: {
-      duration: 0.2,
-      ease: "easeOut",
-    },
+    transition: { duration: 0.2, ease: "easeOut" },
   },
 };
 
 const itemVariants: Variants = {
-  hidden: {
-    opacity: 0,
-    x: -10,
-  },
-
+  hidden: { opacity: 0, x: -10 },
   visible: {
     opacity: 1,
     x: 0,
-    transition: {
-      type: "spring",
-      stiffness: 300,
-      damping: 24,
-    },
+    transition: { type: "spring", stiffness: 300, damping: 24 },
   },
 };
 
 export function Navbar() {
   const pathname = usePathname();
-
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredPath, setHoveredPath] = useState<string | null>(null);
 
   const { scrollY } = useScroll();
 
-  // Dynamic scroll state for a native app feel
   useMotionValueEvent(scrollY, "change", (latest) => {
     setIsScrolled(latest > 20);
   });
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (mobileOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
     }
-
     return () => {
       document.body.style.overflow = "unset";
     };
@@ -104,26 +82,19 @@ export function Navbar() {
           backgroundColor: isScrolled
             ? "rgba(255, 255, 255, 0.85)"
             : "rgba(255, 255, 255, 0)",
-
           borderColor: isScrolled
             ? "rgba(228, 228, 231, 0.8)"
             : "rgba(228, 228, 231, 0)",
-
           boxShadow: isScrolled
             ? "0 8px 30px rgba(0,0,0,0.06)"
             : "0 0px 0px rgba(0,0,0,0)",
-
           paddingTop: isScrolled ? "0.6rem" : "1rem",
           paddingBottom: isScrolled ? "0.6rem" : "1rem",
         }}
-        transition={{
-          duration: 0.3,
-          ease: "easeInOut",
-        }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
         className="w-full max-w-5xl flex items-center justify-between px-4 sm:px-6 rounded-full backdrop-blur-xl border border-transparent"
         aria-label="Main navigation"
       >
-        {/* Brand */}
         <Link
           href={routes.home}
           className="flex items-center gap-2.5 group active:scale-95 transition-transform z-10"
@@ -131,14 +102,12 @@ export function Navbar() {
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-sm font-black text-white shadow-sm shadow-emerald-600/20 group-hover:bg-emerald-500 group-hover:rotate-3 transition-all duration-300">
             {universityConfig.shortName.charAt(0)}
           </div>
-
           <span className="text-base font-extrabold tracking-tight text-zinc-950">
             {universityConfig.appName}
             <span className="text-emerald-600">.</span>
           </span>
         </Link>
 
-        {/* Desktop Links with Magnetic Hover Pill */}
         <div
           className="hidden md:flex items-center gap-1 relative z-10"
           onMouseLeave={() => setHoveredPath(null)}
@@ -159,12 +128,9 @@ export function Navbar() {
                     : "text-zinc-500 hover:text-zinc-900"
                 )}
               >
-                {/* Active Indicator */}
                 {isActive && (
                   <span className="absolute inset-0 bg-emerald-50 rounded-full -z-10" />
                 )}
-
-                {/* Hover Gliding Pill */}
                 {hoveredPath === link.href && !isActive && (
                   <motion.span
                     layoutId="navbar-hover"
@@ -176,25 +142,20 @@ export function Navbar() {
                     }}
                   />
                 )}
-
                 {Icon && (
                   <Icon
                     className={cn(
                       "w-3.5 h-3.5",
-                      isActive
-                        ? "text-emerald-600"
-                        : "text-zinc-400"
+                      isActive ? "text-emerald-600" : "text-zinc-400"
                     )}
                   />
                 )}
-
                 {link.label}
               </Link>
             );
           })}
         </div>
 
-        {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3 z-10">
           <Link
             href={routes.login}
@@ -202,22 +163,18 @@ export function Navbar() {
           >
             Log In
           </Link>
-
           <Link
             href={routes.register}
             className="group relative inline-flex items-center gap-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition-all hover:scale-105 active:scale-95 overflow-hidden"
           >
             <span className="absolute inset-0 w-full h-full -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-shimmer" />
-
             <span className="relative z-10 flex items-center gap-1.5">
               Join {universityConfig.shortName}
-
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
             </span>
           </Link>
         </div>
 
-        {/* Mobile menu trigger */}
         <div className="flex items-center md:hidden z-20">
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -227,12 +184,8 @@ export function Navbar() {
           >
             <motion.div
               initial={false}
-              animate={{
-                rotate: mobileOpen ? 90 : 0,
-              }}
-              transition={{
-                duration: 0.2,
-              }}
+              animate={{ rotate: mobileOpen ? 90 : 0 }}
+              transition={{ duration: 0.2 }}
             >
               {mobileOpen ? (
                 <X className="w-4 h-4" />
@@ -244,7 +197,6 @@ export function Navbar() {
         </div>
       </motion.nav>
 
-      {/* Mobile Drawer Dropdown (Staggered Animation) */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -260,10 +212,7 @@ export function Navbar() {
                 const isActive = pathname === link.href;
 
                 return (
-                  <motion.div
-                    key={link.href}
-                    variants={itemVariants}
-                  >
+                  <motion.div key={link.href} variants={itemVariants}>
                     <Link
                       href={link.href}
                       onClick={() => setMobileOpen(false)}
@@ -278,23 +227,17 @@ export function Navbar() {
                         <Icon
                           className={cn(
                             "w-4 h-4",
-                            isActive
-                              ? "text-emerald-600"
-                              : "text-zinc-400"
+                            isActive ? "text-emerald-600" : "text-zinc-400"
                           )}
                         />
                       )}
-
                       {link.label}
                     </Link>
                   </motion.div>
                 );
               })}
 
-              <motion.div
-                variants={itemVariants}
-                className="h-px bg-zinc-100 my-2"
-              />
+              <motion.div variants={itemVariants} className="h-px bg-zinc-100 my-2" />
 
               <motion.div variants={itemVariants}>
                 <Link
