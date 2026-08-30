@@ -22,6 +22,7 @@ export const routes = {
   profileSetup: "/app/profile/setup",
   settings: "/app/settings",
   extrovert: "/app/extrovert",
+  news: "/news",
 
   admin: {
     root: "/admin",

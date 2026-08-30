@@ -4,7 +4,7 @@ import { DateBuExtrovertCheckout } from "@/components/payments/datebu-extrovert-
 import { Card } from "@/components/ui/card";
 import { Lock, ShieldCheck, Sparkles, Zap, Users, MessageCircle, type LucideIcon } from "lucide-react";
 
-export const metadata: Metadata = { title: "Upgrade to DateBu Extrovert" };
+export const metadata: Metadata = { title: "DateBu Extrovert" };
 
 export const dynamic = "force-dynamic";
 
@@ -78,8 +78,11 @@ export default async function ExtrovertPage() {
             Random Rush, Vibe Matcher, Study Buddies and other modes are still in development.
           </div>
           {([
+            ["Blind Date", "A photo-free matching experience is coming soon.", Sparkles],
+            ["Random Rush", "Fast campus matching windows are coming soon.", Zap],
+            ["Vibe Matcher", "Match by shared energy and interests. Coming soon.", Users],
+            ["Study Buddy", "Find focused campus partners. Coming soon.", Users],
             ["Blind Mode", "Meet people without seeing profile photos first.", Zap],
-            ["Study Buddies", "Find focused campus partners for classes and projects.", Users],
             ["Quick Chat", "Start lightweight conversations with active students.", MessageCircle],
           ] as [string, string, LucideIcon][]).map(([title, description, Icon]) => (
             <div key={String(title)} className={`rounded-2xl border p-3 text-xs ${isPremium ? "border-emerald-200 bg-emerald-50/50 text-zinc-700" : "border-zinc-200 bg-zinc-100/80 text-zinc-500"}`}>

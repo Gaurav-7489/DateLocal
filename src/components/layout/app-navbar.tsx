@@ -27,6 +27,7 @@ import {
   Shield,
   Bell,
   Download,
+  Crown,
 } from "lucide-react";
 
 const appLinks = [
@@ -34,6 +35,7 @@ const appLinks = [
   { href: routes.matches, label: "Matches", icon: Heart },
   { href: routes.messages, label: "Chats", icon: MessageSquare },
   { href: routes.profile, label: "You", icon: User },
+  { href: routes.extrovert, label: "Extrovert", icon: Crown },
 ];
 
 const menuVariants: Variants = {
@@ -503,6 +505,15 @@ const Icon = link.icon;
             )}
           </motion.div>
         </button>
+        {isSuperAdmin && (
+          <Link
+            href={routes.admin.root}
+            className="ml-2 flex h-10 w-10 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-amber-700 md:hidden"
+            aria-label="Open admin dashboard"
+          >
+            <Crown className="h-4 w-4" />
+          </Link>
+        )}
       </nav>
 
       {/* Mobile Drawer Dropdown (Staggered Animation) */}

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { publishNews } from "./news-actions";
 import { routes } from "@/config/routes";
 import { 
   LayoutDashboard, 
@@ -24,15 +26,23 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// 1. DATA FETCHING FUNCTION
-// Replace these static numbers with your actual Supabase/DB queries later.
 async function fetchPlatformMetrics() {
-  // Example: const { count } = await supabase.from('users').select('*', { count: 'exact' });
+  const db = createAdminClient();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [{ count: totalUsers }, { count: pendingVerifications }, { count: activeReports }, { count: matchesToday }, { count: paidSubscriptions }] = await Promise.all([
+    db.from("profiles").select("id", { count: "exact", head: true }),
+    db.from("profiles").select("id", { count: "exact", head: true }).eq("profile_completed", false),
+    db.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    db.from("matches").select("id", { count: "exact", head: true }).gte("created_at", today.toISOString()),
+    db.from("subscriptions").select("id", { count: "exact", head: true }).eq("plan", "pro").eq("status", "active"),
+  ]);
   return {
-    totalUsers: 2845,
-    pendingVerifications: 34,
-    activeReports: 12,
-    matchesToday: 312,
+    totalUsers: totalUsers ?? 0,
+    pendingVerifications: pendingVerifications ?? 0,
+    activeReports: activeReports ?? 0,
+    matchesToday: matchesToday ?? 0,
+    paidSubscriptions: paidSubscriptions ?? 0,
     lastUpdated: new Date().toLocaleTimeString("en-IN", { timeStyle: "short" }),
   };
 }
@@ -87,7 +97,7 @@ export default async function AdminPage() {
   const metrics = await fetchPlatformMetrics();
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-zinc-900 font-sans relative overflow-hidden">
+    <div className="min-h-screen w-full bg-[#FAFAFA] text-zinc-900 font-sans relative overflow-hidden">
       
       {/* Soothing Golden Ambient Glow */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
@@ -146,7 +156,7 @@ export default async function AdminPage() {
             <h2 className="text-lg font-extrabold text-zinc-900">Platform Metrics</h2>
           </div>
           
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
             
             {/* Metric Card 1 */}
             <div className="bg-white rounded-3xl p-6 border border-zinc-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(245,158,11,0.08)] hover:border-amber-200/80 transition-all duration-300">
@@ -198,13 +208,30 @@ export default async function AdminPage() {
                 </div>
                 <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">Matches Today</p>
               </div>
+
               <p className="text-3xl font-black text-zinc-900">{metrics.matchesToday}</p>
               <p className="text-xs font-semibold text-emerald-600 mt-2 flex items-center gap-1">
                 <TrendingUp className="w-3 h-3" /> +5% vs yesterday
               </p>
             </div>
+            <div className="bg-white rounded-3xl p-6 border border-zinc-200/80 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">Active Extrovert</p>
+              <p className="mt-4 text-3xl font-black text-zinc-900">{metrics.paidSubscriptions}</p>
+              <p className="mt-2 text-xs font-semibold text-emerald-600">Paid subscriptions</p>
+            </div>
 
           </div>
+        </div>
+
+        <div className="mt-16 rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-extrabold text-zinc-900">Publish News</h2>
+          <p className="mt-1 text-sm text-zinc-500">Only administrators can publish updates. Everyone can read them on the News &amp; Feedback page.</p>
+          <form action={publishNews} className="mt-4 space-y-3">
+            <input name="title" required maxLength={120} placeholder="Headline" className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm" />
+            <textarea name="body" required rows={5} placeholder="Write your announcement..." className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm" />
+            <button className="rounded-xl bg-zinc-900 px-4 py-3 text-sm font-bold text-white">Publish update</button>
+          </form>
+          <Link href={routes.news} className="mt-3 inline-block text-sm font-semibold text-amber-700">View public News &amp; Feedback</Link>
         </div>
 
         {/* Management Modules Grid */}

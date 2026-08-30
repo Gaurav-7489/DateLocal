@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toggleGhostMode, unblockUser } from "../discover/actions";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
@@ -303,9 +304,9 @@ export function SettingsClient({
           </div>
 
           <div>
-            <h2 className="text-base font-bold text-foreground">
+            <Link href={routes.extrovert} className="text-base font-bold text-foreground hover:text-emerald-700">
               DateBu Extrovert
-            </h2>
+            </Link>
 
             <p className="text-xs text-muted-foreground mt-0.5">
               Plan:{" "}
