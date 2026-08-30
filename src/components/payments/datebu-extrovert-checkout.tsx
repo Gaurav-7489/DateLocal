@@ -206,12 +206,7 @@ export function DateBuExtrovertCheckout({
           },
         },
 
-        handler: (razorpayResponse) => {
-          console.log(
-            "DateBu Extrovert payment authorized:",
-            razorpayResponse.razorpay_payment_id,
-          );
-
+        handler: () => {
           // IMPORTANT:
           // We do NOT mark the user as Pro here.
           //

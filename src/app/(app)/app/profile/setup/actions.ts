@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { isUuid } from "@/lib/validation";
+import { calculateAge } from "@/lib/utils";
 
 export type ProfileFormState = {
   error?: string;
@@ -14,14 +15,6 @@ export type ProfileFormState = {
 const GENDER_OPTIONS = ["man", "woman", "non-binary", "other", "prefer-not-to-say"] as const;
 const YEAR_OPTIONS = ["1st-year", "2nd-year", "3rd-year", "4th-year", "5th-year", "postgraduate"] as const;
 const INTERESTED_IN_OPTIONS = ["men", "women", "everyone"] as const;
-
-function calculateAge(dob: Date): number {
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-  return age;
-}
 
 export async function saveProfile(
   _prev: ProfileFormState,
@@ -71,10 +64,12 @@ export async function saveProfile(
       fieldErrors.date_of_birth = "Invalid date format.";
     } else {
       const age = calculateAge(dob);
-      if (age < 18) {
+      if (age !== null && age < 18) {
         fieldErrors.date_of_birth = "You must be at least 18 years old to use DateBu.";
-      } else if (age > 99) {
+      } else if (age !== null && age > 99) {
         fieldErrors.date_of_birth = "Please enter a valid date of birth.";
+      } else if (age === null) {
+        fieldErrors.date_of_birth = "Invalid date of birth.";
       }
     }
   }

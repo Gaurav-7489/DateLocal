@@ -7,6 +7,7 @@ import { universityConfig } from "@/config/university";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
+import { calculateAge } from "@/lib/utils";
 import {
   ShieldCheck,
   Edit,
@@ -21,16 +22,6 @@ import {
 export const metadata: Metadata = { title: "Your Profile" };
 
 export const dynamic = "force-dynamic";
-
-function calculateAge(dobStr: string): number | null {
-  if (!dobStr) return null;
-  const dob = new Date(dobStr);
-  const today = new Date();
-  let age = today.getFullYear() - dob.getFullYear();
-  const m = today.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-  return isNaN(age) ? null : age;
-}
 
 export default async function ProfilePage() {
   const supabase = await createServerSupabaseClient();

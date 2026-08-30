@@ -278,11 +278,10 @@ export async function resetPassedProfiles(): Promise<ActionResult> {
     };
   }
 
-  const { data: deletedPasses, error } = await supabase
+  const { error } = await supabase
     .from("passes")
     .delete()
-    .eq("passer_id", user.id)
-    .select("id");
+    .eq("passer_id", user.id);
 
   if (error) {
     console.error("Failed to reset passed profiles:", error);
@@ -290,10 +289,6 @@ export async function resetPassedProfiles(): Promise<ActionResult> {
       error: "Couldn't bring back passed profiles. Please try again.",
     };
   }
-
-  console.log(
-    `[DateBu] Reset passed profiles: deleted ${deletedPasses?.length ?? 0} passes`,
-  );
 
   revalidatePath(routes.discover);
 

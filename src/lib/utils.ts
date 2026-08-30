@@ -21,3 +21,19 @@ export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength).trimEnd() + "…";
 }
+
+/** Calculate age from date of birth */
+export function calculateAge(dateOfBirth: string | Date | null): number | null {
+  if (!dateOfBirth) return null;
+  
+  const birth = new Date(dateOfBirth);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  
+  return isNaN(age) ? null : age;
+}
