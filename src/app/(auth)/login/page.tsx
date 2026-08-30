@@ -95,7 +95,12 @@ export default function LoginPage() {
     });
 
     if (authError) {
-      setError(authError.message || "Invalid university credentials. Please try again.");
+      const message = authError.message.toLowerCase().includes("email not confirmed")
+        ? "Your email is not verified yet. Check your inbox for the verification link, then try again."
+        : authError.message.toLowerCase().includes("invalid login credentials")
+          ? "That email or password is incorrect. Check both fields or use Forgot password."
+          : `We couldn't sign you in: ${authError.message}`;
+      setError(message);
       setLoading(false);
       return;
     }
@@ -306,6 +311,12 @@ export default function LoginPage() {
                 </span>
               )}
             </button>
+
+            <div className="text-center">
+              <Link href={routes.resetPassword} className="text-[11px] font-semibold text-blue-700 hover:underline">
+                Forgot password?
+              </Link>
+            </div>
 
             <div className="pt-2 text-center">
               <p className="text-[11px] text-zinc-500">

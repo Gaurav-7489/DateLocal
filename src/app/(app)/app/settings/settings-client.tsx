@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toggleGhostMode, unblockUser } from "../discover/actions";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
 import {
   Eye,
   EyeOff,
@@ -14,6 +15,8 @@ import {
   AlertCircle,
   ShieldCheck,
   Crown,
+  Mail,
+  KeyRound,
 } from "lucide-react";
 
 interface BlockedProfile {
@@ -32,12 +35,14 @@ interface SettingsClientProps {
   initialGhostMode: boolean;
   blockedUsers: BlockedProfile[];
   subscription: Subscription;
+  currentEmail: string;
 }
 
 export function SettingsClient({
   initialGhostMode,
   blockedUsers: initialBlocked,
   subscription,
+  currentEmail,
 }: SettingsClientProps) {
   const router = useRouter();
 
@@ -49,6 +54,36 @@ export function SettingsClient({
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [email, setEmail] = useState(currentEmail);
+  const [newPassword, setNewPassword] = useState("");
+  const [accountLoading, setAccountLoading] = useState(false);
+
+  async function updateEmail() {
+    setAccountLoading(true);
+    setStatusMessage(null);
+    const { error } = await createClient().auth.updateUser({ email: email.trim().toLowerCase() });
+    setAccountLoading(false);
+    setStatusMessage(error
+      ? { type: "error", text: `We couldn't change your email: ${error.message}` }
+      : { type: "success", text: "Confirmation links were sent to your old and new email addresses. Your email changes after both are confirmed." });
+  }
+
+  async function updatePassword() {
+    if (newPassword.length < 8) {
+      setStatusMessage({ type: "error", text: "Your new password must be at least 8 characters long." });
+      return;
+    }
+    setAccountLoading(true);
+    setStatusMessage(null);
+    const { error } = await createClient().auth.updateUser({ password: newPassword });
+    setAccountLoading(false);
+    if (error) {
+      setStatusMessage({ type: "error", text: `We couldn't change your password: ${error.message}` });
+      return;
+    }
+    setNewPassword("");
+    setStatusMessage({ type: "success", text: "Password changed successfully." });
+  }
 
   async function handleToggleGhost() {
     if (!isPremium) {
@@ -113,7 +148,9 @@ export function SettingsClient({
 
   const isPremium =
     subscription.plan !== "free" &&
-    subscription.status === "active";
+    subscription.status === "active" &&
+    !!subscription.currentPeriodEnd &&
+    new Date(subscription.currentPeriodEnd).getTime() > Date.now();
 
   return (
     <div className="space-y-6">
@@ -134,6 +171,21 @@ export function SettingsClient({
           <span>{statusMessage.text}</span>
         </div>
       )}
+
+      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-5">
+        <div>
+          <h2 className="text-base font-bold text-foreground flex items-center gap-2"><Mail className="h-5 w-5 text-blue-600" /> Account details</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Keep your login email and password up to date.</p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm" />
+          <Button type="button" disabled={accountLoading || email.trim().toLowerCase() === currentEmail.toLowerCase()} onClick={updateEmail}>Change email</Button>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-background px-3"><KeyRound className="h-4 w-4 text-muted-foreground" /><input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="New password (8+ characters)" className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" /></div>
+          <Button type="button" disabled={accountLoading || !newPassword} onClick={updatePassword}>Change password</Button>
+        </div>
+      </div>
 
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between gap-4">

@@ -66,6 +66,13 @@ export function Hero() {
             </Link>
 
             <Link
+              href="/register?mode=basic"
+              className="inline-flex items-center justify-center px-7 py-4 text-sm font-bold text-zinc-700 bg-white border border-zinc-200/90 rounded-full hover:bg-zinc-50 hover:text-zinc-950 transition-all shadow-xs active:scale-95"
+            >
+              Sign up with any email
+            </Link>
+
+            <Link
               href="/safety"
               className="inline-flex items-center justify-center px-7 py-4 text-sm font-bold text-zinc-700 bg-white border border-zinc-200/90 rounded-full hover:bg-zinc-50 hover:text-zinc-950 transition-all shadow-xs active:scale-95"
             >

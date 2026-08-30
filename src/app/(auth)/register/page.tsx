@@ -16,7 +16,7 @@ import {
   Loader2,
   MapPin
 } from "lucide-react";
-import { universityConfig } from "@/config/university";
+import { isUniversityEmail, universityConfig } from "@/config/university";
 import { routes } from "@/config/routes";
 import { registerWithEmail } from "@/services/auth.service";
 
@@ -57,9 +57,11 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
+  const [verifiedMode, setVerifiedMode] = useState(true);
 
   // Auto-advance campus story images (7s slow smooth loop)
   useEffect(() => {
+    setVerifiedMode(new URLSearchParams(window.location.search).get("mode") !== "basic");
     if (CAMPUS_STORIES.length <= 1) return;
     const interval = setInterval(() => {
       setActiveStoryIndex((prev) => (prev + 1) % CAMPUS_STORIES.length);
@@ -80,11 +82,6 @@ export default function RegisterPage() {
     setError("");
 
     const normalizedEmail = email.trim().toLowerCase();
-    const normalizedDomain = universityConfig.emailDomain
-      .trim()
-      .toLowerCase()
-      .replace(/^@/, "");
-
     if (!normalizedEmail) {
       setError("Please enter your email address.");
       return;
@@ -92,6 +89,11 @@ export default function RegisterPage() {
 
     if (!normalizedEmail.includes("@") || normalizedEmail.split("@").length !== 2) {
       setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (verifiedMode && !isUniversityEmail(normalizedEmail)) {
+      setError(`Verified access requires an email ending in @${universityConfig.emailDomain.replace(/^@/, "")}. For other emails, choose Basic signup.`);
       return;
     }
 
@@ -241,7 +243,7 @@ window.location.href = routes.app;
                   <label className="text-[11px] font-semibold text-zinc-700 flex items-center justify-between">
                     <span className="flex items-center gap-1">
                       <Mail className="w-3 h-3 text-emerald-600" />
-                      Campus Email
+                      {verifiedMode ? "Campus Email (verified batch)" : "Email (basic batch)"}
                     </span>
                     <span className="text-[10px] text-zinc-400 font-mono">
                       @{universityConfig.emailDomain.replace(/^@/, "")}
@@ -257,6 +259,11 @@ window.location.href = routes.app;
                     required
                     className="w-full rounded-xl border border-zinc-200 bg-zinc-50/70 px-3.5 py-3 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition duration-200 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                  <button type="button" onClick={() => setVerifiedMode(true)} className={`rounded-xl border px-2 py-2 font-semibold ${verifiedMode ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-zinc-200 text-zinc-500"}`}>University email<br />Verified batch</button>
+                  <button type="button" onClick={() => setVerifiedMode(false)} className={`rounded-xl border px-2 py-2 font-semibold ${!verifiedMode ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-zinc-200 text-zinc-500"}`}>Any email<br />Basic signup</button>
                 </div>
 
                 {/* Password */}

@@ -92,6 +92,10 @@ export async function saveProfile(
     fieldErrors.bio = "Bio must be 500 characters or less.";
   }
 
+  if (preferredDepartment.length > 100) {
+    fieldErrors.preferred_department = "Preferred department must be 100 characters or less.";
+  }
+
   if (photoPaths.length > 6 || new Set(photoPaths).size !== photoPaths.length) {
     fieldErrors.photo_paths = "You can save up to 6 unique photos.";
   }
@@ -152,6 +156,9 @@ export async function saveProfile(
   const safePhotoPaths = photoPaths.filter((path) =>
     path.startsWith(`${user.id}/`),
   );
+  if (safePhotoPaths.length !== photoPaths.length) {
+    return { error: "One or more photos are invalid. Please remove them and upload again." };
+  }
 
   const { error: photoDeleteError } = await supabase
     .from("profile_photos")

@@ -198,6 +198,7 @@ export default async function SettingsPage() {
       <SettingsClient
         initialGhostMode={Boolean(profile?.ghost_mode)}
         blockedUsers={blockedUsers}
+        currentEmail={user.email ?? ""}
         subscription={{
           plan: subscription?.plan ?? "free",
           status: subscription?.status ?? "inactive",

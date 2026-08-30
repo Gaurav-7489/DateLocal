@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { DateBuExtrovertCheckout } from "@/components/payments/datebu-extrovert-checkout";
 import { Card } from "@/components/ui/card";
-import { Lock, ShieldCheck, Sparkles } from "lucide-react";
+import { Lock, ShieldCheck, Sparkles, Zap, Users, MessageCircle, type LucideIcon } from "lucide-react";
 
 export const metadata: Metadata = { title: "Upgrade to DateBu Extrovert" };
 
@@ -36,7 +36,7 @@ export default async function ExtrovertPage() {
           Unlock DateBu Extrovert
         </h1>
         <p className="text-sm text-zinc-600">
-          Access premium campus features, including Ghost Mode and upcoming experiences.
+          Free accounts get 5 likes. DateBu Extrovert unlocks every campus mode and unlimited likes.
         </p>
       </div>
 
@@ -55,7 +55,7 @@ export default async function ExtrovertPage() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-700">
             <div className="mb-1 flex items-center gap-1.5 font-semibold text-zinc-900">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
@@ -77,6 +77,21 @@ export default async function ExtrovertPage() {
             </div>
             Random Rush, Vibe Matcher, Study Buddies and other modes are still in development.
           </div>
+          {([
+            ["Blind Mode", "Meet people without seeing profile photos first.", Zap],
+            ["Study Buddies", "Find focused campus partners for classes and projects.", Users],
+            ["Quick Chat", "Start lightweight conversations with active students.", MessageCircle],
+          ] as [string, string, LucideIcon][]).map(([title, description, Icon]) => (
+            <div key={String(title)} className={`rounded-2xl border p-3 text-xs ${isPremium ? "border-emerald-200 bg-emerald-50/50 text-zinc-700" : "border-zinc-200 bg-zinc-100/80 text-zinc-500"}`}>
+              <div className="mb-1 flex items-center gap-1.5 font-semibold text-zinc-900">
+                {!isPremium && <Lock className="h-3.5 w-3.5" />}
+                <Icon className="h-3.5 w-3.5 text-emerald-600" />
+                {String(title)}
+              </div>
+              {String(description)}
+              {!isPremium && <p className="mt-1 font-semibold text-amber-700">Locked on Free</p>}
+            </div>
+          ))}
         </div>
       </Card>
 

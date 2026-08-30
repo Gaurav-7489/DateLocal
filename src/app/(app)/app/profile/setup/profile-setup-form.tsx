@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { saveProfile, type ProfileFormState } from "./actions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProfilePhotoUploader } from "./components/profile-photo-uploader";
+import { calculateAge } from "@/lib/utils";
 
 const GENDER_OPTIONS = [
   { value: "man", label: "Man" },
@@ -99,6 +100,24 @@ export function ProfileSetupForm({
   const [bioLength, setBioLength] = useState(
     existingProfile?.bio?.length ?? 0,
   );
+  const [formNotice, setFormNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const firstFieldError = Object.values(state.fieldErrors ?? {})[0];
+    setFormNotice(state.error ?? firstFieldError ?? null);
+  }, [state.error, state.fieldErrors]);
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    const dateOfBirth = new FormData(event.currentTarget).get("date_of_birth");
+    if (typeof dateOfBirth === "string") {
+      const age = calculateAge(new Date(dateOfBirth));
+      if (age !== null && age < 14) {
+        event.preventDefault();
+        setFormNotice("You cannot create a DateBu profile yet. You must be at least 14 years old.");
+        document.getElementById("date_of_birth")?.focus();
+      }
+    }
+  }
 
   function toggleInterest(id: string) {
     setSelectedInterests((prev) => {
@@ -121,7 +140,15 @@ export function ProfileSetupForm({
   const fieldErrors = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} className="space-y-8">
+    <form action={formAction} onSubmit={handleSubmit} className="space-y-8">
+      {formNotice && (
+        <div role="alert" className="fixed inset-x-4 top-5 z-50 mx-auto max-w-lg rounded-2xl border border-rose-200 bg-white p-4 text-sm font-semibold text-rose-700 shadow-xl">
+          <div className="flex items-start justify-between gap-3">
+            <span>{formNotice}</span>
+            <button type="button" aria-label="Dismiss message" onClick={() => setFormNotice(null)} className="text-lg leading-none text-rose-400">×</button>
+          </div>
+        </div>
+      )}
       {state.error && (
         <div className="rounded-[var(--radius-md)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {state.error}
