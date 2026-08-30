@@ -26,7 +26,7 @@ import {
   ShieldCheck,
   Shield,
   Bell,
-  
+  Download,
 } from "lucide-react";
 
 const appLinks = [
@@ -85,6 +85,12 @@ interface AppNavbarProps {
   isSuperAdmin?: boolean;
 }
 
+type InstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+  platforms: string[];
+};
+
 export function AppNavbar({
   userEmail,
   isSuperAdmin = false,
@@ -95,6 +101,8 @@ export function AppNavbar({
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [hoveredPath, setHoveredPath] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +135,32 @@ export function AppNavbar({
       document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const isStandaloneMode =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
+
+    setIsStandalone(isStandaloneMode);
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as InstallPromptEvent);
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPrompt(null);
+      setIsStandalone(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
   // Lock scroll when mobile menu is open
   useEffect(() => {
     if (mobileOpen) {
@@ -138,6 +172,26 @@ export function AppNavbar({
       document.body.style.overflow = "unset";
     };
   }, [mobileOpen]);
+
+  const handleInstallApp = async () => {
+    if (!installPrompt) {
+      const isIOS = /iPhone|iPad|iPod/i.test(window.navigator.userAgent);
+      if (isIOS) {
+        window.alert("Open the Share menu and choose 'Add to Home Screen' to install DateBu on your iPhone.");
+      } else {
+        window.alert("Use the browser menu to install this app on your phone.");
+      }
+      return;
+    }
+
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+
+    if (choice.outcome === "accepted") {
+      setInstallPrompt(null);
+      setIsStandalone(true);
+    }
+  };
 
   return (
     <header
@@ -247,6 +301,17 @@ const Icon = link.icon;
           className="hidden items-center gap-2.5 md:flex"
           ref={menuRef}
         >
+          {!isStandalone && (
+            <button
+              type="button"
+              onClick={handleInstallApp}
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold text-emerald-700 transition-all hover:bg-emerald-100 active:scale-95 cursor-pointer"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Install app
+            </button>
+          )}
+
           {/* Quick Notification Bell (Interactive UI bonus) */}
           <button
             type="button"
@@ -534,6 +599,21 @@ const Icon = link.icon;
   </motion.div>
 )}
             <div className="pt-4 flex flex-col gap-2.5">
+              {!isStandalone && (
+                <motion.div variants={itemVariants}>
+                  <button
+                    type="button"
+                    onClick={handleInstallApp}
+                    className="flex w-full items-center gap-3.5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-700 transition-colors"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                      <Download className="w-4 h-4 stroke-2" />
+                    </div>
+                    Install app
+                  </button>
+                </motion.div>
+              )}
+
               <motion.div
                 variants={itemVariants}
                 className="px-4 py-3 rounded-2xl bg-gradient-to-br from-zinc-50 to-emerald-50/20 border border-zinc-200/60 shadow-2xs"

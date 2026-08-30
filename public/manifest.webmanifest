@@ -1,0 +1,19 @@
+{
+  "name": "DateBu",
+  "short_name": "DateBu",
+  "description": "Verified campus dating and social space for students.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "orientation": "portrait",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

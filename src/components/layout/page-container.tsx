@@ -35,7 +35,7 @@ export function PageContainer({
         ease: [0.16, 1, 0.3, 1],
       }}
       className={cn(
-        "relative mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 sm:py-16 font-sans min-h-[calc(100vh-4rem)]",
+        "relative mx-auto w-full px-4 py-6 font-sans sm:px-6 sm:py-8 lg:px-8 min-h-0",
         narrow ? "max-w-3xl" : "max-w-6xl",
         className
       )}

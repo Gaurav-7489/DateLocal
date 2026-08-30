@@ -37,13 +37,13 @@ export default async function AppLayout({
     user.id === process.env.DATEBU_OWNER_ID;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-background">
       <AppNavbar
         userEmail={user.email ?? "Unknown"}
         isSuperAdmin={isSuperAdmin}
       />
 
-      <div className="flex-1 pb-10">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto pb-4">{children}</div>
     </div>
   );
 }

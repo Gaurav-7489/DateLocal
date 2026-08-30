@@ -258,7 +258,7 @@ if (!currentProfile && !matchModal) {
   }
 
   return (
-<div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-2xl flex-col px-2 py-2 sm:px-4">
+<div className="relative mx-auto flex h-full w-full max-w-2xl flex-1 flex-col px-2 py-2 sm:px-4">
 
 
       {/* Toast Notification */}
@@ -276,7 +276,7 @@ if (!currentProfile && !matchModal) {
       </AnimatePresence>
 
       {/* Swipeable Card Stack Container */}
-  <div className="relative h-[calc(100dvh-10rem)] min-h-[600px] w-full max-w-lg flex items-center justify-center">
+  <div className="relative h-[min(70dvh,540px)] min-h-[360px] w-full max-w-lg flex items-center justify-center">
         {deck.slice(0, 3).map((profile, index) => {
           const isTop = index === 0;
           const isSecond = index === 1;
