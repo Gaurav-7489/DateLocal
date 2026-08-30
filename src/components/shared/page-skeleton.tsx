@@ -30,7 +30,7 @@ export default function PageSkeleton({
   title = "Loading...",
   variant = "default",
 }: PageSkeletonProps) {
-  /* Matches Page Variant */
+  /* Matches Page Variant (2-Column Grid of Character Cards with rounded action buttons) */
   if (variant === "matches" || variant === "list") {
     return (
       <div
@@ -39,32 +39,97 @@ export default function PageSkeleton({
         aria-label={title}
       >
         <div className="mb-4 flex items-start justify-between">
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <Bone className="h-6 w-6 rounded-full" />
-              <Bone className="h-7 w-36 rounded-xl" />
+              <Bone className="h-8 w-40 rounded-xl" />
+              <Bone className="h-2.5 w-2.5 rounded-full" />
             </div>
-            <Bone className="h-3.5 w-44 rounded-lg" />
+            <Bone className="h-3.5 w-52 rounded-lg" />
           </div>
-          <Bone className="h-9 w-24 rounded-full" />
+          <Bone className="h-9 w-28 rounded-full" />
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-zinc-200/90 bg-white p-5 shadow-2xs">
-          <div className="relative h-[min(46dvh,360px)] w-full overflow-hidden rounded-2xl bg-zinc-100">
-            <Bone className="h-full w-full rounded-2xl" />
-            <div className="absolute right-3 top-3 z-10">
-              <Bone className="h-6 w-20 rounded-full" />
+        {/* 2-Column Match Cards Grid */}
+        <div className="grid grid-cols-2 gap-3 pb-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="flex flex-col overflow-hidden rounded-3xl border border-zinc-200/90 bg-white p-2 shadow-2xs"
+            >
+              <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-zinc-100">
+                <Bone className="h-full w-full rounded-2xl" />
+                <div className="absolute right-2 top-2">
+                  <Bone className="h-5 w-16 rounded-full" />
+                </div>
+                <div className="absolute bottom-2 left-2 space-y-1">
+                  <Bone className="h-4 w-24 rounded-md" />
+                  <Bone className="h-3 w-16 rounded-md" />
+                </div>
+              </div>
+              <div className="pt-2">
+                <Bone className="h-9 w-full rounded-full" />
+              </div>
             </div>
-          </div>
+          ))}
+        </div>
 
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Bone className="h-6 w-48 rounded-lg" />
-              <Bone className="h-4 w-32 rounded-md" />
-              <Bone className="h-3.5 w-full rounded-md" />
+        <span className="sr-only">{title}</span>
+      </div>
+    );
+  }
+
+  /* Messages / Chats List Page Variant (New Matches avatar row + stacked list items) */
+  if (variant === "chats") {
+    return (
+      <div
+        className="mx-auto flex h-full w-full max-w-lg flex-1 flex-col px-4 py-4 font-sans"
+        role="status"
+        aria-label={title}
+      >
+        {/* Header */}
+        <div className="mb-5 flex items-start justify-between">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <Bone className="h-6 w-6 rounded-lg" />
+              <Bone className="h-7 w-36 rounded-xl" />
             </div>
-            <Bone className="h-11 w-full rounded-2xl" />
+            <Bone className="h-3.5 w-56 rounded-lg" />
           </div>
+          <Bone className="h-9 w-24 rounded-2xl" />
+        </div>
+
+        {/* New Matches Row */}
+        <div className="mb-6 space-y-2.5">
+          <div className="flex items-center gap-1.5">
+            <Bone className="h-4 w-4 rounded-md" />
+            <Bone className="h-3.5 w-28 rounded-md" />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col items-center space-y-1.5">
+              <Bone className="h-16 w-16 rounded-2xl" />
+              <Bone className="h-3 w-12 rounded-md" />
+            </div>
+          </div>
+        </div>
+
+        {/* Messages Stack */}
+        <div className="space-y-2.5">
+          <Bone className="h-3.5 w-20 rounded-md" />
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-2xl border border-zinc-200/90 bg-white p-3 shadow-2xs"
+            >
+              <div className="flex items-center gap-3">
+                <Bone className="h-14 w-14 shrink-0 rounded-2xl" />
+                <div className="space-y-2">
+                  <Bone className="h-4 w-28 rounded-md" />
+                  <Bone className="h-3 w-20 rounded-md" />
+                </div>
+              </div>
+              <Bone className="h-3 w-8 self-center rounded-md" />
+            </div>
+          ))}
         </div>
 
         <span className="sr-only">{title}</span>
@@ -103,48 +168,6 @@ export default function PageSkeleton({
               <Bone className="mt-1.5 h-3.5 w-1/3 rounded-md" />
             </div>
           </div>
-        </div>
-
-        <span className="sr-only">{title}</span>
-      </div>
-    );
-  }
-
-  /* Messages / Chats List Page Variant */
-  if (variant === "chats") {
-    return (
-      <div
-        className="mx-auto flex h-full w-full max-w-lg flex-1 flex-col px-4 py-4 font-sans"
-        role="status"
-        aria-label={title}
-      >
-        <div className="mb-6 flex items-start justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Bone className="h-6 w-6 rounded-lg" />
-              <Bone className="h-7 w-32 rounded-xl" />
-            </div>
-            <Bone className="h-3.5 w-48 rounded-lg" />
-          </div>
-          <Bone className="h-9 w-24 rounded-full" />
-        </div>
-
-        <div className="space-y-2.5">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between rounded-3xl border border-zinc-200/90 bg-white p-3.5 shadow-2xs"
-            >
-              <div className="flex items-center gap-3">
-                <Bone className="h-12 w-12 shrink-0 rounded-2xl" />
-                <div className="space-y-2">
-                  <Bone className="h-4 w-32 rounded-md" />
-                  <Bone className="h-3 w-20 rounded-md" />
-                </div>
-              </div>
-              <Bone className="h-3 w-10 self-start rounded-md" />
-            </div>
-          ))}
         </div>
 
         <span className="sr-only">{title}</span>
