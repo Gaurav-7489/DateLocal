@@ -183,7 +183,7 @@ export async function updateSession(request: NextRequest) {
     // When enabled, the user reaches face verification only after the
     // profile and primary photo have been successfully persisted.
     if (featureFlags.ENABLE_CAMERA_VERIFICATION && !isFaceVerified) {
-      if (isAppRoute || isAuthRoute) {
+      if ((isAppRoute && !isOnboardingRoute) || isAuthRoute) {
         if (pathname !== routes.verifyFace) {
           const redirectResponse = NextResponse.redirect(
             new URL(routes.verifyFace, request.url)
