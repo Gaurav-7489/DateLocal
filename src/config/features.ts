@@ -9,9 +9,6 @@ export const featureFlags = {
   ENABLE_VOICE_MESSAGES: false,
   ENABLE_AI_MATCHING: false,
   ENABLE_ANONYMOUS_CRUSH: false,
-  // Face verification is implemented but intentionally disabled until the
-  // browser engine is ready for production use.
-  ENABLE_CAMERA_VERIFICATION: false,
   ENABLE_PROFILE_AUDIO: false,
   ENABLE_MEDIA_CHAT: false,
 } as const;
