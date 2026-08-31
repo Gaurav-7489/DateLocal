@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Let Next.js/Vercel serve compressed production responses and keep
+  // framework metadata out of the response headers.
+  compress: true,
+  poweredByHeader: false,
+
+  // Keep third-party component packages tree-shaken and route chunks small.
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+  },
+
   async headers() {
     return [
       {
@@ -22,6 +32,8 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
       {
         protocol: "https",
