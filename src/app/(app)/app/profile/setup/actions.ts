@@ -260,6 +260,7 @@ export async function saveProfile(
       weekend_vibe: weekendVibe || null,
       prompt_question: promptQuestion || null,
       prompt_answer: promptAnswer || null,
+      profile_completed: true,
       updated_at: new Date().toISOString(),
     },
     {
@@ -275,38 +276,130 @@ export async function saveProfile(
   }
 
   // ---------------------------------------------------------
-  // SAVE PROFILE PHOTOS
+  // SYNC PROFILE PHOTOS — DIFF ONLY
   // ---------------------------------------------------------
+  //
+  // Do NOT delete/reinsert every photo on every profile edit.
+  // This keeps unchanged photos stable and prevents unnecessary
+  // face-verification invalidation.
+  //
 
-  const { error: photoDeleteError } = await supabase
-    .from("profile_photos")
-    .delete()
-    .eq("profile_id", user.id);
+  const { data: existingPhotoRows, error: existingPhotosError } =
+    await supabase
+      .from("profile_photos")
+      .select("id, storage_path, display_order, is_primary")
+      .eq("profile_id", user.id)
+      .order("display_order", { ascending: true });
 
-  if (photoDeleteError) {
-    console.error("Profile photo delete error:", photoDeleteError);
+  if (existingPhotosError) {
+    console.error("Existing profile photos fetch error:", existingPhotosError);
     return {
-      error: "Failed to update profile photos. Please try again.",
+      error: "Failed to load your existing profile photos. Please try again.",
     };
   }
 
-  if (safePhotoPaths.length > 0) {
-    const photoRows = safePhotoPaths.map((storage_path, index) => ({
-      profile_id: user.id,
-      storage_path,
-      display_order: index,
-      is_primary: index === 0,
-    }));
+  const existingRows = existingPhotoRows ?? [];
+  const existingByPath = new Map(
+    existingRows.map((row) => [row.storage_path, row]),
+  );
+
+  const desiredPaths = safePhotoPaths;
+
+  // Photos that no longer exist in the submitted deck.
+  const removedRows = existingRows.filter(
+    (row) => !desiredPaths.includes(row.storage_path),
+  );
+
+  // Delete only removed photo metadata.
+  if (removedRows.length > 0) {
+    const removedIds = removedRows.map((row) => row.id);
+
+    const { error: photoDeleteError } = await supabase
+      .from("profile_photos")
+      .delete()
+      .in("id", removedIds);
+
+    if (photoDeleteError) {
+      console.error("Profile photo delete error:", photoDeleteError);
+      return {
+        error: "Failed to remove old profile photos. Please try again.",
+      };
+    }
+
+    // Best-effort cleanup of the corresponding storage objects.
+    const removedPaths = removedRows.map((row) => row.storage_path);
+
+    const { error: storageDeleteError } = await supabase.storage
+      .from("profile-photos")
+      .remove(removedPaths);
+
+    if (storageDeleteError) {
+      // The database is already correct. Do not fail the profile save
+      // because an old storage object could not be cleaned up.
+      console.warn(
+        "Profile photo storage cleanup warning:",
+        storageDeleteError.message,
+      );
+    }
+  }
+
+  // Insert only genuinely new photos.
+  const newPaths = desiredPaths.filter(
+    (path) => !existingByPath.has(path),
+  );
+
+  if (newPaths.length > 0) {
+    const newRows = newPaths.map((storage_path) => {
+      const displayOrder = desiredPaths.indexOf(storage_path);
+
+      return {
+        profile_id: user.id,
+        storage_path,
+        display_order: displayOrder,
+        is_primary: displayOrder === 0,
+      };
+    });
 
     const { error: photoInsertError } = await supabase
       .from("profile_photos")
-      .insert(photoRows);
+      .insert(newRows);
 
     if (photoInsertError) {
       console.error("Profile photo insert error:", photoInsertError);
       return {
-        error: "Failed to save profile photos. Please try again.",
+        error: "Failed to save new profile photos. Please try again.",
       };
+    }
+  }
+
+  // Update ordering / primary status only when it actually changed.
+  // This avoids unnecessary UPDATE triggers for untouched photos.
+  for (let index = 0; index < desiredPaths.length; index++) {
+    const path = desiredPaths[index];
+    const existing = existingByPath.get(path);
+
+    if (!existing) continue;
+
+    const nextIsPrimary = index === 0;
+
+    if (
+      existing.display_order !== index ||
+      existing.is_primary !== nextIsPrimary
+    ) {
+      const { error: photoUpdateError } = await supabase
+        .from("profile_photos")
+        .update({
+          display_order: index,
+          is_primary: nextIsPrimary,
+        })
+        .eq("id", existing.id);
+
+      if (photoUpdateError) {
+        console.error("Profile photo order update error:", photoUpdateError);
+        return {
+          error: "Failed to update your photo order. Please try again.",
+        };
+      }
     }
   }
 
