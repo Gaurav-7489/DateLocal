@@ -35,7 +35,9 @@ export async function registerWithEmail(
     email: normalizedEmail,
     password,
     options: {
-      emailRedirectTo: getRedirectUrl("/auth/callback"),
+      // The hosted Supabase email template should append
+      // ?token_hash={{ .TokenHash }}&type=email to this URL.
+      emailRedirectTo: getRedirectUrl("/auth/confirm"),
     },
   });
 
@@ -92,7 +94,7 @@ export async function resendVerificationEmail(
     type: "signup",
     email: normalizedEmail,
     options: {
-      emailRedirectTo: getRedirectUrl("/auth/callback"),
+      emailRedirectTo: getRedirectUrl("/auth/confirm"),
     },
   });
 
@@ -114,8 +116,10 @@ export async function sendPasswordResetEmail(
   const normalizedEmail = email.trim().toLowerCase();
   const supabase = getClient();
 
+  const resetRedirect = getRedirectUrl("/auth/confirm?next=/reset-password");
+
   const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-    redirectTo: getRedirectUrl("/reset-password"),
+    redirectTo: resetRedirect,
   });
 
   if (error) {
