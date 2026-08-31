@@ -37,7 +37,7 @@ export default function FaceVerificationPage() {
           </Link>
 
           <Link
-            href="/settings"
+            href="/app/settings"
             className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-800"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Back
