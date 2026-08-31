@@ -19,6 +19,7 @@ export async function createDiditSession(params: {
   callbackUrl: string;
   metadata?: Record<string, unknown>;
   language?: string;
+  portraitImage?: string;
 }): Promise<DiditSessionResponse> {
   const apiKey = process.env.DIDIT_API_KEY;
   const workflowId = process.env.DIDIT_WORKFLOW_ID;
@@ -44,12 +45,24 @@ export async function createDiditSession(params: {
       callback_method: "both",
       metadata: params.metadata ?? {},
       language: params.language ?? "en",
+
+      ...(params.portraitImage
+        ? {
+            portrait_image: params.portraitImage,
+          }
+        : {}),
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Didit session creation failed:", response.status, errorText);
+
+    console.error(
+      "Didit session creation failed:",
+      response.status,
+      errorText,
+    );
+
     throw new Error(
       response.status === 401
         ? "Verification service authentication failed."
