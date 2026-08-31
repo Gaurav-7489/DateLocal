@@ -30,12 +30,96 @@ CREATE POLICY "Users can insert own discover views"
   TO authenticated
   WITH CHECK (user_id = auth.uid());
 
--- 2. Promote the configured owner account to SUPER_ADMIN.
+-- 2. Exclude profiles that this user has already seen.
+CREATE OR REPLACE FUNCTION public.get_discover_profiles(
+  p_excluded_ids uuid[] default '{}',
+  p_limit integer default 20
+)
+RETURNS TABLE (
+  id uuid,
+  display_name text,
+  date_of_birth date,
+  gender text,
+  department text,
+  academic_year text,
+  bio text,
+  ghost_mode boolean,
+  created_at timestamptz,
+  profile_photos jsonb,
+  profile_interests jsonb
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    p.id,
+    p.display_name,
+    p.date_of_birth,
+    p.gender,
+    p.department,
+    p.academic_year,
+    p.bio,
+    p.ghost_mode,
+    p.created_at,
+    COALESCE(
+      (
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'storage_path', pp.storage_path,
+            'display_order', pp.display_order,
+            'is_primary', pp.is_primary
+          )
+          ORDER BY pp.is_primary DESC, pp.display_order ASC
+        )
+        FROM public.profile_photos pp
+        WHERE pp.profile_id = p.id
+      ),
+      '[]'::jsonb
+    ) AS profile_photos,
+    COALESCE(
+      (
+        SELECT jsonb_agg(
+          jsonb_build_object(
+            'interests', jsonb_build_object('id', i.id, 'name', i.name)
+          )
+        )
+        FROM public.profile_interests pi
+        JOIN public.interests i ON i.id = pi.interest_id
+        WHERE pi.profile_id = p.id
+      ),
+      '[]'::jsonb
+    ) AS profile_interests
+  FROM public.profiles p
+  WHERE
+    p.profile_completed = true
+    AND p.ghost_mode = false
+    AND p.id <> auth.uid()
+    AND NOT (p.id = ANY(COALESCE(p_excluded_ids, '{}')))
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.discover_views dv
+      WHERE dv.user_id = auth.uid()
+        AND dv.profile_id = p.id
+    )
+  ORDER BY p.created_at DESC
+  LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 20), 100));
+$$;
+
+REVOKE ALL
+ON FUNCTION public.get_discover_profiles(uuid[], integer)
+FROM public;
+
+GRANT EXECUTE
+ON FUNCTION public.get_discover_profiles(uuid[], integer)
+TO authenticated;
+
+-- 3. Promote the configured owner account to SUPER_ADMIN.
 UPDATE public.profiles
 SET role = 'SUPER_ADMIN'
 WHERE id = '598413f6-3f47-44ae-a03c-c26f128f5d0b';
 
--- 3. Ensure match/message inserts are visible through Supabase Realtime.
+-- 4. Ensure match/message inserts are visible through Supabase Realtime.
 DO $$
 BEGIN
   BEGIN
