@@ -17,29 +17,6 @@ export const revalidate = 0;
 
 const DISCOVER_BATCH_SIZE = 20;
 
-type DiscoverProfile = {
-  id: string;
-  display_name: string;
-  date_of_birth: string;
-  gender: string;
-  department: string;
-  academic_year: string;
-  bio: string | null;
-  ghost_mode: boolean;
-  created_at: string;
-  profile_photos: Array<{
-    storage_path: string;
-    display_order: number;
-    is_primary: boolean;
-  }> | null;
-  profile_interests: Array<{
-    interests: {
-      id: string;
-      name: string;
-    } | null;
-  }> | null;
-};
-
 
 
 export default async function DiscoverPage() {
@@ -139,10 +116,6 @@ export default async function DiscoverPage() {
     },
   );
 
-  // The RPC is typed explicitly here because the generated Supabase
-  // Database type may not contain the newly-created function yet.
-  const typedRawProfiles = (rawProfiles ?? []) as DiscoverProfile[];
-
   if (profilesError) {
     console.error("Failed to load discover profiles:", profilesError);
     return (
@@ -157,7 +130,7 @@ export default async function DiscoverPage() {
 
    // Normalize the JSON returned by the secure RPC so the
   // existing Discover client can keep using the same shape.
-  const normalizedProfiles = typedRawProfiles.map((profile) => ({
+  const normalizedProfiles = (rawProfiles ?? []).map((profile) => ({
     ...profile,
     profile_photos: Array.isArray(profile.profile_photos)
       ? profile.profile_photos

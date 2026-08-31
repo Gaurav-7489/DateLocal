@@ -231,10 +231,6 @@ export function ProfileSetupForm({
   );
   const [minAge, setMinAge] = useState(existingPreferences?.min_age ?? 17);
   const [maxAge, setMaxAge] = useState(existingPreferences?.max_age ?? 60);
-  const [_preferredDepartment, _setPreferredDepartment] = useState(
-    existingPreferences?.preferred_department ?? ""
-  );
-
   const [photoPaths, setPhotoPaths] = useState<string[]>(existingPhotoPaths);
   const [formNotice, setFormNotice] = useState<string | null>(null);
   const [openVibes, setOpenVibes] = useState(true);
@@ -283,8 +279,6 @@ export function ProfileSetupForm({
       return next;
     });
   }
-
-  const _fieldErrors = state.fieldErrors ?? {};
 
   return (
     <form action={formAction} onSubmit={handleSubmit} className="space-y-6 font-sans">

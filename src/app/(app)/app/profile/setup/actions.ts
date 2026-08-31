@@ -98,10 +98,6 @@ export async function saveProfile(
   const interestedIn = String(formData.get("interested_in") ?? "").trim();
   const minAge = Number.parseInt(String(formData.get("min_age") ?? ""), 10);
   const maxAge = Number.parseInt(String(formData.get("max_age") ?? ""), 10);
-  const preferredDepartment = String(
-    formData.get("preferred_department") ?? "",
-  ).trim();
-
   // ---------------------------------------------------------
   // SERVER-SIDE VALIDATION
   // ---------------------------------------------------------
@@ -357,7 +353,6 @@ export async function saveProfile(
         interested_in: interestedInArray,
         min_age: minAge,
         max_age: maxAge,
-        preferred_department: preferredDepartment || null,
         updated_at: new Date().toISOString(),
       },
       {
