@@ -13,6 +13,10 @@ export const USER_ROLES = [
 
 export type UserRole = (typeof USER_ROLES)[number];
 
+// Trusted owner identity for server-side authorization fallbacks.
+// The database migration also promotes this account to SUPER_ADMIN.
+export const SUPER_ADMIN_USER_ID = "598413f6-3f47-44ae-a03c-c26f128f5d0b";
+
 /** Roles with administrative access */
 export const ADMIN_ROLES: readonly UserRole[] = [
   "SUPER_ADMIN",
@@ -38,14 +42,10 @@ export const RESTRICTED_ROLES: readonly UserRole[] = [
   "BANNED",
 ] as const;
 
-/* ================= Constant-Time Guard Sets ================= */
-
 const ADMIN_ROLE_SET = new Set<UserRole>(ADMIN_ROLES);
 const INVISIBLE_ROLE_SET = new Set<UserRole>(INVISIBLE_ROLES);
 const ACTIVE_STUDENT_ROLE_SET = new Set<UserRole>(ACTIVE_STUDENT_ROLES);
 const RESTRICTED_ROLE_SET = new Set<UserRole>(RESTRICTED_ROLES);
-
-/* ================= O(1) Fast Type Guards & Helper Utilities ================= */
 
 export const isAdminRole = (role?: string | null): role is "SUPER_ADMIN" | "ADMIN" | "MODERATOR" =>
   Boolean(role && ADMIN_ROLE_SET.has(role as UserRole));
@@ -64,3 +64,6 @@ export const isVerifiedStudent = (role?: string | null): role is "VERIFIED_STUDE
 
 export const isSuperAdmin = (role?: string | null): role is "SUPER_ADMIN" =>
   role === "SUPER_ADMIN";
+
+export const isSuperAdminUser = (userId?: string | null) =>
+  userId === SUPER_ADMIN_USER_ID;
