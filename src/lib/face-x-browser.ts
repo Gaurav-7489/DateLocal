@@ -8,53 +8,61 @@ type FaceXSDKConstructor = new (options?: {
   onProgress?: (message: string) => void;
 }) => FaceXSDKInstance;
 
+type FaceXFace = {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  score: number;
+  kps: number[];
+};
+
 type FaceXSDKInstance = {
   load: () => Promise<FaceXSDKInstance>;
   verify: (source: HTMLVideoElement, referenceEmbedding: Float32Array) => {
     match: boolean;
     similarity: number;
-    faces: Array<{
-      x1: number;
-      y1: number;
-      x2: number;
-      y2: number;
-      score: number;
-      kps: number[];
-    }>;
+    faces: FaceXFace[];
     embedding?: Float32Array;
     noFace?: boolean;
     ms: number;
   };
   captureReference: (source: HTMLImageElement | HTMLVideoElement) => {
     embedding: Float32Array;
-    face: {
-      x1: number;
-      y1: number;
-      x2: number;
-      y2: number;
-      score: number;
-      kps: number[];
-    };
+    face: FaceXFace;
     alignedCanvas: HTMLCanvasElement;
   } | null;
   process: (source: HTMLVideoElement | HTMLImageElement) => {
-    faces: Array<{
-      x1: number;
-      y1: number;
-      x2: number;
-      y2: number;
-      score: number;
-      kps: number[];
-    }>;
+    faces: FaceXFace[];
     embeddings: Float32Array[];
     ms: number;
   };
   cosSim: (a: Float32Array, b: Float32Array) => number;
 };
 
+type LivenessConstructor = new (options?: {
+  historySize?: number;
+  motionThreshold?: number;
+}) => LivenessInstance;
+
+type LivenessInstance = {
+  update: (face: FaceXFace | null) => {
+    alive: boolean;
+    confidence: number;
+    reason: string;
+    details?: {
+      motion: number;
+      blinks: number;
+      sizeVar: number;
+    };
+  };
+  reset: () => void;
+};
+
 declare global {
   interface Window {
     FaceXSDK?: FaceXSDKConstructor;
+    LivenessDetector?: LivenessConstructor;
     __datebuFaceXPromise?: Promise<FaceXSDKInstance>;
   }
 }
@@ -108,8 +116,9 @@ export async function loadDateBuFaceX(
     await loadScript(`${FACEX_CDN}/facex.js`);
     await loadScript(`${FACEX_CDN}/align.js`);
     await loadScript(`${FACEX_CDN}/facex-sdk.js`);
+    await loadScript(`${FACEX_CDN}/liveness.js`);
 
-    if (!window.FaceXSDK) {
+    if (!window.FaceXSDK || !window.LivenessDetector) {
       throw new Error("Face engine failed to initialize.");
     }
 
@@ -133,4 +142,15 @@ export async function loadDateBuFaceX(
   }
 }
 
-export type { FaceXSDKInstance };
+export function createDateBuLivenessDetector() {
+  if (!window.LivenessDetector) {
+    throw new Error("Liveness engine is not loaded.");
+  }
+
+  return new window.LivenessDetector({
+    historySize: 24,
+    motionThreshold: 1.25,
+  });
+}
+
+export type { FaceXFace, FaceXSDKInstance, LivenessInstance };
