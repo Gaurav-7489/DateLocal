@@ -115,8 +115,7 @@ AS $$
       ),
       '[]'::jsonb
     ) AS profile_interests
-  FROM candidates c
-  CROSS JOIN mark_seen;
+  FROM candidates c;
 $$;
 
 REVOKE ALL
