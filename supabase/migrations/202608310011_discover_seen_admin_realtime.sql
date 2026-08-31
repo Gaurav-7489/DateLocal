@@ -29,6 +29,18 @@ CREATE POLICY "Users can insert own discover views"
   TO authenticated
   WITH CHECK (user_id = auth.uid());
 
+-- Keep database dating-preference validation aligned with the app's
+-- current 17+ profile rules.
+ALTER TABLE public.dating_preferences
+  DROP CONSTRAINT IF EXISTS dating_preferences_min_age_check,
+  DROP CONSTRAINT IF EXISTS dating_preferences_max_age_check;
+
+ALTER TABLE public.dating_preferences
+  ADD CONSTRAINT dating_preferences_min_age_check
+    CHECK (min_age >= 17 AND min_age <= 99),
+  ADD CONSTRAINT dating_preferences_max_age_check
+    CHECK (max_age >= 17 AND max_age <= 99);
+
 -- Return a batch while persisting only the active/top profile as seen.
 -- Likes and passes remain the durable interaction exclusions.
 CREATE OR REPLACE FUNCTION public.get_discover_profiles(
