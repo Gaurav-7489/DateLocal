@@ -50,7 +50,6 @@ export async function updateSession(request: NextRequest) {
   // Bypass static assets, FaceX models/WASM, and image assets
   if (
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/facex") ||
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|wasm|bin|ico)$/)
   ) {
     return supabaseResponse;
