@@ -9,6 +9,7 @@ export const featureFlags = {
   ENABLE_VOICE_MESSAGES: false,
   ENABLE_AI_MATCHING: false,
   ENABLE_ANONYMOUS_CRUSH: false,
+  ENABLE_CAMERA_VERIFICATION: false,
   ENABLE_PROFILE_AUDIO: false,
   ENABLE_MEDIA_CHAT: false,
 } as const;
