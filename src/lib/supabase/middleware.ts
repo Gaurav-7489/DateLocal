@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { routes } from "@/config/routes";
-import { ADMIN_ROLES } from "@/types/roles";
+import { ADMIN_ROLES, isSuperAdminUser } from "@/types/roles";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -24,9 +24,7 @@ export async function updateSession(request: NextRequest) {
             options?: Record<string, unknown>;
           }[]
         ) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
 
           supabaseResponse = NextResponse.next({
             request,
@@ -46,7 +44,6 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Bypass static assets and image/model assets.
   if (
     pathname.startsWith("/_next") ||
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|wasm|bin|ico)$/)
@@ -59,17 +56,11 @@ export async function updateSession(request: NextRequest) {
     pathname === routes.register ||
     pathname === routes.verify;
 
-  const isAppRoute =
-    pathname === routes.app || pathname.startsWith("/app/");
-
-  const isAdminRoute =
-    pathname === routes.admin.root || pathname.startsWith("/admin/");
-
+  const isAppRoute = pathname === routes.app || pathname.startsWith("/app/");
+  const isAdminRoute = pathname === routes.admin.root || pathname.startsWith("/admin/");
   const isOnboardingRoute = pathname === routes.profileSetup;
   const isFaceVerifyRoute = pathname === routes.verifyFace;
 
-  // Unauthenticated users may not access the app, admin area, or the
-  // placeholder face-verification page.
   if (!user && (isAppRoute || isAdminRoute || isFaceVerifyRoute)) {
     const redirectUrl = new URL(routes.login, request.url);
     const redirectResponse = NextResponse.redirect(redirectUrl);
@@ -82,10 +73,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user) {
-    // Step 1: Supabase email confirmation is required first.
-    const isEmailConfirmed = Boolean(
-      user.email_confirmed_at || user.confirmed_at
-    );
+    const isEmailConfirmed = Boolean(user.email_confirmed_at || user.confirmed_at);
 
     if (!isEmailConfirmed) {
       if (pathname !== routes.verify && !pathname.startsWith("/auth/callback")) {
@@ -102,7 +90,6 @@ export async function updateSession(request: NextRequest) {
       return supabaseResponse;
     }
 
-    // Step 2: Profile + primary photo are required before entering the app.
     const [profileResult, primaryPhotoResult] = await Promise.all([
       supabase
         .from("profiles")
@@ -121,10 +108,10 @@ export async function updateSession(request: NextRequest) {
     const isProfileComplete = Boolean(profile?.profile_completed);
     const hasPrimaryPhoto = Boolean(primaryPhotoResult.data?.id);
 
-    // Admin route protection.
     if (isAdminRoute) {
-      const role = profile?.role;
-      const hasAdminAccess = !!role && ADMIN_ROLES.includes(role);
+      const hasAdminAccess =
+        isSuperAdminUser(user.id) ||
+        Boolean(profile?.role && ADMIN_ROLES.includes(profile.role));
 
       if (!hasAdminAccess) {
         const redirectResponse = NextResponse.redirect(
@@ -137,7 +124,6 @@ export async function updateSession(request: NextRequest) {
       }
     }
 
-    // Profile setup remains open so users can finish or edit their profile.
     if (!isProfileComplete || !hasPrimaryPhoto) {
       if (
         (isAppRoute && !isOnboardingRoute) ||
@@ -158,8 +144,6 @@ export async function updateSession(request: NextRequest) {
       return supabaseResponse;
     }
 
-    // Camera/face verification is intentionally not part of onboarding yet.
-    // /verify/face remains available only as a Coming Soon placeholder.
     if (isAuthRoute) {
       const redirectResponse = NextResponse.redirect(
         new URL(routes.app, request.url)
