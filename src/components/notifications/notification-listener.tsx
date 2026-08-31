@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { routes } from "@/config/routes";
 import { MessageCircle, Sparkles, X } from "lucide-react";
@@ -18,10 +17,17 @@ interface NotificationItem {
 export function NotificationListener({ currentUserId }: { currentUserId: string }) {
   const router = useRouter();
   const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
   const [notification, setNotification] = useState<NotificationItem | null>(null);
 
+  // Keep the current route available to the realtime callback without
+  // tearing down and recreating three Supabase channels on every navigation.
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
   const triggerHaptic = (pattern: number[] = [30, 40, 50]) => {
-    if (typeof window !== "undefined" && "vibrate" in navigator) {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
       try {
         navigator.vibrate(pattern);
       } catch {}
@@ -40,7 +46,7 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
           schema: "public",
           table: "messages",
         },
-        async (payload) => {
+        (payload) => {
           const newMsg = payload.new as {
             id: string;
             match_id: string;
@@ -49,7 +55,7 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
           };
 
           if (newMsg.sender_id === currentUserId) return;
-          if (pathname?.includes(`/messages/${newMsg.match_id}`)) return;
+          if (pathnameRef.current?.includes(`/messages/${newMsg.match_id}`)) return;
 
           triggerHaptic([25, 50, 25]);
           setNotification({
@@ -59,7 +65,7 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
             body: newMsg.content || "You received a new message.",
             link: `${routes.messages}/${newMsg.match_id}`,
           });
-        }
+        },
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
@@ -87,7 +93,7 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
             body: "You and another student liked each other.",
             link: `${routes.messages}/${match.id}`,
           });
-        }
+        },
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
@@ -115,7 +121,7 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
             body: "You and another student liked each other.",
             link: `${routes.messages}/${match.id}`,
           });
-        }
+        },
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
@@ -128,23 +134,20 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
       void supabase.removeChannel(matchUserAChannel);
       void supabase.removeChannel(matchUserBChannel);
     };
-  }, [currentUserId, pathname]);
+  }, [currentUserId]);
 
   useEffect(() => {
     if (!notification) return;
-    const timer = setTimeout(() => setNotification(null), 5000);
-    return () => clearTimeout(timer);
+    const timer = window.setTimeout(() => setNotification(null), 5000);
+    return () => window.clearTimeout(timer);
   }, [notification]);
 
   return (
-    <AnimatePresence>
+    <>
       {notification && (
-        <motion.div
-          initial={{ opacity: 0, y: -24, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -20, scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 450, damping: 30 }}
-          className="fixed top-4 inset-x-3 z-[9999] mx-auto max-w-sm cursor-pointer"
+        <div
+          role="status"
+          className="notification-toast fixed top-4 inset-x-3 z-[9999] mx-auto max-w-sm cursor-pointer"
           onClick={() => {
             router.push(notification.link);
             setNotification(null);
@@ -173,17 +176,18 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
 
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
+              onClick={(event) => {
+                event.stopPropagation();
                 setNotification(null);
               }}
               className="p-1 text-muted-foreground hover:text-foreground rounded-full"
+              aria-label="Dismiss notification"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }
