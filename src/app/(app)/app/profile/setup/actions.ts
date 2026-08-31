@@ -260,7 +260,6 @@ export async function saveProfile(
       weekend_vibe: weekendVibe || null,
       prompt_question: promptQuestion || null,
       prompt_answer: promptAnswer || null,
-      profile_completed: false,
       updated_at: new Date().toISOString(),
     },
     {
