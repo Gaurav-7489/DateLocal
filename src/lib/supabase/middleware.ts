@@ -47,7 +47,7 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Bypass static assets, FaceX models/WASM, and image assets
+  // Bypass static assets and image assets
   if (
     pathname.startsWith("/_next") ||
     pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|wasm|bin|ico)$/)
