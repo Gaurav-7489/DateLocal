@@ -2,10 +2,28 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Camera, CheckCircle2, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import {
+  AlertCircle,
+  Camera,
+  CheckCircle2,
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+} from "lucide-react";
 
 const STATUS_POLL_MS = 1500;
 const STATUS_POLL_ATTEMPTS = 40;
+
+type DiditResult = {
+  type?: "completed" | "cancelled" | "failed" | string;
+  session?: {
+    sessionId?: string;
+    status?: string;
+  };
+  error?: {
+    message?: string;
+  };
+};
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -14,6 +32,8 @@ function sleep(ms: number) {
 export default function FaceVerificationPage() {
   const router = useRouter();
   const startedRef = useRef(false);
+  const sdkRef = useRef<import("@didit-protocol/sdk-web").DiditSdk | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [status, setStatus] = useState("pending");
@@ -39,28 +59,44 @@ export default function FaceVerificationPage() {
 
   const waitForServerDecision = useCallback(async () => {
     for (let attempt = 0; attempt < STATUS_POLL_ATTEMPTS; attempt += 1) {
-      const currentStatus = await checkStatus();
-      setStatus(currentStatus);
+      try {
+        const currentStatus = await checkStatus();
+        setStatus(currentStatus);
 
-      if (currentStatus === "verified") {
-        router.replace("/app");
-        router.refresh();
-        return;
-      }
+        if (currentStatus === "verified") {
+          router.replace("/app");
+          router.refresh();
+          return;
+        }
 
-      if (currentStatus === "rejected") {
-        setError("Verification was not approved. You can try again.");
-        return;
+        if (currentStatus === "rejected") {
+          setError("Verification was not approved. You can try again.");
+          return;
+        }
+      } catch (err) {
+        if (attempt === STATUS_POLL_ATTEMPTS - 1) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unable to confirm verification status.",
+          );
+          return;
+        }
       }
 
       await sleep(STATUS_POLL_MS);
     }
 
-    setError("Verification is still processing. Please wait a moment and try again.");
+    setError(
+      "Verification is still processing. Please wait a moment and try again.",
+    );
   }, [checkStatus, router]);
 
   const startVerification = useCallback(async () => {
+    if (starting) return;
+
     setStarting(true);
+    setLoading(true);
     setError("");
     setStatus("pending");
 
@@ -81,21 +117,52 @@ export default function FaceVerificationPage() {
       }
 
       const { DiditSdk } = await import("@didit-protocol/sdk-web");
+      const sdk = DiditSdk.shared;
+      sdkRef.current = sdk;
 
-      DiditSdk.shared.onComplete = () => {
-        // Do not trust the browser result as the authorization source of truth.
-        // The verified state is written by the signed Didit webhook and read here.
-        void waitForServerDecision();
-      };
+      sdk.onComplete = (result) => {
+        const verificationResult = result as DiditResult;
 
-      DiditSdk.shared.onStateChange = (state, sdkError) => {
-        if (state === "error") {
-          setError(sdkError || "The verification window could not be opened.");
-          setStarting(false);
+        if (verificationResult.type === "cancelled") {
+          setError("Verification was cancelled. You can try again.");
+          return;
+        }
+
+        if (verificationResult.type === "failed") {
+          setError(
+            verificationResult.error?.message ||
+              "Didit could not complete the verification.",
+          );
+          return;
+        }
+
+        if (verificationResult.type === "completed") {
+          // The SDK result is only a UI signal. The signed webhook remains
+          // the source of truth for DateBu's verified state.
+          void waitForServerDecision();
         }
       };
 
-      DiditSdk.shared.startVerification({
+      sdk.onStateChange = (state, sdkError) => {
+        if (state === "error") {
+          setError(sdkError || "The verification window could not be opened.");
+          setStarting(false);
+          setLoading(false);
+        }
+      };
+
+      sdk.onEvent = (event) => {
+        if (event.type === "didit:ready") {
+          setLoading(false);
+        }
+
+        if (event.type === "didit:error") {
+          const eventData = event.data as { error?: string } | undefined;
+          setError(eventData?.error || "Verification encountered an error.");
+        }
+      };
+
+      sdk.startVerification({
         url: data.url,
         configuration: {
           loggingEnabled: false,
@@ -105,12 +172,16 @@ export default function FaceVerificationPage() {
         },
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start face verification.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to start face verification.",
+      );
     } finally {
       setStarting(false);
       setLoading(false);
     }
-  }, [waitForServerDecision]);
+  }, [starting, waitForServerDecision]);
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -120,12 +191,15 @@ export default function FaceVerificationPage() {
 
   useEffect(() => {
     return () => {
-      void import("@didit-protocol/sdk-web")
-        .then(({ DiditSdk }) => {
-          DiditSdk.shared.onComplete = undefined;
-          DiditSdk.shared.onStateChange = undefined;
-        })
-        .catch(() => undefined);
+      const sdk = sdkRef.current;
+
+      if (!sdk) return;
+
+      sdk.onComplete = undefined;
+      sdk.onStateChange = undefined;
+      sdk.onEvent = undefined;
+      sdk.destroy();
+      sdkRef.current = null;
     };
   }, []);
 
@@ -140,13 +214,19 @@ export default function FaceVerificationPage() {
               <Camera className="h-7 w-7" />
             )}
           </div>
+
           <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">
             <ShieldCheck className="h-3.5 w-3.5" />
             Identity verification
           </div>
-          <h1 className="text-2xl font-black tracking-tight">Verify it&apos;s really you</h1>
+
+          <h1 className="text-2xl font-black tracking-tight">
+            Verify it&apos;s really you
+          </h1>
+
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-zinc-600">
-            Complete the secure camera check. Your DateBu profile photo is used as the reference for face matching.
+            Complete the secure camera check. Your DateBu profile photo is used
+            as the reference for face matching.
           </p>
         </div>
 
@@ -155,15 +235,24 @@ export default function FaceVerificationPage() {
             <div className="flex min-h-40 flex-col items-center justify-center text-center">
               <Loader2 className="mb-3 h-7 w-7 animate-spin text-emerald-600" />
               <p className="text-sm font-semibold">Preparing verification...</p>
-              <p className="mt-1 text-xs text-zinc-500">Camera access will be requested by the verification window.</p>
+              <p className="mt-1 text-xs text-zinc-500">
+                Camera access will be requested by the verification window.
+              </p>
             </div>
           ) : error ? (
             <div className="text-center">
               <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-rose-50 text-rose-600">
                 <AlertCircle className="h-5 w-5" />
               </div>
-              <p className="text-sm font-semibold text-zinc-900">Verification needs another try</p>
-              <p className="mt-2 text-xs leading-relaxed text-zinc-500">{error}</p>
+
+              <p className="text-sm font-semibold text-zinc-900">
+                Verification needs another try
+              </p>
+
+              <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+                {error}
+              </p>
+
               <button
                 type="button"
                 onClick={() => void startVerification()}
@@ -176,14 +265,19 @@ export default function FaceVerificationPage() {
           ) : (
             <div className="text-center">
               <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-emerald-600" />
-              <p className="text-sm font-semibold">Checking verification result...</p>
-              <p className="mt-1 text-xs text-zinc-500">We&apos;re waiting for the server to confirm your result.</p>
+              <p className="text-sm font-semibold">
+                Checking verification result...
+              </p>
+              <p className="mt-1 text-xs text-zinc-500">
+                We&apos;re waiting for the server to confirm your result.
+              </p>
             </div>
           )}
         </section>
 
         <p className="mt-4 text-center text-[11px] leading-relaxed text-zinc-400">
-          Verification decisions are confirmed server-side. Closing the camera window before completion will not mark your account as verified.
+          Verification decisions are confirmed server-side. Closing the camera
+          window before completion will not mark your account as verified.
         </p>
       </div>
     </main>
