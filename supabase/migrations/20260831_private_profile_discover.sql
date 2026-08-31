@@ -14,6 +14,9 @@ drop policy if exists "Authenticated users can read profile interests" on public
 -- Own profile access
 -- ------------------------------------------------------------
 
+drop policy if exists "Users can view own profile"
+on public.profiles;
+
 create policy "Users can view own profile"
 on public.profiles
 for select

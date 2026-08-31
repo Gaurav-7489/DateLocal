@@ -48,6 +48,53 @@ export type CaptureStatus =
   | { state: "valid"; embedding: number[]; face: Face };
 
 /**
+ * Calculates cosine similarity between two 512-dimension biometric embeddings.
+ */
+export function computeCosineSimilarity(vecA: number[], vecB: number[]): number {
+  if (!vecA || !vecB || vecA.length !== vecB.length || vecA.length === 0) {
+    return 0;
+  }
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    const a = vecA[i] ?? 0;
+    const b = vecB[i] ?? 0;
+    dotProduct += a * b;
+    normA += a * a;
+    normB += b * b;
+  }
+  const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
+  return magnitude === 0 ? 0 : dotProduct / magnitude;
+}
+
+/**
+ * Extracts reference face embedding from an HTMLImageElement or Canvas.
+ */
+export function extractReferenceFromImage(
+  sdk: FaceXSDKType,
+  imageElement: HTMLImageElement | HTMLCanvasElement
+): { embedding: number[]; faceCount: number } {
+  const faces = sdk.detect(imageElement);
+  if (!faces || faces.length === 0) {
+    return { embedding: [], faceCount: 0 };
+  }
+  if (faces.length > 1) {
+    return { embedding: [], faceCount: faces.length };
+  }
+
+  const ref = sdk.captureReference(imageElement);
+  if (!ref || !ref.embedding || ref.embedding.length !== 512) {
+    return { embedding: [], faceCount: 0 };
+  }
+
+  return {
+    embedding: Array.from(ref.embedding),
+    faceCount: 1,
+  };
+}
+
+/**
  * Evaluates live video frames at 60fps with zero DOM overhead.
  */
 export function evaluateFrame(

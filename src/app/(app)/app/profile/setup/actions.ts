@@ -6,6 +6,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { isUuid } from "@/lib/validation";
 import { calculateAge } from "@/lib/utils";
+import { featureFlags } from "@/config/features";
 
 export type ProfileFormState = {
   error?: string;
@@ -98,6 +99,7 @@ export async function saveProfile(
   const interestedIn = String(formData.get("interested_in") ?? "").trim();
   const minAge = Number.parseInt(String(formData.get("min_age") ?? ""), 10);
   const maxAge = Number.parseInt(String(formData.get("max_age") ?? ""), 10);
+
   // ---------------------------------------------------------
   // SERVER-SIDE VALIDATION
   // ---------------------------------------------------------
@@ -169,8 +171,14 @@ export async function saveProfile(
     fieldErrors.prompt_answer = "Prompt answer must be 300 characters or less.";
   }
 
-  // Photos
-  if (photoPaths.length > MAX_PHOTOS) {
+  // Photos: Must contain at least 1 photo for Slot 1 (Primary)
+  const safePhotoPaths = photoPaths.filter((path) =>
+    path.startsWith(`${user.id}/`),
+  );
+
+  if (safePhotoPaths.length === 0) {
+    fieldErrors.photo_paths = "Add your main profile photo (Slot 1) to continue.";
+  } else if (safePhotoPaths.length > MAX_PHOTOS) {
     fieldErrors.photo_paths = `You can save up to ${MAX_PHOTOS} photos.`;
   }
 
@@ -271,10 +279,6 @@ export async function saveProfile(
   // SAVE PROFILE PHOTOS
   // ---------------------------------------------------------
 
-  const safePhotoPaths = photoPaths.filter((path) =>
-    path.startsWith(`${user.id}/`),
-  );
-
   const { error: photoDeleteError } = await supabase
     .from("profile_photos")
     .delete()
@@ -368,7 +372,7 @@ export async function saveProfile(
   }
 
   // ---------------------------------------------------------
-  // SUCCESS & ONBOARDING COMPLETION
+  // COMPLETE PROFILE SETUP
   // ---------------------------------------------------------
 
   const { error: completionError } = await supabase
@@ -392,6 +396,12 @@ export async function saveProfile(
   revalidatePath(routes.matches);
   revalidatePath(routes.messages);
   revalidatePath(routes.settings);
+  revalidatePath(routes.verifyFace);
+
+  // If camera verification is enabled, send user to face match
+  if (featureFlags.ENABLE_CAMERA_VERIFICATION) {
+    redirect(routes.verifyFace);
+  }
 
   redirect(routes.profile);
 }
