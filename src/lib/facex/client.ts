@@ -51,6 +51,68 @@ function resolveFaceXConstructor(mod: FaceXModule): FaceXConstructor {
  * Singleton loader for FaceX WASM SDK.
  * Loads engine binaries with client-side caching.
  */
+let vendorScriptsPromise: Promise<void> | null = null;
+
+function loadVendorScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      `script[data-facex-src="${src}"]`
+    );
+
+    if (existing) {
+      if (existing.dataset.loaded === "true") {
+        resolve();
+        return;
+      }
+
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error(`Failed to load ${src}`)), {
+        once: true,
+      });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = false;
+    script.dataset.facexSrc = src;
+
+    script.onload = () => {
+      script.dataset.loaded = "true";
+      resolve();
+    };
+
+    script.onerror = () => {
+      reject(new Error(`Failed to load FaceX vendor script: ${src}`));
+    };
+
+    document.head.appendChild(script);
+  });
+}
+
+async function loadFaceXVendorScripts(): Promise<void> {
+  if (typeof window === "undefined") {
+    throw new Error("FaceX can only be initialized in the browser.");
+  }
+
+  if (!vendorScriptsPromise) {
+    vendorScriptsPromise = (async () => {
+      console.log("[FaceX] Loading detector engine...");
+      await loadVendorScript("/facex/detect.js");
+
+      console.log("[FaceX] Loading embedding engine...");
+      await loadVendorScript("/facex/facex.js");
+
+      console.log("[FaceX] Vendor engines loaded.");
+    })().catch((error) => {
+      vendorScriptsPromise = null;
+      throw error;
+    });
+  }
+
+  return vendorScriptsPromise;
+}
+
 export async function getFaceXSDK(): Promise<FaceXSDKType> {
   if (sdkInstance && sdkInstance.ready) {
     return sdkInstance;
@@ -62,11 +124,15 @@ export async function getFaceXSDK(): Promise<FaceXSDKType> {
 
   initPromise = (async () => {
     try {
+      // facex-sdk.js expects DetectModule and FaceXModule to
+      // already exist as browser globals.
+      await loadFaceXVendorScripts();
+
       const mod = (await import(
         "../../../vendor/facex-wasm/facex-sdk.js"
       )) as unknown as FaceXModule;
 
-      console.log("[FaceX] Loaded module:", mod);
+      console.log("[FaceX] Loaded SDK module:", mod);
 
       const FaceXSDK = resolveFaceXConstructor(mod);
 
@@ -86,7 +152,7 @@ export async function getFaceXSDK(): Promise<FaceXSDKType> {
 
       return sdk;
     } catch (error) {
-      // Allow a future "Try Camera Again" to actually retry initialization.
+      // Allow a future "Try Camera Again" to retry initialization.
       initPromise = null;
       sdkInstance = null;
 

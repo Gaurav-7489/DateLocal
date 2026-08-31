@@ -10,6 +10,9 @@
  *   // { match: true, similarity: 0.87, faces: [...], ms: 17 }
  */
 
+const DetectModule = require("./detect_new.js");
+const FaceXModule = require("./facex.js");
+
 class FaceXSDK {
   constructor(options = {}) {
     this.detSize = options.detSize || 160;
@@ -43,10 +46,14 @@ class FaceXSDK {
     }
 
     this._progress('Loading detection engine...');
-    this._det = await DetectModule();
+    this._det = await DetectModule({
+      locateFile: (path) => `/facex/${path}`,
+    });
 
     this._progress('Loading embedding engine...');
-    this._fx = await FaceXModule();
+    this._fx = await FaceXModule({
+      locateFile: (path) => `/facex/${path}`,
+    });
 
     // Load weights with caching
     this._progress('Loading detector weights (208 KB)...');
