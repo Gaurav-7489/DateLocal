@@ -5,17 +5,19 @@
  * - Refresh Supabase auth sessions.
  * - Protect authenticated app routes.
  * - Protect admin routes with server-side role checks.
- * - Enforce profile onboarding.
+ * - Enforce Face Verification and Profile onboarding sequence:
+ *   Auth -> Face Verification (if enabled) -> Profile Setup -> App
  *
- * IMPORTANT:
- * The admin check here is an additional security layer.
- * Admin pages/actions must STILL use requireAdmin().
+ * Performance:
+ * - Executes profile and face verification checks concurrently via Promise.all
+ * - Preserves cookie state across all redirect branches
  */
 
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { routes } from "@/config/routes";
 import { ADMIN_ROLES } from "@/types/roles";
+import { featureFlags } from "@/config/features";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -72,7 +74,8 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute =
     pathname === routes.login ||
     pathname === routes.register ||
-    pathname === routes.verify;
+    pathname === routes.verify ||
+    pathname === routes.verifyFace;
 
   const isAppRoute =
     pathname === routes.app ||
@@ -88,24 +91,23 @@ export async function updateSession(request: NextRequest) {
   const isProfileRoute =
     pathname === routes.profile;
 
+  const isFaceVerifyRoute =
+    pathname === routes.verifyFace;
+
   /*
    * ---------------------------------------------------------
    * 1. BLOCK UNAUTHENTICATED ACCESS
    * ---------------------------------------------------------
    */
 
-  if (!user && (isAppRoute || isAdminRoute)) {
+  if (!user && (isAppRoute || isAdminRoute || isFaceVerifyRoute)) {
     const redirectUrl = new URL(
       routes.login,
       request.url,
     );
 
-    const redirectResponse =
-      NextResponse.redirect(redirectUrl);
+    const redirectResponse = NextResponse.redirect(redirectUrl);
 
-    /*
-     * Preserve refreshed Supabase cookies.
-     */
     supabaseResponse.cookies
       .getAll()
       .forEach((cookie) => {
@@ -126,51 +128,45 @@ export async function updateSession(request: NextRequest) {
 
   if (user) {
     /*
-     * Get profile information needed for authorization
-     * and onboarding.
-     *
-     * This query uses the normal Supabase server client,
-     * NOT the service-role client.
+     * Fetch profile details and face verification status in parallel.
+     * Only queries face_verifications if the feature flag is active.
      */
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("profile_completed, role")
-      .eq("id", user.id)
-      .maybeSingle();
+    const [profileResult, faceResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("profile_completed, role")
+        .eq("id", user.id)
+        .maybeSingle(),
+      featureFlags.ENABLE_CAMERA_VERIFICATION
+        ? supabase
+            .from("face_verifications")
+            .select("status")
+            .eq("user_id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+    ]);
 
-    const isProfileComplete =
-      Boolean(profile?.profile_completed);
+    const profile = profileResult.data;
+    const isProfileComplete = Boolean(profile?.profile_completed);
+
+    const isFaceVerified =
+      !featureFlags.ENABLE_CAMERA_VERIFICATION ||
+      faceResult.data?.status === "verified";
 
     /*
      * -------------------------------------------------------
      * 3. ADMIN ROUTE PROTECTION
      * -------------------------------------------------------
-     *
-     * Never trust:
-     * - hidden buttons
-     * - frontend state
-     * - URL secrecy
-     * - user metadata
-     * - localStorage
-     *
-     * The database role is the authority.
      */
     if (isAdminRoute) {
       const role = profile?.role;
-
-      const hasAdminAccess =
-        !!role &&
-        ADMIN_ROLES.includes(role);
+      const hasAdminAccess = !!role && ADMIN_ROLES.includes(role);
 
       if (!hasAdminAccess) {
-        const redirectResponse =
-          NextResponse.redirect(
-            new URL(routes.app, request.url),
-          );
+        const redirectResponse = NextResponse.redirect(
+          new URL(routes.app, request.url),
+        );
 
-        /*
-         * Preserve refreshed Supabase cookies.
-         */
         supabaseResponse.cookies
           .getAll()
           .forEach((cookie) => {
@@ -186,24 +182,48 @@ export async function updateSession(request: NextRequest) {
 
     /*
      * -------------------------------------------------------
-     * 4. AUTH ROUTE REDIRECTS
+     * 4. AUTH ROUTE REDIRECTS (Already Logged In)
      * -------------------------------------------------------
      */
-
     if (isAuthRoute) {
-      const targetUrl = new URL(
-        isProfileComplete
-          ? routes.app
-          : routes.profileSetup,
-        request.url,
+      let targetPath: string = routes.app;
+
+      if (!isFaceVerified) {
+        targetPath = routes.verifyFace;
+      } else if (!isProfileComplete) {
+        targetPath = routes.profileSetup;
+      }
+
+      if (pathname !== targetPath) {
+        const redirectResponse = NextResponse.redirect(
+          new URL(targetPath, request.url),
+        );
+
+        supabaseResponse.cookies
+          .getAll()
+          .forEach((cookie) => {
+            redirectResponse.cookies.set(
+              cookie.name,
+              cookie.value,
+            );
+          });
+
+        return redirectResponse;
+      }
+    }
+
+    /*
+     * -------------------------------------------------------
+     * 5. FACE VERIFICATION GATING
+     * -------------------------------------------------------
+     * If camera verification is required and unverified, block
+     * access to main app routes and profile setup.
+     */
+    if (!isFaceVerified && (isAppRoute || isOnboardingRoute)) {
+      const redirectResponse = NextResponse.redirect(
+        new URL(routes.verifyFace, request.url),
       );
 
-      const redirectResponse =
-        NextResponse.redirect(targetUrl);
-
-      /*
-       * Preserve refreshed Supabase cookies.
-       */
       supabaseResponse.cookies
         .getAll()
         .forEach((cookie) => {
@@ -218,14 +238,9 @@ export async function updateSession(request: NextRequest) {
 
     /*
      * -------------------------------------------------------
-     * 5. ONBOARDING PROTECTION
+     * 6. PROFILE ONBOARDING PROTECTION
      * -------------------------------------------------------
-     *
-     * Users without a completed profile must finish setup
-     * before accessing the main application.
-     *
-     * Admin routes are already handled above and are NOT
-     * redirected by this onboarding check.
+     * Users without completed profile must finish setup.
      */
     if (
       !isProfileComplete &&
@@ -233,17 +248,10 @@ export async function updateSession(request: NextRequest) {
       !isOnboardingRoute &&
       !isProfileRoute
     ) {
-      const redirectUrl = new URL(
-        routes.profileSetup,
-        request.url,
+      const redirectResponse = NextResponse.redirect(
+        new URL(routes.profileSetup, request.url),
       );
 
-      const redirectResponse =
-        NextResponse.redirect(redirectUrl);
-
-      /*
-       * Preserve refreshed Supabase cookies.
-       */
       supabaseResponse.cookies
         .getAll()
         .forEach((cookie) => {
@@ -259,9 +267,8 @@ export async function updateSession(request: NextRequest) {
 
   /*
    * ---------------------------------------------------------
-   * 6. ALLOW REQUEST
+   * 7. ALLOW REQUEST
    * ---------------------------------------------------------
    */
-
   return supabaseResponse;
 }
