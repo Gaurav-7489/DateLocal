@@ -2,7 +2,7 @@ import "server-only";
 
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { ADMIN_ROLES } from "@/types/roles";
+import { ADMIN_ROLES, isSuperAdminUser } from "@/types/roles";
 import type { UserRole } from "@/types/roles";
 import { routes } from "@/config/routes";
 
@@ -28,12 +28,15 @@ export async function requireAdmin(): Promise<AdminUser> {
     .eq("id", user.id)
     .maybeSingle();
 
-  if (error || !profile || !ADMIN_ROLES.includes(profile.role)) {
+  const hasAdminRole = Boolean(profile?.role && ADMIN_ROLES.includes(profile.role));
+  const hasOwnerIdentity = isSuperAdminUser(user.id);
+
+  if (error || (!hasAdminRole && !hasOwnerIdentity)) {
     redirect(routes.app);
   }
 
   return {
     id: user.id,
-    role: profile.role,
+    role: hasOwnerIdentity ? "SUPER_ADMIN" : profile!.role,
   };
 }
