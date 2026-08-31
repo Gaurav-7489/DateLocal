@@ -160,3 +160,104 @@ body {
     transform: translate3d(100%, 0, 0);
   }
 }
+
+/* Profile setup save feedback: make the async action visibly alive. */
+@keyframes profile-save-pulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.012);
+  }
+}
+
+@keyframes profile-save-shimmer {
+  0% {
+    transform: translateX(-140%);
+  }
+  100% {
+    transform: translateX(140%);
+  }
+}
+
+@keyframes profile-save-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+form.space-y-6.font-sans > div:last-child > button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: transform 180ms ease, filter 180ms ease, opacity 180ms ease;
+}
+
+form.space-y-6.font-sans > div:last-child > button:not(:disabled):hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+form.space-y-6.font-sans > div:last-child > button:not(:disabled)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 42%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.22),
+    transparent
+  );
+  transform: translateX(-140%);
+  transition: none;
+}
+
+form.space-y-6.font-sans > div:last-child > button:not(:disabled):hover::after {
+  animation: profile-save-shimmer 900ms ease-out;
+}
+
+form.space-y-6.font-sans > div:last-child > button:disabled {
+  cursor: wait;
+  animation: profile-save-pulse 1.5s ease-in-out infinite;
+  filter: saturate(0.9);
+}
+
+form.space-y-6.font-sans > div:last-child > button:disabled::before {
+  content: "";
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-right: 8px;
+  vertical-align: -2px;
+  border: 2px solid rgba(255, 255, 255, 0.38);
+  border-top-color: currentColor;
+  border-radius: 9999px;
+  animation: profile-save-spinner 700ms linear infinite;
+}
+
+form.space-y-6.font-sans > div:last-child > button:disabled::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 38%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.18),
+    transparent
+  );
+  transform: translateX(-140%);
+  animation: profile-save-shimmer 1.25s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  form.space-y-6.font-sans > div:last-child > button,
+  form.space-y-6.font-sans > div:last-child > button::before,
+  form.space-y-6.font-sans > div:last-child > button::after {
+    animation: none;
+  }
+}
