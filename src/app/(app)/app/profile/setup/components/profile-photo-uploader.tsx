@@ -171,9 +171,10 @@ export function ProfilePhotoUploader({
       setSlotsUrls(newUrls);
       setSlotsPaths(newPaths);
 
-      // Pass compacted active paths to form action
-      const compacted = newPaths.filter((p): p is string => Boolean(p));
-      onPhotosUploaded(compacted);
+      // Preserve fixed slot order. Slot 1 must remain the primary photo.
+      onPhotosUploaded(
+        newPaths.filter((p): p is string => Boolean(p))
+      );
     } catch (err) {
       console.error("Cropping error:", err);
       setError("An error occurred while cropping the image.");
@@ -202,8 +203,9 @@ export function ProfilePhotoUploader({
     setSlotsUrls(newUrls);
     setSlotsPaths(newPaths);
 
-    const compacted = newPaths.filter((p): p is string => Boolean(p));
-    onPhotosUploaded(compacted);
+    onPhotosUploaded(
+      newPaths.filter((p): p is string => Boolean(p))
+    );
   }
 
   // Swap with Slot 1 deliberately
@@ -226,8 +228,9 @@ export function ProfilePhotoUploader({
     setSlotsUrls(newUrls);
     setSlotsPaths(newPaths);
 
-    const compacted = newPaths.filter((p): p is string => Boolean(p));
-    onPhotosUploaded(compacted);
+    onPhotosUploaded(
+      newPaths.filter((p): p is string => Boolean(p))
+    );
   }
 
   const isMainSlot = targetSlotIndex === 0;
