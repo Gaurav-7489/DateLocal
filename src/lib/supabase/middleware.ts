@@ -34,7 +34,7 @@ export async function updateSession(request: NextRequest) {
           });
 
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(cookie.name, cookie.value, options)
           );
         },
       },
@@ -104,7 +104,7 @@ export async function updateSession(request: NextRequest) {
       return supabaseResponse;
     }
 
-    // 2b. Parallel Evaluation: Profile, Primary Photo & Face Verification
+    // 2b. Parallel Evaluation: Profile, Primary Photo & optional Face Verification
     const [profileResult, primaryPhotoResult, faceResult] = await Promise.all([
       supabase
         .from("profiles")
@@ -200,8 +200,10 @@ export async function updateSession(request: NextRequest) {
     }
 
     // 6. FULLY ONBOARDED USERS
-    // Prevent re-accessing Auth or Verification routes once fully onboarded
-    if (isAuthRoute || isFaceVerifyRoute) {
+    // Prevent re-accessing Auth routes once fully onboarded.
+    // The disabled face-verification route stays reachable so its
+    // Coming Soon screen can be shown without enabling the feature.
+    if (isAuthRoute || (isFaceVerifyRoute && featureFlags.ENABLE_CAMERA_VERIFICATION)) {
       const redirectResponse = NextResponse.redirect(
         new URL(routes.app, request.url)
       );
