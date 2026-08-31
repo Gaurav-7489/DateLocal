@@ -4,7 +4,7 @@ let sdkInstance: FaceXSDKType | null = null;
 let initPromise: Promise<FaceXSDKType> | null = null;
 
 interface FaceXModule {
-  FaceXSDK: new (options?: {
+  default: new (options?: {
     detSize?: number;
     threshold?: number;
     detWeightsUrl?: string;
@@ -26,7 +26,7 @@ export async function getFaceXSDK(): Promise<FaceXSDKType> {
 
   initPromise = (async () => {
     const mod = (await import("../../../vendor/facex-wasm/facex-sdk.js")) as unknown as FaceXModule;
-    const sdk: FaceXSDKType = new mod.FaceXSDK({
+    const sdk: FaceXSDKType = new mod.default({
       detSize: 160,
       detWeightsUrl: "/facex/det_500m_int8.bin",
       embWeightsUrl: "/facex/edgeface_xs_fp32.bin",
