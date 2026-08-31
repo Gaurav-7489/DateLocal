@@ -1,13 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="DateBu icon">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#10b981"/>
-      <stop offset="100%" stop-color="#059669"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="120" fill="url(#bg)"/>
-  <circle cx="256" cy="190" r="110" fill="rgba(255,255,255,0.2)"/>
-  <path d="M180 380c18-58 58-90 120-90s102 32 120 90" fill="none" stroke="#ffffff" stroke-width="32" stroke-linecap="round"/>
-  <circle cx="256" cy="188" r="84" fill="#ffffff" opacity="0.25"/>
-  <path d="M158 214c18-56 67-94 123-94 65 0 104 38 122 94-26-18-58-28-98-28-68 0-108 19-147 28Z" fill="#ffffff" opacity="0.9"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><image href="/icon-512.png" width="512" height="512"/></svg>

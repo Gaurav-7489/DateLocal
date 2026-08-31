@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   motion,
@@ -30,6 +31,8 @@ import {
   Download,
   Crown,
   Loader2,
+  Share,
+  PlusSquare,
 } from "lucide-react";
 
 const appLinks = [
@@ -104,11 +107,42 @@ export function AppNavbar({
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
+  const [showAutoBanner, setShowAutoBanner] = useState(false);
+  const [showIOSModal, setShowIOSModal] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const handleInstallApp = useCallback(async () => {
+    const isIOS = /iPhone|iPad|iPod/i.test(window.navigator.userAgent);
+    
+    if (installPrompt) {
+      setIsInstalling(true);
+      try {
+        await installPrompt.prompt();
+        const choice = await installPrompt.userChoice;
+        if (choice.outcome === "accepted") {
+          setInstallPrompt(null);
+          setIsStandalone(true);
+          setShowAutoBanner(false);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsInstalling(false);
+      }
+    } else if (isIOS) {
+      setShowIOSModal(true);
+    } else {
+      setShowAutoBanner(true);
+    }
+  }, [installPrompt]);
+
   useEffect(() => {
     setMounted(true);
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -151,15 +185,33 @@ export function AppNavbar({
 
     setIsStandalone(isStandaloneMode);
 
+    const isDismissed = sessionStorage.getItem("datebu_install_banner_dismissed");
+    const isIOSDevice = /iPhone|iPad|iPod/i.test(window.navigator.userAgent);
+
+    if (!isStandaloneMode && !isDismissed && isIOSDevice) {
+      const timer = setTimeout(() => {
+        setShowAutoBanner(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setInstallPrompt(event as InstallPromptEvent);
+
+      if (!isStandaloneMode && !isDismissed) {
+        const timer = setTimeout(() => {
+          setShowAutoBanner(true);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
     };
 
     const handleAppInstalled = () => {
       setInstallPrompt(null);
       setIsStandalone(true);
       setIsInstalling(false);
+      setShowAutoBanner(false);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -182,29 +234,9 @@ export function AppNavbar({
     };
   }, [mobileOpen]);
 
-  const handleInstallApp = async () => {
-    if (!installPrompt) {
-      const isIOS = /iPhone|iPad|iPod/i.test(window.navigator.userAgent);
-      if (isIOS) {
-        window.alert("Open the Share menu and choose 'Add to Home Screen' to install DateBu on your iPhone.");
-      } else {
-        window.alert("Use the browser menu to install this app on your phone.");
-      }
-      return;
-    }
-
-    setIsInstalling(true);
-    try {
-      await installPrompt.prompt();
-      const choice = await installPrompt.userChoice;
-      if (choice.outcome === "accepted") {
-        setInstallPrompt(null);
-        setIsStandalone(true);
-      }
-    } catch {
-    } finally {
-      setIsInstalling(false);
-    }
+  const dismissBanner = () => {
+    setShowAutoBanner(false);
+    sessionStorage.setItem("datebu_install_banner_dismissed", "true");
   };
 
   return (
@@ -222,9 +254,15 @@ export function AppNavbar({
           aria-label="App navigation"
         >
           <div className="flex items-center gap-2.5 text-lg font-bold text-zinc-950">
-            <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-sm font-black text-white shadow-md shadow-emerald-600/25">
-              {universityConfig.shortName.charAt(0)}
-              <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/25" />
+            <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-zinc-200/80">
+              <Image
+                src="/icon-512.png"
+                alt="DateBu Logo"
+                width={36}
+                height={36}
+                className="h-full w-full object-contain p-1"
+                priority
+              />
             </div>
 
             <div className="flex flex-col">
@@ -595,7 +633,7 @@ export function AppNavbar({
                             <Download className="w-4 h-4 stroke-2" />
                           )}
                         </div>
-                        {isInstalling ? "Opening installer..." : "Install app"}
+                        {isInstalling ? "Opening installer..." : "Install web app"}
                       </button>
                     </motion.div>
                   )}
@@ -631,6 +669,135 @@ export function AppNavbar({
           </AnimatePresence>
         )}
       </header>
+
+      {/* Automatic Install Banner Popup */}
+      <AnimatePresence>
+        {showAutoBanner && !isStandalone && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 30, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="fixed bottom-20 left-4 right-4 z-[9998] mx-auto max-w-md rounded-2xl border border-zinc-200/90 bg-white/95 p-4 shadow-2xl backdrop-blur-xl md:bottom-6 md:right-6 md:left-auto md:w-96"
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-zinc-200">
+                <Image
+                 src="/icon-512.png"
+                  alt="App Logo"
+                  width={48}
+                  height={48}
+                  className="h-full w-full object-contain p-1"
+                />
+              </div>
+
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-extrabold text-zinc-900">
+                    Install {universityConfig.appName}
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={dismissBanner}
+                    className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="mt-0.5 text-xs font-medium text-zinc-500">
+                  Add to your Home Screen for full screen mode & quick access.
+                </p>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleInstallApp}
+                    disabled={isInstalling}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-60"
+                  >
+                    {isInstalling ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    {isInstalling ? "Installing..." : "Install Now"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={dismissBanner}
+                    className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50 transition-colors"
+                  >
+                    Not now
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* iOS Safari Home Screen Instructions Modal */}
+      <AnimatePresence>
+        {showIOSModal && (
+          <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="w-full max-w-sm rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl"
+            >
+              <div className="flex items-center justify-between pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-zinc-200">
+                    <Image
+                      src="/icon-512.png"
+                      alt="App Logo"
+                      width={40}
+                      height={40}
+                      className="h-full w-full object-contain p-1"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-zinc-900">Install DateBu</h3>
+                    <p className="text-[11px] text-zinc-500">Follow these 2 easy steps</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowIOSModal(false)}
+                  className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mt-3 space-y-3 border-t border-zinc-100 pt-4 text-xs font-medium text-zinc-700">
+                <div className="flex items-center gap-3 rounded-xl bg-zinc-50 p-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 font-bold">
+                    <Share className="h-4 w-4" />
+                  </div>
+                  <span>1. Tap the <strong>Share</strong> button in Safari&apos;s bottom toolbar.</span>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-xl bg-zinc-50 p-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 font-bold">
+                    <PlusSquare className="h-4 w-4" />
+                  </div>
+                  <span>2. Scroll down and tap <strong>Add to Home Screen</strong>.</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowIOSModal(false)}
+                className="mt-5 w-full rounded-xl bg-zinc-900 py-2.5 text-xs font-bold text-white hover:bg-zinc-800 transition-colors"
+              >
+                Got it
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {mounted && !isSetupRoute &&
         createPortal(

@@ -1,4 +1,4 @@
-import "./globals.css";
+import "@/app/globals.css";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
@@ -21,11 +21,14 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: `${universityConfig.appName} — Campus Social Space`,
   description: `Student dating and social network for ${universityConfig.name}.`,
-  manifest: "/manifest.webmanifest",
-  icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
-  },
+  manifest: "/manifest.json",
+icons: {
+  icon: [
+    { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+  ],
+  apple: "/icon-192.png",
+},
   appleWebApp: {
     capable: true,
     title: universityConfig.appName,
@@ -40,6 +43,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+       <link rel="apple-touch-icon" href="/icon-192.png" />
+      </head>
       <body className="min-h-[100dvh] bg-zinc-100 font-sans text-zinc-900 antialiased overflow-x-hidden overscroll-y-none selection:bg-emerald-500 selection:text-white">
         {/* Responsive Mobile Container */}
         <div className="flex min-h-[100dvh] w-full items-center justify-center bg-zinc-100 sm:p-6">
