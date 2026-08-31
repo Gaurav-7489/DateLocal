@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { routes } from "@/config/routes";
@@ -13,7 +12,6 @@ interface NotificationItem {
   type: "message" | "match";
   title: string;
   body: string;
-  avatarUrl?: string | null;
   link: string;
 }
 
@@ -34,7 +32,7 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
     const supabase = createClient();
 
     const messageChannel = supabase
-      .channel("global_notifications_messages")
+      .channel(`global_notifications_messages_${currentUserId}`)
       .on(
         "postgres_changes",
         {
@@ -53,88 +51,88 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
           if (newMsg.sender_id === currentUserId) return;
           if (pathname?.includes(`/messages/${newMsg.match_id}`)) return;
 
-          const { data: sender } = await supabase
-            .from("profiles")
-            .select(`
-              display_name,
-              profile_photos (
-                storage_path,
-                is_primary,
-                display_order
-              )
-            `)
-            .eq("id", newMsg.sender_id)
-            .maybeSingle();
-
-          const senderName = sender?.display_name?.split(" ")[0] || "Someone";
-          const photos = [...(sender?.profile_photos ?? [])].sort((a, b) => {
-            if (a.is_primary && !b.is_primary) return -1;
-            if (!a.is_primary && b.is_primary) return 1;
-            return a.display_order - b.display_order;
-          });
-
-          const avatarUrl = photos[0]?.storage_path
-            ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/profile-photos/${photos[0].storage_path}`
-            : null;
-
           triggerHaptic([25, 50, 25]);
           setNotification({
             id: newMsg.id,
             type: "message",
-            title: senderName,
-            body: newMsg.content,
-            avatarUrl,
+            title: "New message",
+            body: newMsg.content || "You received a new message.",
             link: `${routes.messages}/${newMsg.match_id}`,
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") {
+          console.warn("[DateBu] Message realtime subscription failed.");
+        }
+      });
 
-    const matchChannel = supabase
-      .channel("global_notifications_matches")
+    const matchUserAChannel = supabase
+      .channel(`global_notifications_matches_a_${currentUserId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "matches",
-          filter: `or(user_a.eq.${currentUserId},user_b.eq.${currentUserId})`,
+          filter: `user_a=eq.${currentUserId}`,
         },
-        async (payload) => {
-          const match = payload.new as { id: string; user_a: string; user_b: string };
-          const otherUserId = match.user_a === currentUserId ? match.user_b : match.user_a;
-
-          const { data: sender } = await supabase
-            .from("profiles")
-            .select("display_name")
-            .eq("id", otherUserId)
-            .maybeSingle();
-
-          const matchName = sender?.display_name || "New Student";
-
+        (payload) => {
+          const match = payload.new as { id: string };
           triggerHaptic([40, 60, 80]);
           setNotification({
             id: match.id,
             type: "match",
-            title: "Mutual Match! 🎉",
-            body: `You and ${matchName} liked each other!`,
+            title: "It’s a Match!",
+            body: "You and another student liked each other.",
             link: `${routes.messages}/${match.id}`,
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") {
+          console.warn("[DateBu] Match realtime subscription (user_a) failed.");
+        }
+      });
+
+    const matchUserBChannel = supabase
+      .channel(`global_notifications_matches_b_${currentUserId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "matches",
+          filter: `user_b=eq.${currentUserId}`,
+        },
+        (payload) => {
+          const match = payload.new as { id: string };
+          triggerHaptic([40, 60, 80]);
+          setNotification({
+            id: match.id,
+            type: "match",
+            title: "It’s a Match!",
+            body: "You and another student liked each other.",
+            link: `${routes.messages}/${match.id}`,
+          });
+        }
+      )
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") {
+          console.warn("[DateBu] Match realtime subscription (user_b) failed.");
+        }
+      });
 
     return () => {
       void supabase.removeChannel(messageChannel);
-      void supabase.removeChannel(matchChannel);
+      void supabase.removeChannel(matchUserAChannel);
+      void supabase.removeChannel(matchUserBChannel);
     };
   }, [currentUserId, pathname]);
 
   useEffect(() => {
     if (!notification) return;
-    const timer = setTimeout(() => {
-      setNotification(null);
-    }, 5000);
+    const timer = setTimeout(() => setNotification(null), 5000);
     return () => clearTimeout(timer);
   }, [notification]);
 
@@ -153,23 +151,11 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
           }}
         >
           <div className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card/95 p-3 text-foreground shadow-2xl backdrop-blur-md">
-            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-emerald-500/50 bg-zinc-950">
-              {notification.avatarUrl ? (
-                <Image
-                  src={notification.avatarUrl}
-                  alt={notification.title}
-                  fill
-                  className="object-cover"
-                  sizes="40px"
-                />
+            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-emerald-500/50 bg-emerald-50 text-emerald-700">
+              {notification.type === "match" ? (
+                <Sparkles className="h-4 w-4" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-600 to-teal-700 text-white font-bold text-sm">
-                  {notification.type === "match" ? (
-                    <Sparkles className="h-4 w-4" />
-                  ) : (
-                    <MessageCircle className="h-4 w-4" />
-                  )}
-                </div>
+                <MessageCircle className="h-4 w-4" />
               )}
             </div>
 
