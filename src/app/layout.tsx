@@ -1,14 +1,13 @@
 import "@/app/globals.css";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { universityConfig } from "@/config/university";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
+  preload: true,
 });
 
 export const viewport: Viewport = {
@@ -22,13 +21,13 @@ export const metadata: Metadata = {
   title: `${universityConfig.appName} — Campus Social Space`,
   description: `Student dating and social network for ${universityConfig.name}.`,
   manifest: "/manifest.json",
-icons: {
-  icon: [
-    { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-    { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
-  ],
-  apple: "/icon-192.png",
-},
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icon-192.png",
+  },
   appleWebApp: {
     capable: true,
     title: universityConfig.appName,
@@ -44,18 +43,14 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <head>
-       <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className="min-h-[100dvh] bg-zinc-100 font-sans text-zinc-900 antialiased overflow-x-hidden overscroll-y-none selection:bg-emerald-500 selection:text-white">
-        {/* Responsive Mobile Container */}
         <div className="flex min-h-[100dvh] w-full items-center justify-center bg-zinc-100 sm:p-6">
           <div className="relative flex h-[100dvh] w-full max-h-[100dvh] flex-col overflow-hidden bg-white shadow-[0_25px_60px_rgba(0,0,0,0.08)] sm:h-[840px] sm:max-w-[420px] sm:rounded-[40px] sm:border-[8px] sm:border-white">
             {children}
           </div>
         </div>
-
-        <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   );
