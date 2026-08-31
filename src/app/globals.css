@@ -19,42 +19,40 @@
 }
 
 :root {
-  /* Light Mode Palette */
   --bg-primary: 255 255 255;
   --bg-surface: 248 250 252;
   --border-color: 226 232 240;
   --text-primary: 15 23 42;
   --text-secondary: 100 116 139;
 
-  /* Brand Accents */
-  --campus-green: 16 185 129;    /* #10B981 */
-  --campus-orange: 249 115 22;   /* #F97316 */
-  --dept-blue: 37 99 235;        /* #2563EB */
+  --campus-green: 16 185 129;
+  --campus-orange: 249 115 22;
+  --dept-blue: 37 99 235;
 
-  /* Neutral Grey Skeleton (Light Mode) */
-  --skeleton-base: 228 232 238;   /* Light Slate Grey */
-  --skeleton-shimmer: 241 245 249; /* Bright Highlight */
+  --skeleton-base: 228 232 238;
+  --skeleton-shimmer: 241 245 249;
 }
 
 .dark {
-  /* Night Mode Palette (OLED Slate) */
   --bg-primary: 9 9 11;
   --bg-surface: 18 18 23;
   --border-color: 39 39 42;
   --text-primary: 248 250 252;
   --text-secondary: 161 161 170;
 
-  /* Dark-Mode Tuned Glow Accents */
-  --campus-green: 52 211 153;    /* Bright Emerald */
-  --campus-orange: 251 146 60;   /* Bright Coral Orange */
-  --dept-blue: 96 165 250;       /* Sky-Blue Glow */
+  --campus-green: 52 211 153;
+  --campus-orange: 251 146 60;
+  --dept-blue: 96 165 250;
 
-  /* Neutral Grey Skeleton (Dark Mode) */
-  --skeleton-base: 39 39 42;      /* Zinc 800 Charcoal Grey */
-  --skeleton-shimmer: 63 63 70;   /* Zinc 700 Soft Highlight */
+  --skeleton-base: 39 39 42;
+  --skeleton-shimmer: 63 63 70;
 }
 
-/* Base Body Styles & Smooth Transitions */
+html {
+  text-rendering: optimizeSpeed;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background-color: rgb(var(--bg-primary));
   color: rgb(var(--text-primary));
@@ -65,7 +63,11 @@ body {
   overflow-x: hidden;
 }
 
-/* Custom Sleek Scrollbar */
+/* Keep scrolling and touch interaction on the compositor where possible. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -84,14 +86,9 @@ body {
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* Continuous Marquee Animation */
 @keyframes marquee {
-  0% {
-    transform: translateX(0%);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
 }
 
 .animate-marquee {
@@ -105,9 +102,8 @@ body {
   animation-play-state: paused;
 }
 
-/* High-Performance Atmospheric Glow Utilities */
 .bg-radial-glow {
-  background-image: 
+  background-image:
     radial-gradient(at 50% 0%, rgba(16, 185, 129, 0.15) 0px, transparent 50%),
     radial-gradient(at 100% 50%, rgba(249, 115, 22, 0.12) 0px, transparent 50%),
     radial-gradient(at 0% 100%, rgba(37, 99, 235, 0.12) 0px, transparent 50%);
@@ -124,11 +120,6 @@ body {
   border-color: rgba(255, 255, 255, 0.18);
 }
 
-/* 
- * ==========================================
- * Neutral Grey GPU Skeleton & Shimmer
- * ==========================================
- */
 .skeleton {
   background-color: rgb(var(--skeleton-base));
   position: relative;
@@ -153,38 +144,22 @@ body {
 }
 
 @keyframes gpu-shimmer {
-  0% {
-    transform: translate3d(-100%, 0, 0);
-  }
-  100% {
-    transform: translate3d(100%, 0, 0);
-  }
+  0% { transform: translate3d(-100%, 0, 0); }
+  100% { transform: translate3d(100%, 0, 0); }
 }
 
-/* Profile setup save feedback: make the async action visibly alive. */
 @keyframes profile-save-pulse {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-1px) scale(1.012);
-  }
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(0, -1px, 0) scale(1.012); }
 }
 
 @keyframes profile-save-shimmer {
-  0% {
-    transform: translateX(-140%);
-  }
-  100% {
-    transform: translateX(140%);
-  }
+  0% { transform: translate3d(-140%, 0, 0); }
+  100% { transform: translate3d(140%, 0, 0); }
 }
 
 @keyframes profile-save-spinner {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 form.space-y-6.font-sans > div:last-child > button {
@@ -195,7 +170,7 @@ form.space-y-6.font-sans > div:last-child > button {
 }
 
 form.space-y-6.font-sans > div:last-child > button:not(:disabled):hover {
-  transform: translateY(-1px);
+  transform: translate3d(0, -1px, 0);
   filter: brightness(1.03);
 }
 
@@ -205,14 +180,8 @@ form.space-y-6.font-sans > div:last-child > button:not(:disabled)::after {
   inset: 0;
   z-index: -1;
   width: 42%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.22),
-    transparent
-  );
-  transform: translateX(-140%);
-  transition: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  transform: translate3d(-140%, 0, 0);
 }
 
 form.space-y-6.font-sans > div:last-child > button:not(:disabled):hover::after {
@@ -244,17 +213,39 @@ form.space-y-6.font-sans > div:last-child > button:disabled::after {
   inset: 0;
   z-index: -1;
   width: 38%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.18),
-    transparent
-  );
-  transform: translateX(-140%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  transform: translate3d(-140%, 0, 0);
   animation: profile-save-shimmer 1.25s ease-in-out infinite;
 }
 
+/* Lightweight CSS replacement for notification enter animation. */
+@keyframes notification-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -18px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.notification-toast {
+  animation: notification-enter 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  contain: layout paint;
+}
+
+/* Prefer static rendering for users who explicitly disable motion. */
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
   form.space-y-6.font-sans > div:last-child > button,
   form.space-y-6.font-sans > div:last-child > button::before,
   form.space-y-6.font-sans > div:last-child > button::after {
