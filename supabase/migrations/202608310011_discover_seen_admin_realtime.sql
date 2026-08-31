@@ -29,9 +29,8 @@ CREATE POLICY "Users can insert own discover views"
   TO authenticated
   WITH CHECK (user_id = auth.uid());
 
--- Return a batch and persist that batch as already shown in the same
--- database operation. This prevents the same profiles from returning
--- repeatedly after refreshes/navigation.
+-- Return a batch while persisting only the active/top profile as seen.
+-- Likes and passes remain the durable interaction exclusions.
 CREATE OR REPLACE FUNCTION public.get_discover_profiles(
   p_excluded_ids uuid[] default '{}',
   p_limit integer default 20
@@ -74,6 +73,8 @@ AS $$
     INSERT INTO public.discover_views (user_id, profile_id)
     SELECT auth.uid(), c.id
     FROM candidates c
+    ORDER BY c.created_at DESC
+    LIMIT 1
     ON CONFLICT (user_id, profile_id) DO NOTHING
     RETURNING profile_id
   )
