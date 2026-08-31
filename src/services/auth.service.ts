@@ -10,7 +10,8 @@ export type AuthResult =
       error: string;
     };
 
-// Cached client instance for rapid auth operations
+// Launch-mode auth: email verification is temporarily bypassed so the app
+// remains usable while the transactional SMTP flow is being finalized.
 let cachedClient: ReturnType<typeof createClient> | null = null;
 function getClient() {
   if (!cachedClient) {
@@ -19,38 +20,56 @@ function getClient() {
   return cachedClient;
 }
 
-function getRedirectUrl(path: string): string | undefined {
-  if (typeof window === "undefined") return undefined;
-  return `${window.location.origin}${path}`;
-}
-
 export async function registerWithEmail(
   email: string,
   password: string,
 ): Promise<AuthResult> {
   const normalizedEmail = email.trim().toLowerCase();
-  const supabase = getClient();
 
-  const { data, error } = await supabase.auth.signUp({
-    email: normalizedEmail,
-    password,
-    options: {
-      // Supabase confirmation email redirects through the implemented callback route.
-      emailRedirectTo: getRedirectUrl("/auth/callback"),
-    },
-  });
+  try {
+    const response = await fetch("/api/auth/temporary-register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: normalizedEmail, password }),
+    });
 
-  if (error) {
+    const result = (await response.json()) as {
+      error?: string;
+    };
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: result.error ?? "Unable to create your account. Please try again.",
+      };
+    }
+
+    // The temporary launch route confirms the account server-side, so there
+    // is no verification screen blocking access during launch.
+    const supabase = getClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
+
+    if (signInError) {
+      return {
+        success: false,
+        error: signInError.message,
+      };
+    }
+
+    return {
+      success: true,
+      needsEmailConfirmation: false,
+    };
+  } catch (error) {
+    console.error("Launch-mode registration failed:", error);
     return {
       success: false,
-      error: error.message,
+      error: "Authentication service is temporarily unavailable. Please try again.",
     };
   }
-
-  return {
-    success: true,
-    needsEmailConfirmation: !data.session,
-  };
 }
 
 export async function signInWithEmail(
@@ -60,15 +79,35 @@ export async function signInWithEmail(
   const normalizedEmail = email.trim().toLowerCase();
   const supabase = getClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  let { error } = await supabase.auth.signInWithPassword({
     email: normalizedEmail,
     password,
   });
 
+  // Launch-mode compatibility: if this account was created before the
+  // temporary bypass was enabled, confirm it server-side and retry once.
+  if (error?.message.toLowerCase().includes("email not confirmed")) {
+    try {
+      const response = await fetch("/api/auth/temporary-register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail, password }),
+      });
+
+      if (response.ok) {
+        const retry = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
+        error = retry.error;
+      }
+    } catch (fallbackError) {
+      console.error("Launch-mode sign-in fallback failed:", fallbackError);
+    }
+  }
+
   if (error) {
-    const message = error.message.toLowerCase().includes("email not confirmed")
-      ? "Please verify your email before logging in. Check your inbox or spam folder."
-      : error.message.toLowerCase().includes("invalid login credentials")
+    const message = error.message.toLowerCase().includes("invalid login credentials")
       ? "Incorrect email or password. Please check your credentials."
       : error.message;
 
@@ -83,29 +122,16 @@ export async function signInWithEmail(
   };
 }
 
+/**
+ * Kept for compatibility with the existing verification UI.
+ * Email verification is intentionally paused during the launch period.
+ */
 export async function resendVerificationEmail(
-  email: string,
+  _email: string,
 ): Promise<AuthResult> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const supabase = getClient();
-
-  const { error } = await supabase.auth.resend({
-    type: "signup",
-    email: normalizedEmail,
-    options: {
-      emailRedirectTo: getRedirectUrl("/auth/callback"),
-    },
-  });
-
-  if (error) {
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
-
   return {
-    success: true,
+    success: false,
+    error: "Email verification is currently being finalized. You can use DateBu without it for now.",
   };
 }
 
@@ -115,7 +141,7 @@ export async function sendPasswordResetEmail(
   const normalizedEmail = email.trim().toLowerCase();
   const supabase = getClient();
 
-  const resetRedirect = getRedirectUrl("/auth/callback?next=/reset-password");
+  const resetRedirect = `${window.location.origin}/auth/callback?next=/reset-password`;
 
   const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
     redirectTo: resetRedirect,
