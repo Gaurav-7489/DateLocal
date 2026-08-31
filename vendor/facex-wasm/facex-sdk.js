@@ -43,7 +43,7 @@ class FaceXSDK {
     }
 
     this._progress('Loading detection engine...');
-    this._det = await FaceDetModule();
+    this._det = await DetectModule();
 
     this._progress('Loading embedding engine...');
     this._fx = await FaceXModule();
@@ -183,11 +183,45 @@ class FaceXSDK {
 
   _checkSimd() {
     try {
-      return WebAssembly.validate(new Uint8Array([
-        0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,
-        253,12,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11
-      ]));
-    } catch(e) { return false; }
+      // Minimal valid WebAssembly SIMD module:
+      // (module
+      //   (func (result v128)
+      //     v128.const i32x4 0 0 0 0
+      //   )
+      // )
+      const simdProbe = new Uint8Array([
+        0x00, 0x61, 0x73, 0x6d,
+        0x01, 0x00, 0x00, 0x00,
+
+        // Type section: () -> v128
+        0x01, 0x05,
+        0x01, 0x60, 0x00, 0x01, 0x7b,
+
+        // Function section
+        0x03, 0x02,
+        0x01, 0x00,
+
+        // Code section
+        0x0a, 0x16,
+        0x01,
+        0x14,
+        0x00,
+
+        // v128.const
+        0xfd, 0x0c,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+
+        // end
+        0x0b,
+      ]);
+
+      return WebAssembly.validate(simdProbe);
+    } catch {
+      return false;
+    }
   }
 
   async _loadCached(url, key) {
@@ -310,3 +344,5 @@ class FaceXSDK {
     return emb;
   }
 }
+
+export { FaceXSDK };
