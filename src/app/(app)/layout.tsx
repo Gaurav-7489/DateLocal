@@ -4,6 +4,7 @@ import { routes } from "@/config/routes";
 import { AppNavbar } from "@/components/layout/app-navbar";
 import { NotificationListener } from "@/components/notifications/notification-listener";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { isSuperAdminUser } from "@/types/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function AppLayout({
     .filter(Boolean);
 
   const isSuperAdmin =
+    isSuperAdminUser(user.id) ||
     userRole === "SUPER_ADMIN" ||
     userRole === "ADMIN" ||
     (Boolean(ownerId) && user.id === ownerId) ||
