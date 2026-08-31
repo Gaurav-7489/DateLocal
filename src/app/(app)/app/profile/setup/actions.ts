@@ -489,10 +489,13 @@ export async function saveProfile(
   revalidatePath(routes.settings);
   revalidatePath(routes.verifyFace);
 
-  // If camera verification is enabled, send user to face match
+  // Post-save routing.
+  // The profile is fully persisted before this point.
+  // Go through the canonical app entry so middleware evaluates
+  // the fresh onboarding state exactly once.
   if (featureFlags.ENABLE_CAMERA_VERIFICATION) {
     redirect(routes.verifyFace);
   }
 
-  redirect(routes.profile);
+  redirect(routes.app);
 }
