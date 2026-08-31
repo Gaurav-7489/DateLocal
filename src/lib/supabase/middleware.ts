@@ -150,40 +150,57 @@ export async function updateSession(request: NextRequest) {
       }
     }
 
-    // 4. STEP 1: MUST COMPLETE PROFILE & UPLOAD MAIN PHOTO
-    // If incomplete, force to Profile Setup; disallow access to Face Verification or Main App
+    // 4. STEP 1: PROFILE + PRIMARY PHOTO
+    //
+    // Profile setup is always allowed to remain open so users can
+    // finish or edit their profile without middleware fighting the form.
+    //
+    // Incomplete users are blocked from the main application and face
+    // verification until the profile and primary photo exist.
     if (!isProfileComplete || !hasPrimaryPhoto) {
-      if ((isAppRoute && !isOnboardingRoute) || isFaceVerifyRoute || isAuthRoute) {
-        if (pathname !== routes.profileSetup) {
-          const redirectResponse = NextResponse.redirect(
-            new URL(routes.profileSetup, request.url)
-          );
-          supabaseResponse.cookies.getAll().forEach((cookie) => {
-            redirectResponse.cookies.set(cookie.name, cookie.value);
-          });
-          return redirectResponse;
-        }
+      if (
+        (isAppRoute && !isOnboardingRoute) ||
+        isFaceVerifyRoute ||
+        isAuthRoute
+      ) {
+        const redirectResponse = NextResponse.redirect(
+          new URL(routes.profileSetup, request.url)
+        );
+
+        supabaseResponse.cookies.getAll().forEach((cookie) => {
+          redirectResponse.cookies.set(cookie.name, cookie.value);
+        });
+
+        return redirectResponse;
       }
+
       return supabaseResponse;
     }
 
-    // 5. STEP 2: MUST COMPLETE FACE VERIFICATION (Once Profile & Main Photo Exist)
-    if (!isFaceVerified) {
-      if ((isAppRoute && !isOnboardingRoute) || isAuthRoute) {
+    // 5. STEP 2: CAMERA VERIFICATION
+    //
+    // This gate is completely disabled when the feature flag is false.
+    // When enabled, the user reaches face verification only after the
+    // profile and primary photo have been successfully persisted.
+    if (featureFlags.ENABLE_CAMERA_VERIFICATION && !isFaceVerified) {
+      if (isAppRoute || isAuthRoute) {
         if (pathname !== routes.verifyFace) {
           const redirectResponse = NextResponse.redirect(
             new URL(routes.verifyFace, request.url)
           );
+
           supabaseResponse.cookies.getAll().forEach((cookie) => {
             redirectResponse.cookies.set(cookie.name, cookie.value);
           });
+
           return redirectResponse;
         }
       }
+
       return supabaseResponse;
     }
 
-    // 6. FULLY VERIFIED USERS
+    // 6. FULLY ONBOARDED USERS
     // Prevent re-accessing Auth or Verification routes once fully onboarded
     if (isAuthRoute || isFaceVerifyRoute) {
       const redirectResponse = NextResponse.redirect(
