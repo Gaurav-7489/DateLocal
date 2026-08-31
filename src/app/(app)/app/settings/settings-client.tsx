@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useId } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toggleGhostMode, unblockUser } from "../discover/actions";
@@ -17,7 +17,7 @@ import {
   ShieldCheck,
   Crown,
   Mail,
-  KeyRound,
+  Lock,
 } from "lucide-react";
 
 interface BlockedProfile {
@@ -39,51 +39,252 @@ interface SettingsClientProps {
   currentEmail: string;
 }
 
+interface PasswordInputFieldProps {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  showPassword: boolean;
+  onToggleVisibility: () => void;
+  disabled?: boolean;
+  autoComplete: "current-password" | "new-password";
+  placeholder?: string;
+  hint?: React.ReactNode;
+  error?: string | null;
+}
+
+function PasswordInputField({
+  id,
+  label,
+  value,
+  onChange,
+  showPassword,
+  onToggleVisibility,
+  disabled,
+  autoComplete,
+  placeholder = "••••••••••••••••",
+  hint,
+  error,
+}: PasswordInputFieldProps) {
+  return (
+    <div className="space-y-1.5">
+      <label
+        htmlFor={id}
+        className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+      >
+        {label}
+      </label>
+      <div className="relative flex items-center">
+        <input
+          id={id}
+          type={showPassword ? "text" : "password"}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
+          className={`w-full rounded-2xl border bg-background/50 px-4 py-3.5 pr-12 text-sm text-foreground transition-colors placeholder:text-muted-foreground/50 focus:bg-background focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+            error
+              ? "border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/20"
+              : "border-border focus:border-emerald-500 focus:ring-emerald-500/20"
+          }`}
+        />
+        <button
+          type="button"
+          onClick={onToggleVisibility}
+          disabled={disabled}
+          tabIndex={0}
+          aria-label={showPassword ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          title={showPassword ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          className="absolute right-3 inline-flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:pointer-events-none"
+        >
+          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+      {error ? (
+        <p id={`${id}-error`} className="flex items-center gap-1.5 text-xs font-medium text-rose-500">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          <span>{error}</span>
+        </p>
+      ) : hint ? (
+        <div id={`${id}-hint`} className="text-xs text-muted-foreground">
+          {hint}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function SettingsClient({
   initialGhostMode,
   blockedUsers: initialBlocked,
   subscription,
-  currentEmail,
+  currentEmail: initialCurrentEmail,
 }: SettingsClientProps) {
   const router = useRouter();
 
+  // Ghost Mode & Blocked List State
   const [ghostMode, setGhostMode] = useState(initialGhostMode);
   const [ghostLoading, setGhostLoading] = useState(false);
   const [blockedList, setBlockedList] = useState(initialBlocked);
   const [unblockLoadingId, setUnblockLoadingId] = useState<string | null>(null);
+
+  // Global Feedback Message
   const [statusMessage, setStatusMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
-  const [email, setEmail] = useState(currentEmail);
-  const [newPassword, setNewPassword] = useState("");
-  const [accountLoading, setAccountLoading] = useState(false);
 
-  async function updateEmail() {
-    setAccountLoading(true);
+  // Account - Email State
+  const emailInputId = useId();
+  const [currentEmailState, setCurrentEmailState] = useState(initialCurrentEmail);
+  const [email, setEmail] = useState(initialCurrentEmail);
+  const [emailLoading, setEmailLoading] = useState(false);
+
+  // Account - Password State
+  const currentPasswordId = useId();
+  const newPasswordId = useId();
+  const confirmPasswordId = useId();
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Email Submit Handler
+  async function handleUpdateEmail(e: React.FormEvent) {
+    e.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || normalizedEmail === currentEmailState.toLowerCase() || emailLoading) {
+      return;
+    }
+
+    setEmailLoading(true);
     setStatusMessage(null);
-    const { error } = await createClient().auth.updateUser({ email: email.trim().toLowerCase() });
-    setAccountLoading(false);
-    setStatusMessage(error
-      ? { type: "error", text: `We couldn't change your email: ${error.message}` }
-      : { type: "success", text: "Confirmation links were sent to your old and new email addresses. Your email changes after both are confirmed." });
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ email: normalizedEmail });
+
+      if (error) {
+        setStatusMessage({
+          type: "error",
+          text: `We couldn't change your email: ${error.message}`,
+        });
+      } else {
+        setStatusMessage({
+          type: "success",
+          text: "Confirmation links were sent to your old and new email addresses. Your email changes after both are confirmed.",
+        });
+        setCurrentEmailState(normalizedEmail);
+      }
+    } catch {
+      setStatusMessage({
+        type: "error",
+        text: "An unexpected network error occurred while updating email.",
+      });
+    } finally {
+      setEmailLoading(false);
+    }
   }
 
-  async function updatePassword() {
-    if (newPassword.length < 8) {
-      setStatusMessage({ type: "error", text: "Your new password must be at least 8 characters long." });
+  // Password Validations
+  const hasTypedNewPassword = newPassword.length > 0;
+  const isNewPasswordLengthValid = newPassword.length >= 8;
+  const hasTypedConfirm = confirmPassword.length > 0;
+  const doPasswordsMatch = newPassword === confirmPassword;
+
+  // Password Submit Handler
+  async function handleUpdatePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (passwordLoading) return;
+
+    if (!currentPassword) {
+      setStatusMessage({ type: "error", text: "Current password is required." });
       return;
     }
-    setAccountLoading(true);
+    if (!newPassword) {
+      setStatusMessage({ type: "error", text: "New password is required." });
+      return;
+    }
+    if (!isNewPasswordLengthValid) {
+      setStatusMessage({ type: "error", text: "New password must be at least 8 characters long." });
+      return;
+    }
+    if (!confirmPassword) {
+      setStatusMessage({ type: "error", text: "Please confirm your new password." });
+      return;
+    }
+    if (!doPasswordsMatch) {
+      setStatusMessage({ type: "error", text: "Passwords don't match." });
+      return;
+    }
+    if (newPassword === currentPassword) {
+      setStatusMessage({ type: "error", text: "New password must not equal your current password." });
+      return;
+    }
+
+    setPasswordLoading(true);
     setStatusMessage(null);
-    const { error } = await createClient().auth.updateUser({ password: newPassword });
-    setAccountLoading(false);
-    if (error) {
-      setStatusMessage({ type: "error", text: `We couldn't change your password: ${error.message}` });
-      return;
+
+    try {
+      const supabase = createClient();
+
+      // 1. Verify current credentials against current email
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: currentEmailState,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        setStatusMessage({
+          type: "error",
+          text: "Current password is incorrect.",
+        });
+        setPasswordLoading(false);
+        return;
+      }
+
+      // 2. Perform the update
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        setStatusMessage({
+          type: "error",
+          text: `We couldn't change your password: ${updateError.message}`,
+        });
+        setPasswordLoading(false);
+        return;
+      }
+
+      // 3. Reset form and visibility states
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+      setStatusMessage({
+        type: "success",
+        text: "Password changed successfully.",
+      });
+    } catch {
+      setStatusMessage({
+        type: "error",
+        text: "An unexpected error occurred while updating your password.",
+      });
+    } finally {
+      setPasswordLoading(false);
     }
-    setNewPassword("");
-    setStatusMessage({ type: "success", text: "Password changed successfully." });
   }
 
   async function handleToggleGhost() {
@@ -153,14 +354,27 @@ export function SettingsClient({
     !!subscription.currentPeriodEnd &&
     new Date(subscription.currentPeriodEnd).getTime() > Date.now();
 
+  const isEmailButtonDisabled =
+    emailLoading ||
+    !email.trim() ||
+    email.trim().toLowerCase() === currentEmailState.toLowerCase();
+
+  const isPasswordButtonDisabled =
+    passwordLoading ||
+    !currentPassword ||
+    !newPassword ||
+    !confirmPassword ||
+    !isNewPasswordLengthValid ||
+    !doPasswordsMatch;
+
   return (
     <div className="space-y-6">
       {statusMessage && (
         <div
           className={`flex items-center gap-2 rounded-2xl p-3.5 text-xs font-semibold ${
             statusMessage.type === "success"
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-              : "bg-rose-50 text-rose-700 border border-rose-200"
+              ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+              : "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
           }`}
         >
           {statusMessage.type === "success" ? (
@@ -173,21 +387,142 @@ export function SettingsClient({
         </div>
       )}
 
-      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-5">
+      {/* ACCOUNT DETAILS SECTION */}
+      <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-7 space-y-6">
         <div>
-          <h2 className="text-base font-bold text-foreground flex items-center gap-2"><Mail className="h-5 w-5 text-blue-600" /> Account details</h2>
-          <p className="mt-1 text-xs text-muted-foreground">Keep your login email and password up to date.</p>
+          <h2 className="text-base font-bold text-foreground">Account Details</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Keep your login email and password secure.
+          </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm" />
-          <Button type="button" disabled={accountLoading || email.trim().toLowerCase() === currentEmail.toLowerCase()} onClick={updateEmail}>Change email</Button>
+
+        {/* Email Form */}
+        <form onSubmit={handleUpdateEmail} className="space-y-4">
+          <div className="space-y-1.5">
+            <label
+              htmlFor={emailInputId}
+              className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              Email Address
+            </label>
+            <div className="relative flex items-center">
+              <input
+                id={emailInputId}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={emailLoading}
+                autoComplete="email"
+                placeholder="name@example.com"
+                className="w-full rounded-2xl border border-border bg-background/50 px-4 py-3.5 pr-11 text-sm text-foreground transition-colors placeholder:text-muted-foreground/50 focus:border-emerald-500 focus:bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              />
+              <Mail className="pointer-events-none absolute right-4 h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={isEmailButtonDisabled}
+            className="w-full rounded-2xl py-3.5 text-sm font-semibold"
+          >
+            {emailLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Updating email...
+              </>
+            ) : (
+              "Change email"
+            )}
+          </Button>
+        </form>
+
+        <div className="border-t border-border" />
+
+        {/* Password Form */}
+        <div className="space-y-1">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+            Password
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Change your password securely.
+          </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-background px-3"><KeyRound className="h-4 w-4 text-muted-foreground" /><input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="New password (8+ characters)" className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none" /></div>
-          <Button type="button" disabled={accountLoading || !newPassword} onClick={updatePassword}>Change password</Button>
-        </div>
+
+        <form onSubmit={handleUpdatePassword} className="space-y-4">
+          <PasswordInputField
+            id={currentPasswordId}
+            label="Current password"
+            value={currentPassword}
+            onChange={setCurrentPassword}
+            showPassword={showCurrentPassword}
+            onToggleVisibility={() => setShowCurrentPassword((prev) => !prev)}
+            disabled={passwordLoading}
+            autoComplete="current-password"
+          />
+
+          <PasswordInputField
+            id={newPasswordId}
+            label="New password"
+            value={newPassword}
+            onChange={setNewPassword}
+            showPassword={showNewPassword}
+            onToggleVisibility={() => setShowNewPassword((prev) => !prev)}
+            disabled={passwordLoading}
+            autoComplete="new-password"
+            hint={
+              hasTypedNewPassword ? (
+                <span
+                  className={`flex items-center gap-1 transition-colors ${
+                    isNewPasswordLengthValid
+                      ? "font-medium text-emerald-600 dark:text-emerald-400"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {isNewPasswordLengthValid ? (
+                    <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                  ) : (
+                    <Lock className="h-3.5 w-3.5 shrink-0" />
+                  )}
+                  At least 8 characters
+                </span>
+              ) : (
+                "Use at least 8 characters."
+              )
+            }
+          />
+
+          <PasswordInputField
+            id={confirmPasswordId}
+            label="Confirm new password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            showPassword={showConfirmPassword}
+            onToggleVisibility={() => setShowConfirmPassword((prev) => !prev)}
+            disabled={passwordLoading}
+            autoComplete="new-password"
+            error={
+              hasTypedConfirm && !doPasswordsMatch ? "Passwords don't match." : null
+            }
+          />
+
+          <Button
+            type="submit"
+            disabled={isPasswordButtonDisabled}
+            className="w-full rounded-2xl bg-emerald-600 hover:bg-emerald-500 py-3.5 text-sm font-semibold text-white shadow-sm shadow-emerald-600/20 disabled:shadow-none"
+          >
+            {passwordLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Verifying &amp; changing...
+              </>
+            ) : (
+              "Change password"
+            )}
+          </Button>
+        </form>
       </div>
 
+      {/* GHOST MODE SECTION */}
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -243,6 +578,7 @@ export function SettingsClient({
         )}
       </div>
 
+      {/* BLOCKED USERS SECTION */}
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
         <div>
           <h2 className="text-base font-bold text-foreground flex items-center gap-2">
@@ -297,10 +633,11 @@ export function SettingsClient({
         )}
       </div>
 
+      {/* SUBSCRIPTION SECTION */}
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="rounded-2xl bg-emerald-50 p-3">
-            <Crown className="h-5 w-5 text-emerald-600" />
+          <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 p-3">
+            <Crown className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           </div>
 
           <div>
