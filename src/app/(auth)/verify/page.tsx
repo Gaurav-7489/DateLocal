@@ -4,13 +4,13 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { 
-  Mail, 
-  CheckCircle2, 
-  AlertCircle, 
-  Loader2, 
-  ArrowRight, 
-  RefreshCw, 
+import {
+  Mail,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  ArrowRight,
+  RefreshCw,
   ShieldCheck,
   Inbox,
   Sparkles
@@ -42,14 +42,12 @@ function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
   const [message, setMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
 
-  // Non-blocking prefetch on mount to make next screen loading instant
   useEffect(() => {
     router.prefetch(routes.login);
     router.prefetch(routes.app);
     router.prefetch("/app/discover");
   }, [router]);
 
-  // Resend cooldown timer countdown
   useEffect(() => {
     if (countdown <= 0) return;
     const timer = setInterval(() => {
@@ -72,23 +70,20 @@ function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
 
     if (result.success) {
       setStatus("success");
-      setMessage("Fresh verification link dispatched! Please check your spam folder too.");
-      setCountdown(60); // 60 seconds rate-limit cooldown
+      setMessage("A new verification link was sent. Check your inbox and spam folder.");
+      setCountdown(60);
     } else {
       setStatus("error");
-      setMessage(result.error || "Failed to resend email. Please verify the address.");
+      setMessage(result.error || "We couldn't send a new verification link. Please try again.");
     }
   }
 
   return (
     <div className="relative min-h-[100dvh] flex flex-col bg-[#f7fbf9] text-zinc-900 selection:bg-emerald-500 selection:text-white font-sans overflow-x-hidden antialiased">
-      
-      {/* Ambient Emerald Background Glow */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] h-[380px] rounded-full bg-emerald-500/15 blur-[140px]" />
       </div>
 
-      {/* Top Floating App Header */}
       <header className="sticky top-0 z-40 px-4 py-3 bg-white/85 backdrop-blur-xl border-b border-zinc-200/80 flex items-center justify-between shadow-xs">
         <Link href="/" className="flex items-center gap-2 active:scale-95 transition-transform">
           <div className="h-7 w-7 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-black text-white shadow-xs">
@@ -107,30 +102,24 @@ function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
         </Link>
       </header>
 
-      {/* Main Container */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-6 max-w-sm mx-auto w-full">
-        
-        {/* Mascot Waiting with Mail */}
         <div className="relative -mb-6 flex justify-center z-20 pointer-events-none">
           <VerifyCatMascot />
         </div>
 
-        {/* Verification Card */}
         <div className="relative w-full rounded-3xl border border-zinc-200/90 bg-white/95 pt-8 px-5 pb-6 backdrop-blur-xl shadow-[0_12px_35px_rgba(0,0,0,0.06)] space-y-4">
-          
           <div className="text-center space-y-1.5 pb-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-semibold text-emerald-700">
-              <ShieldCheck className="w-3 h-3" /> Step 1 of 2: Identity Check
+              <ShieldCheck className="w-3 h-3" /> Step 1 of 2: Email Verification
             </div>
             <h1 className="text-xl font-black text-zinc-950 tracking-tight">
-              Verify Campus Email
+              Verify Your Email
             </h1>
             <p className="text-xs text-zinc-600 leading-relaxed">
-              We sent a verification link to your official <span className="font-semibold text-zinc-900">{universityConfig.name}</span> inbox.
+              We sent a verification link to your email address. Open it to confirm your account before continuing.
             </p>
           </div>
 
-          {/* Quick Mail Shortcuts for Mobile */}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <a
               href="googlegmail:///"
@@ -144,40 +133,37 @@ function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
               href="mailto:"
               className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-zinc-50 border border-zinc-200 text-[11px] font-semibold text-zinc-700 hover:bg-zinc-100 active:scale-95 transition-all shadow-2xs"
             >
-              <Mail className="w-3.5 h-3.5 text-blue-500" /> Default Mail
+              <Mail className="w-3.5 h-3.5 text-blue-500" /> Open Mail
             </a>
           </div>
 
-          {/* Step-by-Step Visual Instruction Box */}
           <div className="rounded-2xl bg-emerald-50/50 border border-emerald-100/80 p-3.5 space-y-2 text-left">
             <p className="text-[11px] font-bold text-emerald-950 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-emerald-600" /> Quick Instructions:
+              <Sparkles className="w-3 h-3 text-emerald-600" /> What to do next
             </p>
             <ol className="text-[11px] text-zinc-600 space-y-1.5 list-decimal pl-4">
-              <li>Open the email sent from <strong>{universityConfig.appName}</strong>.</li>
-              <li>Tap the <strong>Confirm My Account</strong> button.</li>
-              <li>Return here to log in and set up your student profile!</li>
+              <li>Open the email from <strong>{universityConfig.appName}</strong>.</li>
+              <li>Tap the <strong>Confirm My Account</strong> button in the email.</li>
+              <li>Come back here and sign in to continue your profile setup.</li>
             </ol>
           </div>
 
-          {/* Primary Post-Verification Action Button */}
           <Link
             href={routes.login}
             className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
           >
-            I&apos;ve Confirmed My Email <ArrowRight className="w-3.5 h-3.5" />
+            I&apos;ve Verified My Email <ArrowRight className="w-3.5 h-3.5" />
           </Link>
 
-          {/* Resend Verification Form Accordion */}
           <div className="pt-2 border-t border-zinc-100">
             <p className="text-[11px] font-semibold text-zinc-700 text-center mb-2">
-              Didn&apos;t receive the link?
+              Didn&apos;t receive the email?
             </p>
 
             <form onSubmit={handleResend} className="space-y-2">
               <input
                 type="email"
-                placeholder={`student@${universityConfig.emailDomain.replace(/^@/, "")}`}
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -221,71 +207,48 @@ function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
                   </>
                 ) : (
                   <>
-                    <RefreshCw className="w-3 h-3" /> Resend Verification Link
+                    <RefreshCw className="w-3 h-3" /> Send New Verification Link
                   </>
                 )}
               </button>
             </form>
           </div>
-
         </div>
       </main>
 
-      {/* Discrete Footer */}
       <footer className="py-3 text-center text-[10px] text-zinc-400">
-        © 2026 {universityConfig.appName} • Campus Network
+        © 2026 {universityConfig.appName}
       </footer>
-
     </div>
   );
 }
-
-// ---------------- VERIFICATION CAT MASCOT ----------------
 
 function VerifyCatMascot() {
   return (
     <div className="relative w-32 h-24 flex items-center justify-center">
       <svg viewBox="0 0 140 110" className="w-full h-full overflow-visible filter drop-shadow-md">
-        
-        {/* Left Ear */}
         <polygon points="30,50 14,14 54,34" fill="#ffffff" stroke="#e4e4e7" strokeWidth="2" strokeLinejoin="round" />
         <polygon points="31,44 21,22 47,33" fill="#f43f5e" opacity="0.3" />
-
-        {/* Right Ear */}
         <polygon points="110,50 126,14 86,34" fill="#ffffff" stroke="#e4e4e7" strokeWidth="2" strokeLinejoin="round" />
         <polygon points="109,44 119,22 93,33" fill="#f43f5e" opacity="0.3" />
-
-        {/* Head Base */}
         <ellipse cx="70" cy="62" rx="44" ry="36" fill="#ffffff" stroke="#e4e4e7" strokeWidth="2" />
-
-        {/* Whiskers */}
         <line x1="26" y1="62" x2="8" y2="58" stroke="#a1a1aa" strokeWidth="1.5" strokeLinecap="round" />
         <line x1="26" y1="68" x2="10" y2="70" stroke="#a1a1aa" strokeWidth="1.5" strokeLinecap="round" />
         <line x1="114" y1="62" x2="132" y2="58" stroke="#a1a1aa" strokeWidth="1.5" strokeLinecap="round" />
         <line x1="114" y1="68" x2="130" y2="70" stroke="#a1a1aa" strokeWidth="1.5" strokeLinecap="round" />
-
-        {/* Emerald Eyes */}
         <ellipse cx="52" cy="56" rx="6.5" ry="7.5" fill="#10b981" />
         <ellipse cx="88" cy="56" rx="6.5" ry="7.5" fill="#10b981" />
-
         <circle cx="54" cy="54" r="2.2" fill="#ffffff" />
         <circle cx="90" cy="54" r="2.2" fill="#ffffff" />
-
-        {/* Snout & Pink Nose */}
         <polygon points="67,68 73,68 70,72" fill="#f43f5e" />
         <path d="M 65 74 Q 70 77 75 74" stroke="#71717a" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-
-        {/* Envelope in paws */}
         <g transform="translate(46, 68)">
           <rect width="48" height="30" rx="4" fill="#ffffff" stroke="#10b981" strokeWidth="2" />
           <polygon points="2,2 24,18 46,2" fill="#ecfdf5" stroke="#10b981" strokeWidth="1.5" />
           <circle cx="24" cy="15" r="4" fill="#10b981" />
         </g>
-
-        {/* Paws Holding Envelope */}
         <ellipse cx="44" cy="80" rx="7" ry="6" fill="#ffffff" stroke="#10b981" strokeWidth="1.5" />
         <ellipse cx="96" cy="80" rx="7" ry="6" fill="#ffffff" stroke="#10b981" strokeWidth="1.5" />
-
       </svg>
     </div>
   );
