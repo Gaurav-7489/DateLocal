@@ -54,9 +54,6 @@ export async function GET(request: Request) {
         .maybeSingle(),
     ]);
 
-    // Older profiles can contain every setup field but have a stale
-    // profile_completed flag. Repair that state during OAuth callback so a
-    // successful Google login does not dump a completed user back into setup.
     const profileDataIsComplete = Boolean(
       profile?.display_name &&
         profile.date_of_birth &&
@@ -70,7 +67,11 @@ export async function GET(request: Request) {
         preferences.max_age != null,
     );
 
-    if (profileDataIsComplete && !profile?.profile_completed) {
+    // Repair stale completion flags during OAuth callback. This keeps an already
+    // completed profile from being sent through setup again after Google login.
+    let profileCompleted = Boolean(profile?.profile_completed);
+
+    if (profileDataIsComplete && !profileCompleted) {
       const { error: completionError } = await supabase
         .from("profiles")
         .update({
@@ -82,11 +83,11 @@ export async function GET(request: Request) {
       if (completionError) {
         console.error("OAuth profile completion repair failed:", completionError);
       } else {
-        profile!.profile_completed = true;
+        profileCompleted = true;
       }
     }
 
-    if (!profile || !profile.profile_completed) {
+    if (!profile || !profileCompleted) {
       return NextResponse.redirect(new URL(routes.profileSetup, requestUrl.origin));
     }
   }
