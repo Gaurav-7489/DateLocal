@@ -1,595 +1,148 @@
-"use client";
-
-import { useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { motion, useMotionValue, useTransform, AnimatePresence, PanInfo } from "framer-motion";
-import { 
-  ShieldCheck, 
-  Sparkles, 
-  Heart, 
-  X, 
-  ArrowRight, 
-  Lock, 
-  MessageCircle, 
-  Coffee, 
-  Flame, 
-  CheckCircle2, 
-  MessageSquare,
-  RotateCcw
-} from "lucide-react";
-import { universityConfig } from "@/config/university";
-import { routes } from "@/config/routes";
-import { Navbar } from "@/components/layout/navbar";
+import Link from "next/link";
+import { ArrowRight, CheckCircle2, Heart, Lock, MessageCircle, Newspaper, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { Footer } from "@/components/layout/footer";
+import { Navbar } from "@/components/layout/navbar";
+import { routes } from "@/config/routes";
+import { universityConfig } from "@/config/university";
 
-interface Profile {
-  id: string;
-  name: string;
-  age: number;
-  dept: string;
-  year: string;
-  avatarBg: string;
-  bio: string;
-  tags: string[];
-  vibe: string;
-  image?: string;
-  spot?: string;
-}
+const campusImages = [
+  { src: "/campus-main.jpeg", alt: "Bahra University campus", label: "Campus" },
+  { src: "/campus-building-01.jpeg", alt: "Bahra University academic building", label: "Academic" },
+  { src: "/campus-building-02.jpeg", alt: "Bahra University campus space", label: "Campus life" },
+  { src: "/campus-building-03.jpeg", alt: "Bahra University building", label: "Student life" },
+  { src: "/campus-building-04.jpeg", alt: "Bahra University campus view", label: "Around campus" },
+  { src: "/campus-building-05.jpeg", alt: "Bahra University campus building", label: "Your university" },
+];
 
-const DEMO_PROFILES: Profile[] = [
-  {
-    id: "1",
-    name: "Riya Sharma",
-    age: 20,
-    dept: "BCA",
-    year: "'26",
-    avatarBg: "from-emerald-100 to-teal-50",
-    bio: "Building Next.js apps & looking for someone to grab canteen chai with ☕",
-    tags: ["React", "UI/UX", "Badminton", "Midnight Maggi"],
-    vibe: "Chai & Code",
-    image: "/images/buphoto.jpeg",
-    spot: "Cafeteria Block",
-  },
-  {
-    id: "2",
-    name: "Aman Verma",
-    age: 21,
-    dept: "B.Tech CSE",
-    year: "'25",
-    avatarBg: "from-orange-100 to-amber-50",
-    bio: "DSA grind during the day, campus acoustic sessions at night 🎸",
-    tags: ["Guitar", "Competitive Coding", "Anime", "AI"],
-    vibe: "Acoustic Vibe",
-    image: "/images/buphoto.jpeg",
-    spot: "Block 2 Lab",
-  },
-  {
-    id: "3",
-    name: "Simran Kaur",
-    age: 19,
-    dept: "BBA",
-    year: "'27",
-    avatarBg: "from-blue-100 to-indigo-50",
-    bio: "Looking for a study buddy for library prep & hackathon pitch decks 📚",
-    tags: ["Marketing", "Debate Club", "Coffee", "Startups"],
-    vibe: "Study Partner",
-    image: "/images/buphoto.jpeg",
-    spot: "Central Library",
-  },
+const features = [
+  { icon: ShieldCheck, title: "Student verification", text: "Google sign-in or a valid Bahra University email keeps access tied to the campus." },
+  { icon: Users, title: "Discover", text: "Browse student profiles using campus-aware discovery and your preferences." },
+  { icon: Heart, title: "Likes & matches", text: "Like people you are interested in. Mutual likes become matches." },
+  { icon: MessageCircle, title: "Messages", text: "Take a match into a direct conversation with a simple campus-first chat flow." },
+  { icon: Sparkles, title: "Extrovert", text: "Use the wider social mode when you want to meet more people around campus." },
+  { icon: Lock, title: "Ghost mode & safety", text: "Control visibility, block users, report problems, and keep your experience private." },
+  { icon: Newspaper, title: "Campus news & feedback", text: "A small place for DateBu updates, announcements, and student feedback." },
+  { icon: CheckCircle2, title: "Profile & preferences", text: "Build your profile, manage discovery preferences, and keep your campus identity current." },
 ];
 
 export default function HomePage() {
-  const [deck, setDeck] = useState<Profile[]>(DEMO_PROFILES);
-  const [matchUser, setMatchUser] = useState<Profile | null>(null);
-
-  const handleSwipe = async (profileId: string, direction: "left" | "right") => {
-    const swipedCard = deck.find((p) => p.id === profileId);
-
-    if (direction === "right" && swipedCard) {
-      setMatchUser(swipedCard);
-      try {
-        const confetti = (await import("canvas-confetti")).default;
-        confetti({
-          particleCount: 70,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ["#10B981", "#F97316", "#3B82F6", "#F43F5E"],
-        });
-      } catch {}
-    }
-
-    setDeck((prev) => prev.filter((p) => p.id !== profileId));
-  };
-
   return (
-<div className="relative min-h-screen flex flex-col bg-[#fafafa] text-zinc-900 selection:bg-emerald-500 selection:text-white overflow-x-hidden font-sans">
+    <div className="min-h-screen overflow-x-hidden bg-[#fafafa] text-zinc-950 antialiased">
       <Navbar />
 
-      <main className="flex-1 flex flex-col space-y-16 sm:space-y-24">
-
-        {/* ================= HERO SECTION WITH GENEROUS BREATHING ROOM ================= */}
-        <section className="relative min-h-[85vh] flex items-center justify-center px-6 pt-32 pb-12 overflow-hidden">
-
-          {/* Ambient Lighting Engine for Pure White Canvas */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-            <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[550px] bg-gradient-to-tr from-emerald-200/40 via-orange-200/30 to-blue-200/40 rounded-full blur-[130px]" />
-            <div className="absolute top-1/2 -left-40 w-[400px] h-[400px] bg-emerald-100/60 rounded-full blur-[120px]" />
-            <div className="absolute bottom-10 -right-40 w-[450px] h-[450px] bg-blue-100/60 rounded-full blur-[130px]" />
-          </div>
-
-          <div className="relative z-10 max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-
-            {/* Left Column: Hero Copy */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="lg:col-span-7 flex flex-col items-start gap-6 text-left"
-            >
-              {/* Verified Pill */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700 shadow-xs backdrop-blur-md">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-                </span>
-                A Student Project for {universityConfig.name}
+      <main>
+        <section className="relative overflow-hidden px-5 pb-16 pt-32 sm:px-8 sm:pb-24 sm:pt-40">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.13),transparent_42%)]" aria-hidden="true" />
+          <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-[11px] font-black text-emerald-700">
+                <span className="h-2 w-2 rounded-full bg-emerald-600" />
+                A student project for {universityConfig.name}
               </div>
-
-              {/* Headline */}
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] text-zinc-950">
-                Your university. <br />
-                <span className="bg-gradient-to-r from-emerald-600 via-orange-500 to-blue-600 bg-clip-text text-transparent">
-                  Your people.
-                </span>
+              <h1 className="mt-5 max-w-3xl text-4xl font-black tracking-tight sm:text-6xl lg:text-7xl">
+                Your university.
+                <br />
+                <span className="text-emerald-600">Your people.</span>
               </h1>
-
-              {/* Subheading */}
-              <p className="text-base sm:text-lg text-zinc-600 max-w-xl font-normal leading-relaxed">
-                A student-only space, to find genuine friendships, study groups, and dates without outsiders or fake profiles.
+              <p className="mt-5 max-w-xl text-base leading-7 text-zinc-600 sm:text-lg">
+                {universityConfig.appName} is a student-only space for genuine campus connections — friendships, study groups, dates, matches, and conversations without random outsiders.
               </p>
 
-              {/* CTA Action Bar */}
-              <div className="flex flex-wrap items-center gap-4 pt-3 w-full sm:w-auto">
-                <Link
-                  href={routes.register}
-                  className="group relative inline-flex items-center justify-center px-8 py-4 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-full shadow-[0_4px_20px_rgba(16,185,129,0.25)] hover:shadow-[0_6px_25px_rgba(16,185,129,0.35)] hover:scale-105 active:scale-95 transition-all duration-300"
-                >
-                  Join with Student Email
-                  <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link href={routes.register} className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-3.5 text-sm font-black text-white shadow-md shadow-emerald-600/20 transition-transform hover:-translate-y-0.5 hover:bg-emerald-700 active:translate-y-0">
+                  Join with Student Email <ArrowRight className="h-4 w-4" />
                 </Link>
-
-                <Link
-                  href={routes.safety}
-                  className="inline-flex items-center justify-center px-7 py-4 text-sm font-medium text-zinc-700 bg-white border border-zinc-200 rounded-full hover:bg-zinc-50 hover:text-zinc-950 transition-all shadow-xs"
-                >
-                  <ShieldCheck className="mr-2 w-4 h-4 text-emerald-600" />
-                  How It Stays Safe
+                <Link href={routes.about} className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-6 py-3.5 text-sm font-bold text-zinc-700 shadow-sm hover:border-emerald-200 hover:text-emerald-700">
+                  See the campus
                 </Link>
               </div>
 
-              {/* Micro Metrics */}
-              <div className="flex flex-wrap items-center gap-6 pt-6 border-t border-zinc-200 text-xs text-zinc-600 w-full">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Verified Domain Auth</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-orange-600" />
-                  <span>Campus Direct Matching</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-blue-600" />
-                  <span>Ghost Mode &amp; Safety</span>
+              <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 border-t border-zinc-200 pt-5 text-xs font-semibold text-zinc-600">
+                <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Verified access</span>
+                <span className="inline-flex items-center gap-2"><Heart className="h-4 w-4 text-rose-500" /> Campus matching</span>
+                <span className="inline-flex items-center gap-2"><Lock className="h-4 w-4 text-blue-600" /> Privacy controls</span>
+              </div>
+            </div>
+
+            <div className="relative mx-auto w-full max-w-lg">
+              <div className="overflow-hidden rounded-[30px] border border-zinc-200 bg-white p-2 shadow-[0_24px_70px_rgba(0,0,0,0.10)]">
+                <div className="relative aspect-[4/3] overflow-hidden rounded-[24px]">
+                  <Image src="/campus-main.jpeg" alt="Bahra University campus" fill priority sizes="(max-width: 1024px) 100vw, 45vw" className="object-cover" />
+                  <div className="absolute inset-x-3 bottom-3 rounded-2xl bg-black/55 px-4 py-3 text-white backdrop-blur-sm">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/70">Real campus</p>
+                    <p className="mt-1 text-sm font-bold">The people you see here are the people you can meet there.</p>
+                  </div>
                 </div>
               </div>
-            </motion.div>
-
-            {/* Right Column: Stacked Interactive Card Stack (Smooth Deck Transitions) */}
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.15 }}
-              className="lg:col-span-5 flex justify-center items-center relative py-6"
-            >
-              <div className="relative w-full max-w-[340px] h-[480px] flex items-center justify-center">
-                {deck.length > 0 ? (
-                  deck.map((profile, index) => {
-                    const isTop = index === deck.length - 1;
-                    const isSecond = index === deck.length - 2;
-
-                    return (
-                      <InteractiveCard
-                        key={profile.id}
-                        profile={profile}
-                        isTop={isTop}
-                        isSecond={isSecond}
-                        onSwipe={(dir) => handleSwipe(profile.id, dir)}
-                      />
-                    );
-                  })
-                ) : (
-                  <motion.div 
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="absolute inset-0 rounded-3xl border border-zinc-200 bg-white p-8 flex flex-col items-center justify-center text-center shadow-xl space-y-3 z-20"
-                  >
-                    <Sparkles className="w-12 h-12 text-orange-500 animate-bounce mb-2" />
-                    <h3 className="text-xl font-bold text-zinc-900">All Caught Up!</h3>
-                    <p className="text-xs text-zinc-500 max-w-[210px] leading-relaxed">
-                      You&apos;ve checked all campus profiles in this demo batch.
-                    </p>
-                    <button
-                      onClick={() => setDeck(DEMO_PROFILES)}
-                      className="mt-4 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" /> Reset Demo Cards
-                    </button>
-                  </motion.div>
-                )}
-              </div>
-            </motion.div>
-
+            </div>
           </div>
         </section>
 
-        {/* ================= CAMPUS MARQUEE ================= */}
-        <div className="w-full overflow-hidden border-y border-zinc-200/80 py-5 bg-white/70 backdrop-blur-md">
-          <div className="animate-marquee gap-4 flex items-center">
-            {[...marqueeItems, ...marqueeItems].map((item, idx) => (
-              <span
-                key={idx}
-                className="text-xs font-medium px-4 py-2 rounded-full bg-white border border-zinc-200/90 text-zinc-700 whitespace-nowrap shadow-xs"
-              >
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* ================= STACKED 1-BY-1 FEATURE SHOWCASE (NO SQUEEZED COLUMNS) ================= */}
-        <section className="relative px-6 py-8 max-w-2xl mx-auto w-full space-y-8">
-
-          <div className="text-center space-y-2">
-            <span className="text-xs uppercase tracking-widest text-emerald-600 font-bold">THE CAMPUS, BUT ONLINE</span>
-            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-zinc-950">
-              Engineered for real campus life.
-            </h2>
-            <p className="text-zinc-600 text-xs sm:text-sm leading-relaxed max-w-md mx-auto">
-          No random outsiders. Tap on any feature card below to experience direct campus interactions.
-            </p>
-          </div>
-
-          <div className="flex flex-col space-y-5 w-full">
-
-            {/* Feature Card 1: 100% University Verified */}
-            <div className="w-full rounded-3xl border border-zinc-200 bg-white p-6 sm:p-7 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all duration-300 flex flex-col space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-xs">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <div className="space-y-1.5">
-                <h3 className="text-xl font-bold text-zinc-900">Campus email check.</h3>
-                <p className="text-zinc-600 text-xs sm:text-sm leading-relaxed">
-                  Zero fake accounts or bots. New sign-ups use a valid student email and confirmation flow so campus access stays real.
-                </p>
-              </div>
-              <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-50 border border-zinc-200 w-fit">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-                  <span className="text-xs font-mono text-emerald-700 font-semibold">Active</span>
-                </div>
-                <Link
-                  href={routes.register}
-                  className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
-                >
-                  Verify Now <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
+        <section className="border-y border-zinc-200/80 bg-white px-5 py-14 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-5xl">
+            <div className="max-w-2xl">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600">The campus, but online</p>
+              <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Everything we have built around student connections.</h2>
+              <p className="mt-3 text-sm leading-6 text-zinc-600">The important parts are deliberately simple: get verified, build your profile, discover people, match, talk, and control who can reach you.</p>
             </div>
 
-            {/* Feature Card 2: Campus Chat Hub */}
-            <div className="w-full rounded-3xl border border-zinc-200 bg-white p-6 sm:p-7 shadow-xs hover:shadow-md hover:border-blue-300 transition-all duration-300 flex flex-col space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 shadow-xs">
-                <MessageSquare className="w-6 h-6" />
-              </div>
-              <div className="space-y-1.5">
-                <h3 className="text-xl font-bold text-zinc-900">Instant Campus Chat</h3>
-                <p className="text-zinc-600 text-xs sm:text-sm leading-relaxed">
-                  Connect with matches instantly using student icebreakers, study prompts, and canteen chai plans.
-                </p>
-              </div>
-              <Link
-                href={routes.login}
-                className="w-full py-3 px-4 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
-              >
-                Open Chats <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+            <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {features.map(({ icon: Icon, title, text }) => (
+                <article key={title} className="rounded-3xl border border-zinc-200 bg-[#fafafa] p-5 transition-transform hover:-translate-y-0.5">
+                  <div className="grid h-10 w-10 place-items-center rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-700">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-4 text-sm font-black">{title}</h3>
+                  <p className="mt-2 text-xs leading-5 text-zinc-600">{text}</p>
+                </article>
+              ))}
             </div>
-
-{/* Feature Card 3: DateBu Modes */}
-<div className="w-full rounded-3xl border border-zinc-200 bg-white p-6 sm:p-7 shadow-xs hover:shadow-md hover:border-orange-300 transition-all duration-300 flex flex-col space-y-4">
-  <div className="w-12 h-12 rounded-2xl bg-orange-100 border border-orange-200 flex items-center justify-center text-orange-700 shadow-xs">
-    <Coffee className="w-6 h-6" />
-  </div>
-
-  <div className="space-y-1.5">
-    <h3 className="text-xl font-bold text-zinc-900">
-      Find Your Vibe
-    </h3>
-
-    <p className="text-zinc-600 text-xs sm:text-sm leading-relaxed">
-      Choose how you want to connect. Keep it mysterious, go random,
-      find your vibe, or team up for the next study grind.
-    </p>
-  </div>
-
-  <div className="grid grid-cols-2 gap-2.5 pt-1">
-    <button type="button" disabled className="group flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2.5 text-xs font-semibold text-purple-700 disabled:cursor-not-allowed">
-      <Lock className="w-3.5 h-3.5" />
-      Blind Date
-      Coming Soon
-    </button>
-
-    <button type="button" disabled className="group flex items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs font-semibold text-orange-700 disabled:cursor-not-allowed">
-      <Lock className="w-3.5 h-3.5" />
-      Random Rush
-      Coming Soon
-    </button>
-
-    <button type="button" disabled className="group flex items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed">
-      <Lock className="w-3.5 h-3.5" />
-      Vibe Matcher
-      Coming Soon
-    </button>
-
-    <button type="button" disabled className="group flex items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs font-semibold text-emerald-700 disabled:cursor-not-allowed">
-      <Lock className="w-3.5 h-3.5" />
-      Study Buddy
-      Coming Soon
-    </button>
-  </div>
-</div>
-
-            {/* Feature Card 4: Safe Space & Ghost Mode */}
-            <div className="w-full rounded-3xl border border-zinc-200 bg-white p-6 sm:p-7 shadow-xs hover:shadow-md hover:border-emerald-300 transition-all duration-300 flex flex-col space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-xs">
-                <Lock className="w-6 h-6" />
-              </div>
-              <div className="space-y-1.5">
-                <h3 className="text-xl font-bold text-zinc-900">Safe Space &amp; Ghost Mode</h3>
-                <p className="text-zinc-600 text-xs sm:text-sm leading-relaxed">
-                  Toggle ghost mode during exams, control who sees your department, and block or report in 1-tap.
-                </p>
-              </div>
-              <div className="flex items-center justify-between gap-2 text-xs text-zinc-600 bg-zinc-50 p-3.5 rounded-2xl border border-zinc-200">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Lock className="w-4 h-4 text-amber-600" />
-                  Premium feature
-                </span>
-                <span className="text-amber-700 font-semibold">Coming Soon</span>
-              </div>
-            </div>
-
           </div>
         </section>
 
+        <section className="px-5 py-14 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-5xl">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600">Built for {universityConfig.name}</p>
+                <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">You should recognize the place.</h2>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-600">These are real campus views used to make the product feel like a university space, not another generic social app.</p>
+              </div>
+              <Link href={routes.about} className="inline-flex w-fit items-center gap-1.5 text-xs font-black text-emerald-700 hover:text-emerald-800">Open About <ArrowRight className="h-3.5 w-3.5" /></Link>
+            </div>
+
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {campusImages.map((image, index) => (
+                <figure key={image.src} className={`group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white ${index === 0 ? "col-span-2 sm:col-span-2" : ""}`}>
+                  <div className="relative aspect-[4/3]">
+                    <Image src={image.src} alt={image.alt} fill sizes={index === 0 ? "(max-width: 640px) 100vw, 66vw" : "(max-width: 640px) 50vw, 33vw"} loading={index === 0 ? "eager" : "lazy"} className="object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
+                    <figcaption className="absolute bottom-2 left-2 rounded-xl bg-black/45 px-2.5 py-1.5 text-[10px] font-bold text-white backdrop-blur-sm">{image.label}</figcaption>
+                  </div>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="px-5 pb-20 sm:px-8">
+          <div className="mx-auto max-w-5xl rounded-[30px] border border-zinc-200 bg-white p-7 shadow-sm sm:p-10">
+            <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600">Start simple</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Verify. Set up your profile. Find your people.</h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600">Google is available for students without a university mailbox. University-email accounts can use the direct email flow. Completed profiles go straight into the campus app.</p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Link href={routes.register} className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 text-xs font-black text-white hover:bg-emerald-700">Create account <ArrowRight className="h-3.5 w-3.5" /></Link>
+                <Link href={routes.safety} className="inline-flex items-center gap-2 rounded-full border border-zinc-200 px-5 py-3 text-xs font-bold text-zinc-700 hover:border-emerald-200 hover:text-emerald-700"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Safety</Link>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
-      {/* Match Celebration Dialog */}
-      <AnimatePresence>
-        {matchUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.85, opacity: 0, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 350 }}
-              className="relative w-full max-w-sm rounded-3xl bg-white border border-zinc-200 p-7 text-center shadow-2xl overflow-hidden space-y-4"
-            >
-              <button
-                onClick={() => setMatchUser(null)}
-                className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:text-zinc-700 bg-zinc-100 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5" /> Campus Connection!
-              </div>
-
-              <h2 className="text-3xl font-extrabold text-zinc-950 tracking-tight">
-                It&apos;s a Match!
-              </h2>
-              <p className="text-xs text-zinc-600">
-                You and <span className="text-emerald-600 font-semibold">{matchUser.name}</span> liked each other.
-              </p>
-
-              <div className="flex items-center justify-center -space-x-4 py-2">
-                <div className="w-20 h-20 rounded-full border-4 border-white bg-zinc-100 flex items-center justify-center text-sm font-bold text-zinc-900 shadow-md">
-                  You
-                </div>
-                <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center z-10 shadow-md">
-                  <Heart className="w-5 h-5 fill-current" />
-                </div>
-                <div className="w-20 h-20 rounded-full border-4 border-white bg-gradient-to-tr from-emerald-500 to-blue-500 flex items-center justify-center text-sm font-bold text-white shadow-md">
-                  {matchUser.name.split(" ")[0]}
-                </div>
-              </div>
-
-              <div className="space-y-2.5 pt-2">
-                <Link
-                  href={routes.register}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all active:scale-95"
-                >
-                  <MessageCircle className="w-4 h-4" /> Send Message
-                </Link>
-                <button
-                  onClick={() => setMatchUser(null)}
-                  className="w-full py-2 text-xs text-zinc-500 hover:text-zinc-900 transition-colors cursor-pointer"
-                >
-                  Keep Swiping
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
       <Footer />
-
-
     </div>
   );
 }
-
-// ---------------- STACKED INTERACTIVE CARD COMPONENT WITH SMOOTH TRANSITIONS ----------------
-
-function InteractiveCard({
-  profile,
-  isTop,
-  isSecond,
-  onSwipe,
-}: {
-  profile: Profile;
-  isTop: boolean;
-  isSecond: boolean;
-  onSwipe: (dir: "left" | "right") => void;
-}) {
-  const x = useMotionValue(0);
-  const rotate = useTransform(x, [-150, 150], [-18, 18]);
-
-  // Dynamic feedback indicators
-  const likeOpacity = useTransform(x, [15, 80], [0, 1]);
-  const passOpacity = useTransform(x, [-80, -15], [1, 0]);
-
-  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (info.offset.x > 80) {
-      onSwipe("right");
-    } else if (info.offset.x < -80) {
-      onSwipe("left");
-    }
-  };
-
-  return (
-    <motion.div
-      style={{
-        x: isTop ? x : 0,
-        rotate: isTop ? rotate : 0,
-      }}
-      animate={{
-        scale: isTop ? 1 : isSecond ? 0.96 : 0.92,
-        y: isTop ? 0 : isSecond ? 14 : 28,
-        opacity: isTop ? 1 : isSecond ? 0.75 : 0.35,
-      }}
-      transition={{ type: "spring", damping: 25, stiffness: 320 }}
-      drag={isTop ? "x" : false}
-      dragConstraints={{ left: 0, right: 0 }}
-      onDragEnd={handleDragEnd}
-      className={`absolute inset-0 select-none ${isTop ? "cursor-grab active:cursor-grabbing z-20" : "pointer-events-none z-10"}`}
-    >
-      <div className="relative h-full w-full rounded-3xl bg-white border border-zinc-200/90 p-5 shadow-[0_16px_40px_rgba(0,0,0,0.08)] flex flex-col justify-between overflow-hidden">
-
-        {/* Swipe Indicators */}
-        {isTop && (
-          <>
-            <motion.div
-              style={{ opacity: likeOpacity }}
-              className="absolute top-4 left-4 z-30 px-3 py-1 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-700 font-extrabold text-xs uppercase tracking-wider shadow-xs"
-            >
-              Like
-            </motion.div>
-            <motion.div
-              style={{ opacity: passOpacity }}
-              className="absolute top-4 right-4 z-30 px-3 py-1 rounded-xl bg-orange-100 border border-orange-300 text-orange-700 font-extrabold text-xs uppercase tracking-wider shadow-xs"
-            >
-              Pass
-            </motion.div>
-          </>
-        )}
-
-        {/* Card Visual Hero Area */}
-        <div className={`relative h-56 w-full rounded-2xl bg-gradient-to-br ${profile.avatarBg} overflow-hidden flex flex-col justify-end p-4 border border-zinc-200/60`}>
-          {profile.image && (
-            <>
-              <Image
-                src={profile.image}
-                alt={profile.name}
-                fill
-                priority
-                className="object-cover object-center filter brightness-95"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-            </>
-          )}
-
-          <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5 z-20">
-            <div className="px-2.5 py-0.5 rounded-full bg-rose-500/90 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest shadow-sm">
-              Demo Profile
-            </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur-md border border-zinc-200 text-[10px] font-semibold text-emerald-700 shadow-xs">
-              <ShieldCheck className="w-3 h-3" /> Verified
-            </div>
-          </div>
-
-          <div className="z-10">
-            <div className="flex items-center gap-2">
-              <h3 className="text-xl font-bold text-white">{profile.name}, {profile.age}</h3>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/80 text-white shadow-xs">
-                {profile.dept} {profile.year}
-              </span>
-            </div>
-            <p className="text-xs text-zinc-200 mt-1 line-clamp-2 leading-relaxed">
-              {profile.bio}
-            </p>
-          </div>
-        </div>
-
-        {/* Interest Tags */}
-        <div className="flex flex-wrap gap-1.5 my-2">
-          {profile.tags.map((tag) => (
-            <span
-              key={tag}
-              className="text-[11px] px-2.5 py-1 rounded-full bg-zinc-100 border border-zinc-200 text-zinc-700 font-medium"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-
-        {/* Action Controls */}
-        <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
-          <button
-            type="button"
-            onClick={() => onSwipe("left")}
-            className="w-11 h-11 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-500 hover:text-orange-600 hover:border-orange-300 transition-all active:scale-90 cursor-pointer shadow-xs"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
-          <span className="text-[11px] font-medium text-zinc-400">
-            Drag card or tap 
-          </span>
-
-          <button
-            type="button"
-            onClick={() => onSwipe("right")}
-            className="w-12 h-12 rounded-full bg-emerald-600 hover:bg-emerald-700 flex items-center justify-center text-white shadow-md shadow-emerald-600/25 transition-all hover:scale-105 active:scale-90 cursor-pointer"
-          >
-            <Heart className="w-5 h-5 fill-current" />
-          </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-const marqueeItems = [
-  "🎓 Campus community",
-  "☕ Canteen Maggi & Chai Breaks",
-  "💻 Midnight Hackathons & Devs",
-  "🏸 Campus Badminton & Sports",
-  "📚 Central Library Study Groups",
-  "🎸 Acoustic & Music Sessions",
-  "🛡️ Zero Fake Profiles",
-  "🎯 Department & Batch Filtering",
-];
