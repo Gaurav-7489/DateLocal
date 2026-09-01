@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { AppNavbar } from "@/components/layout/app-navbar";
 import { NotificationListener } from "@/components/notifications/notification-listener";
+import { PushNotifications } from "@/components/notifications/push-notifications";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { isSuperAdminUser } from "@/types/roles";
 
@@ -46,6 +47,7 @@ export default async function AppLayout({
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-background overscroll-none select-none">
       <NotificationListener currentUserId={user.id} />
+      <PushNotifications />
       <PwaInstallPrompt />
 
       <AppNavbar
