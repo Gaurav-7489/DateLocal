@@ -1,29 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check, Download, Loader2, Share2 } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+function isStandalone() {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+
+function isIOS() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window);
+}
+
 export function InstallPwaButton() {
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [status, setStatus] = useState<"idle" | "launching" | "installed">("idle");
-  const [isStandalone, setIsStandalone] = useState(false);
+  const [ios, setIos] = useState(false);
 
   useEffect(() => {
-    if (
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true
-    ) {
-      setIsStandalone(true);
-    }
+    setIos(isIOS());
+    if (isStandalone()) setStatus("installed");
 
-    const handleBeforeInstall = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    const handleBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      setDeferredPrompt(event as BeforeInstallPromptEvent);
     };
 
     const handleAppInstalled = () => {
@@ -40,99 +49,55 @@ export function InstallPwaButton() {
     };
   }, []);
 
-  if (isStandalone || (!deferredPrompt && status !== "launching")) {
-    return null;
-  }
-
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (ios || !deferredPrompt || status === "launching") return;
 
     setStatus("launching");
-
     try {
       await deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
-
-      if (choice.outcome === "accepted") {
-        setStatus("installed");
-      } else {
-        setStatus("idle");
-      }
+      setStatus(choice.outcome === "accepted" ? "installed" : "idle");
     } catch {
       setStatus("idle");
+    } finally {
+      setDeferredPrompt(null);
     }
   };
 
+  if (status === "installed") {
+    return (
+      <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/95 px-3 py-2 text-[10px] font-bold text-emerald-700 shadow-md backdrop-blur-md dark:border-emerald-800 dark:bg-zinc-950/95 dark:text-emerald-300">
+        <Check className="h-3.5 w-3.5" />
+        Installed
+      </div>
+    );
+  }
+
+  if (ios) {
+    return (
+      <div className="inline-flex max-w-[250px] items-center gap-2 rounded-full border border-border bg-white/95 px-3 py-2 text-[10px] font-semibold text-zinc-700 shadow-md backdrop-blur-md">
+        <Share2 className="h-3.5 w-3.5 text-blue-600" />
+        Share → Add to Home Screen
+      </div>
+    );
+  }
+
+  if (!deferredPrompt && status !== "launching") return null;
+
   return (
     <button
-      onClick={handleInstallClick}
-      disabled={status === "launching" || status === "installed"}
+      type="button"
+      onClick={() => void handleInstallClick()}
+      disabled={status === "launching"}
       aria-label="Install DateBu App"
-      className="group relative flex items-center gap-2 overflow-hidden rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-600 transition-all duration-300 hover:bg-emerald-500/20 active:scale-95 disabled:pointer-events-none dark:text-emerald-400"
+      className="group inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-white/95 px-3.5 py-2.5 text-[10px] font-bold text-emerald-700 shadow-md backdrop-blur-md transition-[background-color,transform,box-shadow] duration-150 hover:bg-emerald-50 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70 dark:bg-zinc-950/95 dark:text-emerald-300"
     >
-      {status === "launching" && (
-        <span className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent transition-transform animate-[gpu-shimmer_1.2s_infinite]" />
+      {status === "launching" ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Download className="h-3.5 w-3.5 transition-transform group-hover:translate-y-0.5" />
       )}
-
-      <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
-        {status === "idle" && (
-          <svg
-            className="h-4 w-4 transition-transform group-hover:translate-y-0.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-        )}
-
-        {status === "launching" && (
-          <svg
-            className="h-4 w-4 animate-spin text-emerald-500"
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v8H4z"
-            />
-          </svg>
-        )}
-
-        {status === "installed" && (
-          <svg
-            className="h-4 w-4 scale-110 text-emerald-500 transition-transform animate-bounce"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M20 6L9 17l-5-5" />
-          </svg>
-        )}
-      </span>
-
-      <span className="relative font-medium tracking-wide">
-        {status === "idle" && "Install DateBu"}
-        {status === "launching" && "Opening installer..."}
-        {status === "installed" && "App Ready!"}
-      </span>
+      {status === "launching" ? "Opening installer…" : "Install DateBu"}
     </button>
   );
 }
