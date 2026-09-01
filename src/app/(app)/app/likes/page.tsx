@@ -8,7 +8,192 @@ import { routes } from "@/config/routes";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import { calculateAge } from "@/lib/utils";
 
-type Liker={liker_id:string;liked_at:string;display_name:string;date_of_birth:string;department:string;academic_year:string;profile_photos:{storage_path:string;is_primary:boolean;display_order:number}[]};
-type CountDb={from:(table:"likes")=>{select:(columns:string,options?:{count?:"exact";head?:boolean})=>{eq:(column:string,value:string):Promise<{count:number|null}>}}};
-export const metadata:Metadata={title:"Who Liked You | DateBu"};export const dynamic="force-dynamic";
-export default async function LikesPage(){const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect(routes.login);const [{data:subscription},{count}]=await Promise.all([supabase.from("subscriptions").select("plan,status,current_period_end").eq("user_id",user.id).maybeSingle(),(supabase as unknown as CountDb).from("likes").select("id",{count:"exact",head:true}).eq("liked_id",user.id)]);const isPro=subscription?.plan==="pro"&&["active","trialing"].includes(subscription.status)&&!!subscription.current_period_end&&new Date(subscription.current_period_end).getTime()>Date.now();const total=count??0;if(!isPro)return <main className="mx-auto max-w-md px-3.5 py-4 pb-24 font-sans"><div className="flex items-center gap-3 px-1"><Link href={routes.app} className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs active:scale-95"><ArrowLeft className="h-4 w-4"/></Link><div><p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">Your audience</p><h1 className="text-xl font-black text-foreground">Likes received</h1></div></div><section className="mt-4 rounded-[2rem] border border-rose-200/70 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-6 text-center"><Heart className="mx-auto h-7 w-7 text-rose-500 fill-current"/><p className="mt-4 text-4xl font-black text-foreground">{total}</p><p className="mt-1 text-xs font-bold text-muted-foreground">people have liked you</p><div className="mx-auto mt-5 max-w-xs rounded-2xl border border-white/80 bg-white/70 p-4"><Lock className="mx-auto h-4 w-4 text-rose-500"/><p className="mt-2 text-xs font-black text-foreground">See who they are</p><p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">DateBu Extrovert unlocks the profiles behind your incoming likes.</p></div><Link href={routes.extrovert} className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-xs font-black text-white"><Sparkles className="h-3.5 w-3.5"/>Unlock with Extrovert</Link></section></main>;const {data,error}=await supabase.rpc("get_people_who_liked_me",{p_limit:100});if(error)console.error("Failed to load incoming likes:",error);const likers=(data??[]) as Liker[];return <main className="mx-auto max-w-md px-3.5 py-4 pb-24 font-sans"><div className="flex items-center gap-3 px-1"><Link href={routes.app} className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs active:scale-95"><ArrowLeft className="h-4 w-4"/></Link><div><p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">Extrovert insights</p><h1 className="text-xl font-black text-foreground">Who liked you</h1></div></div><div className="mt-4 space-y-2">{likers.map(l=>{const photo=[...(l.profile_photos??[])].sort((a,b)=>Number(b.is_primary)-Number(a.is_primary)||a.display_order-b.display_order)[0];const photoUrl=getProfilePhotoUrl(photo?.storage_path,160);const age=calculateAge(l.date_of_birth);return <Link key={l.liker_id} href={`${routes.profileView}/${l.liker_id}`} className="flex items-center gap-3 rounded-3xl border border-border bg-card p-3 active:scale-[.99]"><div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-muted">{photoUrl?<Image src={photoUrl} alt={l.display_name} fill className="object-cover" sizes="56px"/>:<div className="flex h-full items-center justify-center font-black text-rose-600">{l.display_name?.charAt(0)??"?"}</div>}</div><div className="min-w-0 flex-1"><div className="flex items-center gap-1.5"><p className="truncate text-sm font-black text-foreground">{l.display_name}{age!==null?`, ${age}`:""}</p><ShieldCheck className="h-3.5 w-3.5 text-emerald-600"/></div><p className="truncate text-[10px] text-muted-foreground">{l.department} · {l.academic_year}</p><p className="mt-1 text-[9px] font-semibold text-rose-600">Liked you</p></div></Link>})}{likers.length===0&&<div className="rounded-3xl border border-dashed border-border bg-card p-8 text-center"><Heart className="mx-auto h-5 w-5 text-muted-foreground"/><p className="mt-3 text-sm font-black text-foreground">No likes yet</p><p className="mt-1 text-xs text-muted-foreground">When someone likes you, they&apos;ll show up here.</p></div>}</div></main>}
+type Liker = {
+  liker_id: string;
+  liked_at: string;
+  display_name: string;
+  date_of_birth: string;
+  department: string;
+  academic_year: string;
+  profile_photos: {
+    storage_path: string;
+    is_primary: boolean;
+    display_order: number;
+  }[];
+};
+
+type CountDb = {
+  from: (table: "likes") => {
+    select: (
+      columns: string,
+      options?: { count?: "exact"; head?: boolean }
+    ) => {
+      eq: (
+        column: string,
+        value: string
+      ) => Promise<{ count: number | null }>;
+    };
+  };
+};
+
+export const metadata: Metadata = { title: "Who Liked You | DateBu" };
+export const dynamic = "force-dynamic";
+
+export default async function LikesPage() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect(routes.login);
+
+  const [{ data: subscription }, { count }] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("plan,status,current_period_end")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    (supabase as unknown as CountDb)
+      .from("likes")
+      .select("id", { count: "exact", head: true })
+      .eq("liked_id", user.id),
+  ]);
+
+  const isPro =
+    subscription?.plan === "pro" &&
+    ["active", "trialing"].includes(subscription.status) &&
+    !!subscription.current_period_end &&
+    new Date(subscription.current_period_end).getTime() > Date.now();
+
+  const total = count ?? 0;
+
+  if (!isPro) {
+    return (
+      <main className="mx-auto max-w-md px-3.5 py-4 pb-24 font-sans">
+        <div className="flex items-center gap-3 px-1">
+          <Link
+            href={routes.app}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs active:scale-95"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <div>
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">
+              Your audience
+            </p>
+            <h1 className="text-xl font-black text-foreground">Likes received</h1>
+          </div>
+        </div>
+
+        <section className="mt-4 rounded-[2rem] border border-rose-200/70 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-6 text-center">
+          <Heart className="mx-auto h-7 w-7 fill-current text-rose-500" />
+          <p className="mt-4 text-4xl font-black text-foreground">{total}</p>
+          <p className="mt-1 text-xs font-bold text-muted-foreground">
+            people have liked you
+          </p>
+          <div className="mx-auto mt-5 max-w-xs rounded-2xl border border-white/80 bg-white/70 p-4">
+            <Lock className="mx-auto h-4 w-4 text-rose-500" />
+            <p className="mt-2 text-xs font-black text-foreground">See who they are</p>
+            <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
+              DateBu Extrovert unlocks the profiles behind your incoming likes.
+            </p>
+          </div>
+          <Link
+            href={routes.extrovert}
+            className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-xs font-black text-white"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Unlock with Extrovert
+          </Link>
+        </section>
+      </main>
+    );
+  }
+
+  const { data, error } = await supabase.rpc("get_people_who_liked_me", {
+    p_limit: 100,
+  });
+
+  if (error) console.error("Failed to load incoming likes:", error);
+
+  const likers = (data ?? []) as Liker[];
+
+  return (
+    <main className="mx-auto max-w-md px-3.5 py-4 pb-24 font-sans">
+      <div className="flex items-center gap-3 px-1">
+        <Link
+          href={routes.app}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs active:scale-95"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
+        <div>
+          <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">
+            Extrovert insights
+          </p>
+          <h1 className="text-xl font-black text-foreground">Who liked you</h1>
+        </div>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {likers.map((liker) => {
+          const photo = [...(liker.profile_photos ?? [])]
+            .sort(
+              (a, b) =>
+                Number(b.is_primary) - Number(a.is_primary) ||
+                a.display_order - b.display_order
+            )[0];
+          const photoUrl = getProfilePhotoUrl(photo?.storage_path, 160);
+          const age = calculateAge(liker.date_of_birth);
+
+          return (
+            <Link
+              key={liker.liker_id}
+              href={`${routes.profileView}/${liker.liker_id}`}
+              className="flex items-center gap-3 rounded-3xl border border-border bg-card p-3 active:scale-[.99]"
+            >
+              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-muted">
+                {photoUrl ? (
+                  <Image
+                    src={photoUrl}
+                    alt={liker.display_name}
+                    fill
+                    className="object-cover"
+                    sizes="56px"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center font-black text-rose-600">
+                    {liker.display_name?.charAt(0) ?? "?"}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="truncate text-sm font-black text-foreground">
+                    {liker.display_name}
+                    {age !== null ? `, ${age}` : ""}
+                  </p>
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                </div>
+                <p className="truncate text-[10px] text-muted-foreground">
+                  {liker.department} · {liker.academic_year}
+                </p>
+                <p className="mt-1 text-[9px] font-semibold text-rose-600">Liked you</p>
+              </div>
+            </Link>
+          );
+        })}
+
+        {likers.length === 0 && (
+          <div className="rounded-3xl border border-dashed border-border bg-card p-8 text-center">
+            <Heart className="mx-auto h-5 w-5 text-muted-foreground" />
+            <p className="mt-3 text-sm font-black text-foreground">No likes yet</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              When someone likes you, they&apos;ll show up here.
+            </p>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
