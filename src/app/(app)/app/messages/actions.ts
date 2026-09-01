@@ -6,106 +6,13 @@ import { routes } from "@/config/routes";
 import { isUuid } from "@/lib/validation";
 import { sendPushToUser } from "@/lib/push/server";
 
-export type SendMessageResult = {
-  error: string | null;
-  message?: {
-    id: string;
-    sender_id: string;
-    content: string;
-    created_at: string;
-  };
-};
+export type SendMessageResult={error:string|null;message?:{id:string;sender_id:string;content:string;created_at:string}};
 
-export async function sendMessage(
-  matchId: string,
-  content: string,
-): Promise<SendMessageResult> {
-  if (!isUuid(matchId)) {
-    return { error: "Invalid conversation." };
-  }
+export async function sendMessage(matchId:string,content:string):Promise<SendMessageResult>{
+ if(!isUuid(matchId))return{error:"Invalid conversation."};const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return{error:"You must be logged in to send a message."};const text=content.trim();if(!text)return{error:"Message cannot be empty."};if(text.length>2000)return{error:"Message must be 2000 characters or less."};const {data:match,error:matchError}=await supabase.from("matches").select("id,user_a,user_b").eq("id",matchId).or(`user_a.eq.${user.id},user_b.eq.${user.id}`).maybeSingle();if(matchError||!match)return{error:"This conversation is no longer available."};const otherUserId=match.user_a===user.id?match.user_b:match.user_a;const {data:blockRecord}=await supabase.from("blocks").select("id").or(`and(blocker_id.eq.${user.id},blocked_id.eq.${otherUserId}),and(blocker_id.eq.${otherUserId},blocked_id.eq.${user.id})`).maybeSingle();if(blockRecord)return{error:"You cannot message this user."};const {data:message,error}=await supabase.from("messages").insert({match_id:matchId,sender_id:user.id,content:text}).select("id,sender_id,content,created_at").single();if(error){console.error("Send message failed:",error);return{error:"Couldn't send the message. Please try again."};}revalidatePath(`${routes.messages}/${matchId}`);revalidatePath(routes.messages);await sendPushToUser(otherUserId,{title:"New message",body:text.length>120?`${text.slice(0,117)}…`:text,url:`${routes.messages}/${matchId}`,tag:`message-${matchId}`});return{error:null,message};
+}
 
-  const supabase = await createServerSupabaseClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return {
-      error: "You must be logged in to send a message.",
-    };
-  }
-
-  const text = content.trim();
-
-  if (!text) {
-    return {
-      error: "Message cannot be empty.",
-    };
-  }
-
-  if (text.length > 2000) {
-    return {
-      error: "Message must be 2000 characters or less.",
-    };
-  }
-
-  const { data: match, error: matchError } = await supabase
-    .from("matches")
-    .select("id, user_a, user_b")
-    .eq("id", matchId)
-    .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
-    .maybeSingle();
-
-  if (matchError || !match) {
-    return {
-      error: "This conversation is no longer available.",
-    };
-  }
-
-  const otherUserId = match.user_a === user.id ? match.user_b : match.user_a;
-
-  const { data: blockRecord } = await supabase
-    .from("blocks")
-    .select("id")
-    .or(`and(blocker_id.eq.${user.id},blocked_id.eq.${otherUserId}),and(blocker_id.eq.${otherUserId},blocked_id.eq.${user.id})`)
-    .maybeSingle();
-
-  if (blockRecord) {
-    return {
-      error: "You cannot message this user.",
-    };
-  }
-
-  const { data: message, error } = await supabase
-    .from("messages")
-    .insert({
-      match_id: matchId,
-      sender_id: user.id,
-      content: text,
-    })
-    .select("id, sender_id, content, created_at")
-    .single();
-
-  if (error) {
-    console.error("Send message failed:", error);
-    return {
-      error: "Couldn't send the message. Please try again.",
-    };
-  }
-
-  revalidatePath(`${routes.messages}/${matchId}`);
-  revalidatePath(routes.messages);
-
-  await sendPushToUser(otherUserId, {
-    title: "New message",
-    body: text.length > 120 ? `${text.slice(0, 117)}…` : text,
-    url: `${routes.messages}/${matchId}`,
-    tag: `message-${matchId}`,
-  });
-
-  return {
-    error: null,
-    message,
-  };
+export async function respondToSuperChat(superChatId:string,accept:boolean):Promise<{error:string|null;matchId?:string}>{
+ if(!isUuid(superChatId))return{error:"Invalid message request."};const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return{error:"You must be logged in."};const {data:request,error}=await supabase.from("superchats").select("id,sender_id,recipient_id,status,content").eq("id",superChatId).eq("recipient_id",user.id).maybeSingle();if(error||!request)return{error:"Message request is no longer available."};if(request.status!=="pending")return{error:"This message request has already been handled."};if(!accept){const {error:updateError}=await supabase.from("superchats").update({status:"declined",seen_at:new Date().toISOString()}).eq("id",superChatId);if(updateError)return{error:"Couldn't decline the request."};revalidatePath(routes.messages);return{error:null};}
+ const userA=user.id<request.sender_id?user.id:request.sender_id;const userB=user.id<request.sender_id?request.sender_id:user.id;const {data:match,error:matchError}=await supabase.from("matches").upsert({user_a:userA,user_b:userB},{onConflict:"user_a,user_b"}).select("id").single();if(matchError||!match)return{error:"Couldn't open the conversation."};const {error:updateError}=await supabase.from("superchats").update({status:"accepted",seen_at:new Date().toISOString()}).eq("id",superChatId);if(updateError)return{error:"Couldn't accept the message request."};revalidatePath(routes.messages);revalidatePath(`${routes.messages}/${match.id}`);await sendPushToUser(request.sender_id,{title:"SuperChat accepted",body:"Your message request was accepted. You can chat now.",url:`${routes.messages}/${match.id}`,tag:`superchat-${superChatId}`});return{error:null,matchId:match.id};
 }
