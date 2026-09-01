@@ -42,3 +42,5 @@ export default async function NewsPage() {
     </main>
   );
 }
+
+// Keep the campus updates page intentionally lightweight: server-render posts, hydrate only the feedback form.
