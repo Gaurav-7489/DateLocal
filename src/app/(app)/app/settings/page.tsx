@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { isUniversityEmail, universityConfig } from "@/config/university";
 import { SettingsClient } from "./settings-client";
+import { DeleteAccount } from "./delete-account";
 import { DevicePreferences } from "@/components/settings/device-preferences";
 import { signOut } from "@/app/(app)/actions";
 import {
@@ -175,6 +176,8 @@ export default async function SettingsPage() {
           }}
         />
       </div>
+
+      <DeleteAccount />
 
       <div className="rounded-3xl border border-border/80 bg-card divide-y divide-border/60 overflow-hidden shadow-xs">
         <div className="px-4 py-2.5 bg-muted/30">
