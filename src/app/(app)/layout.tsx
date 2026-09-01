@@ -4,7 +4,6 @@ import { routes } from "@/config/routes";
 import { AppNavbar } from "@/components/layout/app-navbar";
 import { NotificationListener } from "@/components/notifications/notification-listener";
 import { PushNotifications } from "@/components/notifications/push-notifications";
-import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { isSuperAdminUser } from "@/types/roles";
 
 export const dynamic = "force-dynamic";
@@ -45,10 +44,9 @@ export default async function AppLayout({
     Boolean(user.email && adminEmails.includes(user.email.toLowerCase()));
 
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-background overscroll-none select-none">
+    <div className="flex h-[100dvh] flex-col overflow-visible bg-background overscroll-none select-none">
       <NotificationListener currentUserId={user.id} />
       <PushNotifications />
-      <PwaInstallPrompt />
 
       <AppNavbar
         userEmail={user.email ?? "Unknown"}
