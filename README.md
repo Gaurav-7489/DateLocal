@@ -70,3 +70,5 @@ DateBu is a university-exclusive social/dating platform with:
 - Service role keys remain server-only
 - Profile discovery/viewing uses controlled RPCs
 - Payment fulfillment is server-side and signature verified
+
+<!-- Vercel production rebuild -->
