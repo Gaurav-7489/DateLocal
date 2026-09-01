@@ -3,7 +3,8 @@ import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { isUniversityEmail, universityConfig } from "@/config/university";
-import { SettingsClient } from "./settings-client";
+import { CredentialsPanel } from "./credentials-panel";
+import { SettingsControls } from "./settings-controls";
 import { DeleteAccount } from "./delete-account";
 import { DevicePreferences } from "@/components/settings/device-preferences";
 import { signOut } from "@/app/(app)/actions";
@@ -33,6 +34,7 @@ export default async function SettingsPage() {
 
   const authProviders = (user.identities ?? []).map((identity) => identity.provider);
   const hasPassword = authProviders.includes("email");
+  const isUniversityEmailLogin = hasPassword && isUniversityEmail(user.email);
 
   const [
     { data: profile },
@@ -96,9 +98,7 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto max-w-md px-3.5 py-4 space-y-4 font-sans select-none pb-24">
       <div className="px-1">
-        <h1 className="text-2xl font-black tracking-tight text-foreground">
-          Settings &amp; Safety
-        </h1>
+        <h1 className="text-2xl font-black tracking-tight text-foreground">Settings &amp; Safety</h1>
         <p className="text-[11px] text-muted-foreground font-medium">
           Manage your account, privacy, discovery visibility, and safety controls
         </p>
@@ -115,17 +115,13 @@ export default async function SettingsPage() {
             </span>
           ) : (
             <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[10px] font-bold text-zinc-600 border border-zinc-200">
-              Pending verification
+              Google Account
             </span>
           )}
         </div>
         <div>
-          <h2 className="text-sm font-bold text-foreground">
-            {profile?.display_name || "DateBu Student"}
-          </h2>
-          <p className="text-xs text-muted-foreground font-mono mt-0.5">
-            {user.email}
-          </p>
+          <h2 className="text-sm font-bold text-foreground">{profile?.display_name || "DateBu Student"}</h2>
+          <p className="text-xs text-muted-foreground font-mono mt-0.5">{user.email}</p>
           <p className="text-[11px] font-medium text-emerald-700 mt-1">
             {universityConfig.name} {profile?.department ? `• ${profile.department}` : ""}
           </p>
@@ -137,12 +133,7 @@ export default async function SettingsPage() {
           <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
             <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" /> Dating &amp; Matching
           </span>
-          <Link
-            href={routes.profileSetup}
-            className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline"
-          >
-            Edit
-          </Link>
+          <Link href={routes.profileSetup} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:underline">Edit</Link>
         </div>
         <div className="grid grid-cols-3 gap-2 pt-1 text-center">
           <div className="rounded-2xl bg-muted/40 p-2.5 border border-border/60">
@@ -162,20 +153,19 @@ export default async function SettingsPage() {
 
       <DevicePreferences />
 
-      <div className="space-y-3">
-        <SettingsClient
-          initialGhostMode={Boolean(profile?.ghost_mode)}
-          blockedUsers={blockedUsers}
-          currentEmail={user.email ?? ""}
-          hasPassword={hasPassword}
-          authProviders={authProviders}
-          subscription={{
-            plan: subscription?.plan ?? "free",
-            status: subscription?.status ?? "inactive",
-            currentPeriodEnd: subscription?.current_period_end ?? null,
-          }}
-        />
-      </div>
+      {isUniversityEmailLogin && (
+        <CredentialsPanel currentEmail={user.email ?? ""} hasPassword={hasPassword} />
+      )}
+
+      <SettingsControls
+        initialGhostMode={Boolean(profile?.ghost_mode)}
+        blockedUsers={blockedUsers}
+        subscription={{
+          plan: subscription?.plan ?? "free",
+          status: subscription?.status ?? "inactive",
+          currentPeriodEnd: subscription?.current_period_end ?? null,
+        }}
+      />
 
       <DeleteAccount />
 
@@ -185,26 +175,14 @@ export default async function SettingsPage() {
             <Lock className="w-3 h-3 text-zinc-500" /> Safety &amp; Policies
           </span>
         </div>
-        <Link href={routes.safety} className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors text-xs font-semibold text-foreground">
-          <span>Campus Safety Center &amp; Guidelines</span>
-          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
-        </Link>
-        <Link href={routes.privacy} className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors text-xs font-semibold text-foreground">
-          <span>Privacy Policy &amp; Data Rights</span>
-          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
-        </Link>
-        <Link href={routes.terms} className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors text-xs font-semibold text-foreground">
-          <span>Terms of Service</span>
-          <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
-        </Link>
+        <Link href={routes.safety} className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors text-xs font-semibold text-foreground"><span>Campus Safety Center &amp; Guidelines</span><ExternalLink className="w-3.5 h-3.5 text-muted-foreground" /></Link>
+        <Link href={routes.privacy} className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors text-xs font-semibold text-foreground"><span>Privacy Policy &amp; Data Rights</span><ExternalLink className="w-3.5 h-3.5 text-muted-foreground" /></Link>
+        <Link href={routes.terms} className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors text-xs font-semibold text-foreground"><span>Terms of Service</span><ExternalLink className="w-3.5 h-3.5 text-muted-foreground" /></Link>
       </div>
 
       <div className="pt-1">
         <form action={signOut}>
-          <button
-            type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50/70 p-3.5 text-xs font-bold text-rose-700 hover:bg-rose-100 active:scale-95 transition-all cursor-pointer shadow-2xs"
-          >
+          <button type="submit" className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50/70 p-3.5 text-xs font-bold text-rose-700 hover:bg-rose-100 active:scale-95 transition-all cursor-pointer shadow-2xs">
             <LogOut className="w-4 h-4" />
             <span>Sign Out Securely</span>
           </button>
