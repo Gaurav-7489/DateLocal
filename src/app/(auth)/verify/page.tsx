@@ -67,7 +67,7 @@ function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
       setCountdown(60);
     } else {
       setStatus("error");
-      setMessage(result.error || "We couldn't send a new verification link. Please try again.");
+      setMessage(result.error || "We couldn\'t send a new verification link. Please try again.");
     }
   }
 
@@ -118,7 +118,7 @@ function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
             <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[11px] leading-5 text-zinc-600">
               <li>Open the email from <strong>{universityConfig.appName}</strong>.</li>
               <li>Tap the confirmation link in the email.</li>
-              <li>You'll be redirected back to DateBu automatically.</li>
+              <li>You&apos;ll be redirected back to DateBu automatically.</li>
               <li>Sign in and finish your profile setup.</li>
             </ol>
           </div>
