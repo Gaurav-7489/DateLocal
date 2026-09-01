@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { routes } from "@/config/routes";
@@ -18,7 +19,12 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
   const router = useRouter();
   const pathname = usePathname();
   const pathnameRef = useRef(pathname);
+  const [mounted, setMounted] = useState(false);
   const [notification, setNotification] = useState<NotificationItem | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     pathnameRef.current = pathname;
@@ -152,48 +158,47 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
       ? Heart
       : MessageCircle;
 
-  return (
-    <>
-      {notification && (
-        <div
-          role="status"
-          className="notification-toast fixed top-4 inset-x-3 z-[9999] mx-auto max-w-sm cursor-pointer"
-          onClick={() => {
-            router.push(notification.link);
+  if (!mounted || !notification) return null;
+
+  return createPortal(
+    <div
+      role="status"
+      className="notification-toast fixed inset-x-3 top-[calc(4.5rem+env(safe-area-inset-top))] z-[100001] mx-auto max-w-sm cursor-pointer sm:top-5"
+      onClick={() => {
+        router.push(notification.link);
+        setNotification(null);
+      }}
+    >
+      <div className="flex items-center gap-3 rounded-3xl border border-zinc-200/90 bg-white/98 p-3.5 text-zinc-950 shadow-[0_20px_60px_rgba(0,0,0,0.16)] backdrop-blur-xl">
+        <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-700">
+          <Icon className="h-5 w-5" />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-xs font-black">{notification.title}</span>
+            <span className="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[8px] font-bold text-emerald-700">
+              {notification.type === "match" ? "Match" : notification.type === "like" ? "Like" : "Chat"}
+            </span>
+          </div>
+          <p className="mt-0.5 truncate text-[11px] leading-tight text-zinc-500">
+            {notification.body}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
             setNotification(null);
           }}
+          className="rounded-full p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+          aria-label="Dismiss notification"
         >
-          <div className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card/95 p-3 text-foreground shadow-2xl backdrop-blur-md">
-            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-emerald-500/50 bg-emerald-50 text-emerald-700">
-              <Icon className="h-4 w-4" />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black truncate">{notification.title}</span>
-                <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.2 text-[8px] font-bold text-emerald-700">
-                  {notification.type === "match" ? "Match" : notification.type === "like" ? "Like" : "Chat"}
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">
-                {notification.body}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                setNotification(null);
-              }}
-              className="p-1 text-muted-foreground hover:text-foreground rounded-full"
-              aria-label="Dismiss notification"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
-    </>
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>,
+    document.body,
   );
 }
