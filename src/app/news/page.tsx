@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
-import { Newspaper, Sparkles, MessageSquareHeart, Calendar, ArrowLeft, Instagram, ExternalLink } from "lucide-react";
+import { Newspaper, Sparkles, MessageSquareHeart, Calendar, ArrowLeft, AtSign, ExternalLink } from "lucide-react";
 import { FeedbackForm } from "./feedback-form";
 
 export const metadata: Metadata = { title: "News & Feedback | DateBu" };
@@ -28,12 +28,12 @@ export default async function NewsPage() {
 
       <section className="mt-4 rounded-3xl border border-violet-200 bg-violet-50/60 p-4 shadow-xs">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm ring-1 ring-violet-100"><Instagram className="h-5 w-5" /></div>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-violet-600 shadow-sm ring-1 ring-violet-100"><AtSign className="h-5 w-5" /></div>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-600">Follow DateBu</p>
             <h2 className="mt-0.5 text-sm font-black text-foreground">@datebu.in</h2>
             <p className="mt-1 text-[11px] leading-5 text-muted-foreground">Follow the DateBu Instagram page for product updates, campus content, launches, and what&apos;s happening next.</p>
-            <a href="https://www.instagram.com/datebu.in/" target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2.5 text-[11px] font-black text-white shadow-sm transition-all hover:bg-violet-700 active:scale-95"><Instagram className="h-3.5 w-3.5" /> Open Instagram <ExternalLink className="h-3 w-3" /></a>
+            <a href="https://www.instagram.com/datebu.in/" target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-violet-600 px-4 py-2.5 text-[11px] font-black text-white shadow-sm transition-all hover:bg-violet-700 active:scale-95"><AtSign className="h-3.5 w-3.5" /> Open Instagram <ExternalLink className="h-3 w-3" /></a>
           </div>
         </div>
       </section>
@@ -42,5 +42,3 @@ export default async function NewsPage() {
     </main>
   );
 }
-
-// Keep the campus updates page intentionally lightweight: server-render posts, hydrate only the feedback form.
