@@ -94,10 +94,10 @@ export function PushNotifications() {
         } catch (pushError) {
           console.warn("[DateBu] Push subscription sync failed", pushError);
         }
-      } else if (
-        currentPermission === "default" &&
-        localStorage.getItem("datebu-push-prompt-dismissed") !== "1"
-      ) {
+      } else {
+        // Always surface the prompt whenever notifications are not enabled.
+        // This also catches users who previously allowed notifications but later
+        // disabled them in the browser/site settings.
         setShowPrompt(true);
       }
     };
@@ -108,7 +108,7 @@ export function PushNotifications() {
     };
   }, []);
 
-  if (!mounted || !supported || permission === "denied" || permission === "unsupported" || !showPrompt) {
+  if (!mounted || !supported || permission === "unsupported" || !showPrompt) {
     return null;
   }
 
@@ -121,7 +121,9 @@ export function PushNotifications() {
       setPermission(nextPermission);
 
       if (nextPermission !== "granted") {
-        setShowPrompt(false);
+        setError(
+          "Notifications are blocked. Allow Notifications for DateBu in your browser/site settings, then try again.",
+        );
         return;
       }
 
@@ -136,7 +138,6 @@ export function PushNotifications() {
   };
 
   const dismiss = () => {
-    localStorage.setItem("datebu-push-prompt-dismissed", "1");
     setShowPrompt(false);
   };
 
@@ -149,9 +150,13 @@ export function PushNotifications() {
           </div>
 
           <div className="min-w-0 flex-1 pr-1">
-            <p className="text-sm font-black text-zinc-950">Stay in the loop</p>
+            <p className="text-sm font-black text-zinc-950">
+              {permission === "denied" ? "Notifications are blocked" : "Stay in the loop"}
+            </p>
             <p className="mt-1 text-[11px] leading-4 text-zinc-600">
-              Get notified when someone likes you, you match, or a new message arrives.
+              {permission === "denied"
+                ? "Allow DateBu notifications in your browser/site settings to get likes, matches, and new messages."
+                : "Get notified when someone likes you, you match, or a new message arrives."}
             </p>
             {error && <p className="mt-1.5 text-[10px] font-semibold text-red-600">{error}</p>}
           </div>
@@ -173,7 +178,7 @@ export function PushNotifications() {
           className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-3 py-3 text-xs font-black text-white shadow-sm transition-all hover:bg-zinc-800 active:scale-[0.985] disabled:cursor-wait disabled:opacity-60"
         >
           <Bell className="h-4 w-4" />
-          {busy ? "Enabling…" : "Enable notifications"}
+          {busy ? "Enabling…" : permission === "denied" ? "Try again" : "Enable notifications"}
         </button>
       </div>
     </div>,
