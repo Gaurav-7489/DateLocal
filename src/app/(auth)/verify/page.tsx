@@ -12,7 +12,6 @@ import {
   ArrowRight,
   RefreshCw,
   ShieldCheck,
-  Inbox,
   Sparkles,
 } from "lucide-react";
 import { universityConfig } from "@/config/university";
@@ -98,11 +97,11 @@ function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
 
           <div className="mt-5 text-center">
             <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-              <ShieldCheck className="h-3 w-3" /> Step 1 of 1: Email Verification
+              <ShieldCheck className="h-3 w-3" /> Email verification required
             </div>
-            <h1 className="mt-3 text-xl font-black tracking-tight text-zinc-950">Verify Your Email</h1>
+            <h1 className="mt-3 text-xl font-black tracking-tight text-zinc-950">Check your inbox</h1>
             <p className="mt-2 text-xs leading-relaxed text-zinc-600">
-              Confirm your email address to activate your DateBu account. After verification, sign in and continue directly to profile setup.
+              We sent a confirmation link to your email. Open it to verify your account. Once confirmed, you can sign in and continue to profile setup.
             </p>
           </div>
 
@@ -112,29 +111,20 @@ function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
             </div>
           )}
 
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <a href="googlegmail:///" className="flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-[11px] font-semibold text-zinc-700">
-              <Inbox className="h-3.5 w-3.5" /> Open Gmail
-            </a>
-            <a href="mailto:" className="flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-[11px] font-semibold text-zinc-700">
-              <Mail className="h-3.5 w-3.5" /> Open Mail
-            </a>
-          </div>
-
           <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-3.5">
             <p className="flex items-center gap-1 text-[11px] font-bold text-emerald-950">
               <Sparkles className="h-3 w-3 text-emerald-600" /> What happens next
             </p>
             <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[11px] leading-5 text-zinc-600">
               <li>Open the email from <strong>{universityConfig.appName}</strong>.</li>
-              <li>Tap the confirmation link.</li>
-              <li>Sign in and complete your profile setup.</li>
-              <li>Once your profile is complete, enter the app.</li>
+              <li>Tap the confirmation link in the email.</li>
+              <li>You'll be redirected back to DateBu automatically.</li>
+              <li>Sign in and finish your profile setup.</li>
             </ol>
           </div>
 
-          <Link href={routes.login} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-3.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 active:scale-[0.98]">
-            I&apos;ve Verified My Email <ArrowRight className="h-3.5 w-3.5" />
+          <Link href={routes.login} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 py-3.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-100 active:scale-[0.98]">
+            Go to Sign In <ArrowRight className="h-3.5 w-3.5" />
           </Link>
 
           <div className="mt-4 border-t border-zinc-100 pt-4">
@@ -163,9 +153,9 @@ function VerifyPageContent({ initialEmail }: { initialEmail: string }) {
               <button
                 type="submit"
                 disabled={loading || !email.trim() || countdown > 0}
-                className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50 py-2.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-3 text-xs font-bold text-white shadow-sm shadow-emerald-600/20 transition hover:bg-emerald-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {loading ? <><Loader2 className="h-3 w-3 animate-spin" /> Sending link...</> : countdown > 0 ? <><RefreshCw className="h-3 w-3 animate-spin" /> Resend in {countdown}s</> : <><RefreshCw className="h-3 w-3" /> Send New Verification Link</>}
+                {loading ? <><Loader2 className="h-3 w-3 animate-spin" /> Sending link...</> : countdown > 0 ? <><RefreshCw className="h-3 w-3" /> Resend in {countdown}s</> : <><RefreshCw className="h-3 w-3" /> Send New Verification Link</>}
               </button>
             </form>
           </div>
