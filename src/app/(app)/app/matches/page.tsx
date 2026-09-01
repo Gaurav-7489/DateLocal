@@ -204,7 +204,7 @@ export default async function MatchesPage() {
                   </h2>
 
                   <p className="text-[10px] text-zinc-300 font-medium truncate mt-0.5">
-                    {profile.department?.split("&")[0].trim()} • {profile.academic_year}
+                    {profile.department?.split("&")[0]?.trim()} • {profile.academic_year}
                   </p>
 
                   {profile.campus_residency && (
