@@ -12,7 +12,7 @@ function getClient() {
   return cachedClient;
 }
 
-function getAuthCallbackUrl(next = routes.profileSetup) {
+function getAuthCallbackUrl(next: string = routes.profileSetup) {
   return `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 }
 
