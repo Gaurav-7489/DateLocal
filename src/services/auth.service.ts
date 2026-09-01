@@ -52,11 +52,35 @@ export async function registerWithEmail(
       };
     }
 
-    // When Supabase email confirmation is enabled, signUp intentionally
-    // returns without a session. The user must confirm the email first.
+    // DateBu currently runs without mandatory email verification. When
+    // Supabase returns a session directly, registration is complete.
+    if (data.session) {
+      return { success: true, needsEmailConfirmation: false };
+    }
+
+    // If the Supabase project still has email confirmation enabled, signUp
+    // intentionally returns no session. Try signing in immediately so the
+    // app still works as soon as confirmation is disabled in Supabase Auth.
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
+
+    if (!signInError) {
+      return { success: true, needsEmailConfirmation: false };
+    }
+
+    const lowerMessage = signInError.message.toLowerCase();
+    if (lowerMessage.includes("email not confirmed")) {
+      return {
+        success: false,
+        error: "Email verification is currently disabled in DateBu, but Supabase Auth still requires confirmation. Disable 'Confirm email' in Supabase Auth > Sign In / Providers > Email, then try again.",
+      };
+    }
+
     return {
-      success: true,
-      needsEmailConfirmation: !data.session,
+      success: false,
+      error: signInError.message,
     };
   } catch (error) {
     console.error("Registration failed:", error);
@@ -85,7 +109,7 @@ export async function signInWithEmail(
     if (lowerMessage.includes("email not confirmed")) {
       return {
         success: false,
-        error: "Please verify your email address before signing in.",
+        error: "Email verification is disabled for DateBu. If you still see this message, disable 'Confirm email' in Supabase Auth.",
       };
     }
 
