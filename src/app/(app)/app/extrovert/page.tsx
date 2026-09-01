@@ -67,7 +67,7 @@ export default async function ExtrovertPage() {
       </section>
 
       <section className="mt-4 rounded-[2rem] border border-border bg-card p-4 shadow-xs">
-        <div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><ShieldCheck className="h-4 w-4" /></div><div><p className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">What's included</p><h2 className="text-base font-black text-foreground">Every Extrovert feature</h2></div></div>
+        <div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><ShieldCheck className="h-4 w-4" /></div><div><p className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">What&apos;s included</p><h2 className="text-base font-black text-foreground">Every Extrovert feature</h2></div></div>
         <div className="mt-4 space-y-2.5">{features.map(({ icon: Icon, title, description }) => <article key={title} className="rounded-2xl border border-border/70 bg-muted/15 p-3"><div className="flex items-start gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><Icon className="h-4 w-4" /></div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><h3 className="text-xs font-black text-foreground">{title}</h3>{!active && <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}</div><p className="mt-1 text-[10px] leading-4 text-muted-foreground">{description}</p></div></div></article>)}</div>
       </section>
 
