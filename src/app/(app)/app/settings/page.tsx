@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { isUniversityEmail, universityConfig } from "@/config/university";
 import { SettingsClient } from "./settings-client";
+import { DevicePreferences } from "@/components/settings/device-preferences";
 import { signOut } from "@/app/(app)/actions";
 import {
   ShieldCheck,
@@ -12,10 +13,10 @@ import {
   ExternalLink,
   Lock,
   GraduationCap,
-  } from "lucide-react";
+} from "lucide-react";
 
-export const metadata: Metadata = { 
-  title: "Settings & Safety | DateBu" 
+export const metadata: Metadata = {
+  title: "Settings & Safety | DateBu",
 };
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,6 @@ export default async function SettingsPage() {
 
   if (!user) return null;
 
-  // Load all required settings data in parallel
   const [
     { data: profile },
     { data: preferences },
@@ -81,15 +81,16 @@ export default async function SettingsPage() {
 
   const interestedInLabel =
     preferences?.interested_in?.includes("everyone") ||
-    (preferences?.interested_in?.includes("men") && preferences?.interested_in?.includes("women"))
+    (preferences?.interested_in?.includes("men") &&
+      preferences?.interested_in?.includes("women"))
       ? "Everyone"
       : preferences?.interested_in?.[0]
-      ? preferences.interested_in[0].charAt(0).toUpperCase() + preferences.interested_in[0].slice(1)
-      : "Everyone";
+        ? preferences.interested_in[0].charAt(0).toUpperCase() +
+          preferences.interested_in[0].slice(1)
+        : "Everyone";
 
   return (
     <div className="mx-auto max-w-md px-3.5 py-4 space-y-4 font-sans select-none pb-24">
-      {/* Page Header */}
       <div className="px-1">
         <h1 className="text-2xl font-black tracking-tight text-foreground">
           Settings &amp; Safety
@@ -99,13 +100,11 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      {/* 1. Student Account Card */}
       <div className="rounded-3xl border border-border/80 bg-card p-4 space-y-3 shadow-xs">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
             <GraduationCap className="w-3.5 h-3.5 text-emerald-600" /> Student Account
           </span>
-
           {isVerifiedUser ? (
             <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
               <ShieldCheck className="w-3 h-3" /> Email Verified
@@ -116,7 +115,6 @@ export default async function SettingsPage() {
             </span>
           )}
         </div>
-
         <div>
           <h2 className="text-sm font-bold text-foreground">
             {profile?.display_name || "DateBu Student"}
@@ -130,7 +128,6 @@ export default async function SettingsPage() {
         </div>
       </div>
 
-      {/* 2. Matching Preferences Bento Card */}
       <div className="rounded-3xl border border-border/80 bg-card p-4 space-y-3 shadow-xs">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
@@ -143,38 +140,24 @@ export default async function SettingsPage() {
             Edit
           </Link>
         </div>
-
         <div className="grid grid-cols-3 gap-2 pt-1 text-center">
           <div className="rounded-2xl bg-muted/40 p-2.5 border border-border/60">
-            <span className="text-[9px] uppercase font-bold text-muted-foreground block">
-              Show Me
-            </span>
-            <span className="text-xs font-extrabold text-foreground mt-0.5 block truncate">
-              {interestedInLabel}
-            </span>
+            <span className="text-[9px] uppercase font-bold text-muted-foreground block">Show Me</span>
+            <span className="text-xs font-extrabold text-foreground mt-0.5 block truncate">{interestedInLabel}</span>
           </div>
-
           <div className="rounded-2xl bg-muted/40 p-2.5 border border-border/60">
-            <span className="text-[9px] uppercase font-bold text-muted-foreground block">
-              Age Range
-            </span>
-            <span className="text-xs font-extrabold text-foreground mt-0.5 block truncate">
-              {preferences?.min_age ?? 18}–{preferences?.max_age ?? 25}
-            </span>
+            <span className="text-[9px] uppercase font-bold text-muted-foreground block">Age Range</span>
+            <span className="text-xs font-extrabold text-foreground mt-0.5 block truncate">{preferences?.min_age ?? 18}–{preferences?.max_age ?? 25}</span>
           </div>
-
           <div className="rounded-2xl bg-muted/40 p-2.5 border border-border/60">
-            <span className="text-[9px] uppercase font-bold text-muted-foreground block">
-              Dept
-            </span>
-            <span className="text-xs font-extrabold text-foreground mt-0.5 block truncate">
-              {preferences?.preferred_department || "All"}
-            </span>
+            <span className="text-[9px] uppercase font-bold text-muted-foreground block">Dept</span>
+            <span className="text-xs font-extrabold text-foreground mt-0.5 block truncate">{preferences?.preferred_department || "All"}</span>
           </div>
         </div>
       </div>
 
-      {/* 3. Interactive Settings (Ghost Mode, Subscriptions & Blocked Users) */}
+      <DevicePreferences />
+
       <div className="space-y-3">
         <SettingsClient
           initialGhostMode={Boolean(profile?.ghost_mode)}
@@ -188,40 +171,26 @@ export default async function SettingsPage() {
         />
       </div>
 
-      {/* 4. Safety & Policy Links */}
       <div className="rounded-3xl border border-border/80 bg-card divide-y divide-border/60 overflow-hidden shadow-xs">
         <div className="px-4 py-2.5 bg-muted/30">
           <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
             <Lock className="w-3 h-3 text-zinc-500" /> Safety &amp; Policies
           </span>
         </div>
-
-        <Link
-          href={routes.safety}
-          className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors text-xs font-semibold text-foreground"
-        >
+        <Link href={routes.safety} className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors text-xs font-semibold text-foreground">
           <span>Campus Safety Center &amp; Guidelines</span>
           <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
         </Link>
-
-        <Link
-          href={routes.privacy}
-          className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors text-xs font-semibold text-foreground"
-        >
+        <Link href={routes.privacy} className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors text-xs font-semibold text-foreground">
           <span>Privacy Policy &amp; Data Rights</span>
           <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
         </Link>
-
-        <Link
-          href={routes.terms}
-          className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors text-xs font-semibold text-foreground"
-        >
+        <Link href={routes.terms} className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors text-xs font-semibold text-foreground">
           <span>Terms of Service</span>
           <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
         </Link>
       </div>
 
-      {/* 5. Safe Sign Out */}
       <div className="pt-1">
         <form action={signOut}>
           <button
