@@ -2,14 +2,13 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import { routes } from "@/config/routes";
 
 type ConversationRowProps = {
   matchId: string;
   profileId: string;
   displayName: string | null;
-  photoPath?: string | null;
+  photoUrl?: string | null;
   latestContent: string;
   timestamp: string;
   sent: boolean;
@@ -20,7 +19,7 @@ export default function ConversationRow({
   matchId,
   profileId,
   displayName,
-  photoPath,
+  photoUrl,
   latestContent,
   timestamp,
   sent,
@@ -29,7 +28,6 @@ export default function ConversationRow({
   const router = useRouter();
   const chatHref = `${routes.messages}/${matchId}`;
   const profileHref = `${routes.profileView}/${profileId}`;
-  const photoUrl = getProfilePhotoUrl(photoPath ?? undefined, 160);
 
   const openChat = () => router.push(chatHref);
 
