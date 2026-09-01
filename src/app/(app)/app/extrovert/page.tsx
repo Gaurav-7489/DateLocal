@@ -4,7 +4,6 @@ import { ArrowLeft, BarChart3, Check, Eye, Ghost, Heart, Lock, RotateCcw, Search
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { DateBuExtrovertCheckout } from "@/components/payments/datebu-extrovert-checkout";
-import { DateBuShop } from "@/components/payments/datebu-shop";
 
 export const metadata: Metadata = { title: "DateBu Extrovert" };
 export const dynamic = "force-dynamic";
@@ -32,17 +31,8 @@ export default async function ExtrovertPage() {
     <main className="mx-auto max-w-md px-3.5 py-4 pb-28 font-sans">
       <div className="flex items-center gap-3 px-1">
         <Link href={routes.app} className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs active:scale-95" aria-label="Back"><ArrowLeft className="h-4 w-4" /></Link>
-        <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">DateBu</p><h1 className="text-xl font-black tracking-tight text-foreground">Extrovert &amp; Shop</h1></div>
+        <div><p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">DateBu</p><h1 className="text-xl font-black tracking-tight text-foreground">Extrovert</h1></div>
       </div>
-
-      <section className="mt-4 rounded-[2rem] border border-rose-200/70 bg-gradient-to-br from-rose-50 via-white to-amber-50 p-5 shadow-sm">
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-rose-700"><ShoppingBag className="h-3.5 w-3.5" /> One-time extras</div>
-        <h2 className="mt-2 text-3xl font-black tracking-tight text-foreground">DateBu Shop</h2>
-        <p className="mt-2 text-xs leading-5 text-muted-foreground">Buy individual extras when you need them. No subscription required.</p>
-        <div className="mt-4 flex flex-wrap gap-1.5 text-[9px] font-bold text-muted-foreground"><span className="rounded-full bg-white px-2.5 py-1">Extra Likes</span><span className="rounded-full bg-white px-2.5 py-1">Super Likes</span><span className="rounded-full bg-white px-2.5 py-1">SuperChats</span></div>
-      </section>
-
-      <div className="mt-3"><DateBuShop /></div>
 
       <section className="mt-4 rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-5 shadow-sm">
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-700"><Sparkles className="h-3.5 w-3.5" /> Subscription</div>
@@ -51,6 +41,12 @@ export default async function ExtrovertPage() {
         {active ? <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-100/70 p-3"><p className="text-xs font-black text-emerald-900">Extrovert is active</p><p className="mt-1 text-[10px] text-emerald-800">Your plan is active until {new Date(subscription?.current_period_end as string).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.</p></div> : <DateBuExtrovertCheckout email={user?.email} />}
         <div className="mt-4 rounded-2xl border border-emerald-200 bg-white/70 p-3"><div className="flex items-center justify-between"><div><p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Like allowance</p><p className="mt-1 text-sm font-black text-foreground">10 likes / day</p></div><Heart className="h-5 w-5 text-rose-500" /></div><p className="mt-1 text-[10px] leading-4 text-muted-foreground">Free accounts get 7 starter likes once, then 2 likes per day. Purchased likes can be used on top of either allowance.</p></div>
       </section>
+
+      <Link href={routes.shop} className="group mt-4 block rounded-[2rem] border border-violet-200/80 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-5 shadow-sm transition-transform duration-150 active:scale-[.99]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-sm"><ShoppingBag className="h-5 w-5" /></div><div><p className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-700">DateBu Shop</p><h2 className="mt-0.5 text-lg font-black text-foreground">One-time boosts</h2><p className="mt-1 text-[10px] leading-4 text-muted-foreground">Likes, Super Likes and SuperChats. Pay once with UPI.</p></div></div><span className="rounded-full bg-zinc-950 px-3 py-1.5 text-[10px] font-black text-white group-active:bg-violet-600">Open</span>
+        </div>
+      </Link>
 
       <section className="mt-4 rounded-[2rem] border border-border bg-card p-4 shadow-xs">
         <div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"><ShieldCheck className="h-4 w-4" /></div><div><p className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">What's included</p><h2 className="text-base font-black text-foreground">Every Extrovert feature</h2></div></div>
