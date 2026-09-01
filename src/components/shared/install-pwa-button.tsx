@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Download, Loader2, Share2 } from "lucide-react";
+import { Download, Loader2, Share2 } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -42,7 +42,6 @@ export function InstallPwaButton() {
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
     window.addEventListener("appinstalled", handleAppInstalled);
-
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handleAppInstalled);
@@ -51,7 +50,6 @@ export function InstallPwaButton() {
 
   const handleInstallClick = async () => {
     if (ios || !deferredPrompt || status === "launching") return;
-
     setStatus("launching");
     try {
       await deferredPrompt.prompt();
@@ -64,15 +62,9 @@ export function InstallPwaButton() {
     }
   };
 
-  if (status === "installed") {
-    return (
-      <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/95 px-3 py-2 text-[10px] font-bold text-emerald-700 shadow-md backdrop-blur-md dark:border-emerald-800 dark:bg-zinc-950/95 dark:text-emerald-300">
-        <Check className="h-3.5 w-3.5" />
-        Installed
-      </div>
-    );
-  }
-
+  // An installed-state badge used to be rendered by the root layout and could
+  // sit on top of app content. Installed state is now represented by Settings.
+  if (status === "installed") return null;
   if (ios) {
     return (
       <div className="inline-flex max-w-[250px] items-center gap-2 rounded-full border border-border bg-white/95 px-3 py-2 text-[10px] font-semibold text-zinc-700 shadow-md backdrop-blur-md">
@@ -92,11 +84,7 @@ export function InstallPwaButton() {
       aria-label="Install DateBu App"
       className="group inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-white/95 px-3.5 py-2.5 text-[10px] font-bold text-emerald-700 shadow-md backdrop-blur-md transition-[background-color,transform,box-shadow] duration-150 hover:bg-emerald-50 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70 dark:bg-zinc-950/95 dark:text-emerald-300"
     >
-      {status === "launching" ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      ) : (
-        <Download className="h-3.5 w-3.5 transition-transform group-hover:translate-y-0.5" />
-      )}
+      {status === "launching" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
       {status === "launching" ? "Opening installer…" : "Install DateBu"}
     </button>
   );
