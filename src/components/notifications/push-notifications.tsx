@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Bell, BellRing, X } from "lucide-react";
 
 function base64UrlToUint8Array(value: string) {
@@ -53,11 +54,16 @@ async function syncPushSubscription() {
 }
 
 export function PushNotifications() {
+  const [mounted, setMounted] = useState(false);
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   const [showPrompt, setShowPrompt] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,7 +108,7 @@ export function PushNotifications() {
     };
   }, []);
 
-  if (!supported || permission === "denied" || permission === "unsupported" || !showPrompt) {
+  if (!mounted || !supported || permission === "denied" || permission === "unsupported" || !showPrompt) {
     return null;
   }
 
@@ -134,26 +140,26 @@ export function PushNotifications() {
     setShowPrompt(false);
   };
 
-  return (
-    <div className="fixed inset-x-3 bottom-4 z-[9998] mx-auto max-w-sm">
-      <div className="rounded-2xl border border-border/80 bg-card/95 p-3 shadow-2xl backdrop-blur-xl">
+  return createPortal(
+    <div className="fixed inset-x-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[100000] mx-auto max-w-sm sm:bottom-6">
+      <div className="rounded-3xl border border-emerald-200/80 bg-white/98 p-4 shadow-[0_20px_60px_rgba(0,0,0,0.16)] backdrop-blur-xl">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20">
             <BellRing className="h-5 w-5" />
           </div>
 
           <div className="min-w-0 flex-1 pr-1">
-            <p className="text-sm font-black text-foreground">Stay in the loop</p>
-            <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+            <p className="text-sm font-black text-zinc-950">Stay in the loop</p>
+            <p className="mt-1 text-[11px] leading-4 text-zinc-600">
               Get notified when someone likes you, you match, or a new message arrives.
             </p>
-            {error && <p className="mt-1 text-[10px] font-semibold text-red-600">{error}</p>}
+            {error && <p className="mt-1.5 text-[10px] font-semibold text-red-600">{error}</p>}
           </div>
 
           <button
             type="button"
             onClick={dismiss}
-            className="rounded-full p-1 text-muted-foreground hover:text-foreground"
+            className="rounded-full p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
             aria-label="Dismiss notification prompt"
           >
             <X className="h-4 w-4" />
@@ -164,12 +170,13 @@ export function PushNotifications() {
           type="button"
           onClick={() => void enable()}
           disabled={busy}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-foreground px-3 py-2.5 text-xs font-black text-background transition-opacity disabled:opacity-60"
+          className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-2xl bg-zinc-950 px-3 py-3 text-xs font-black text-white shadow-sm transition-all hover:bg-zinc-800 active:scale-[0.985] disabled:cursor-wait disabled:opacity-60"
         >
           <Bell className="h-4 w-4" />
           {busy ? "Enabling…" : "Enable notifications"}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
