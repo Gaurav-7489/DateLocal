@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { isUuid } from "@/lib/validation";
+import { sendPushToUser } from "@/lib/push/server";
 
 export type SendMessageResult = {
   error: string | null;
@@ -49,7 +50,6 @@ export async function sendMessage(
     };
   }
 
-  // Verify that the user belongs to this match
   const { data: match, error: matchError } = await supabase
     .from("matches")
     .select("id, user_a, user_b")
@@ -65,7 +65,6 @@ export async function sendMessage(
 
   const otherUserId = match.user_a === user.id ? match.user_b : match.user_a;
 
-  // Verify neither user blocked the other
   const { data: blockRecord } = await supabase
     .from("blocks")
     .select("id")
@@ -97,6 +96,13 @@ export async function sendMessage(
 
   revalidatePath(`${routes.messages}/${matchId}`);
   revalidatePath(routes.messages);
+
+  await sendPushToUser(otherUserId, {
+    title: "New message",
+    body: text.length > 120 ? `${text.slice(0, 117)}…` : text,
+    url: `${routes.messages}/${matchId}`,
+    tag: `message-${matchId}`,
+  });
 
   return {
     error: null,
