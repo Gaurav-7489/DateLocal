@@ -19,6 +19,7 @@ export const routes = {
   matches: "/app/matches",
   messages: "/app/messages",
   profile: "/app/profile",
+  dashboard: "/app/dashboard",
   profilePreferences: "/app/profile/preferences",
   profileSetup: "/app/profile/setup",
   settings: "/app/settings",
