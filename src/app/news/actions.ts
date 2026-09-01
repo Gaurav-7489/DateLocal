@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 
+type FeedbackDb = {
+  from: (table: "feedback") => {
+    insert: (values: { user_id: string; email: string; message: string }) => Promise<{ error: unknown }>;
+  };
+};
+
 export async function submitFeedback(formData: FormData) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -15,9 +21,7 @@ export async function submitFeedback(formData: FormData) {
   if (message.length > 2000) return { error: "Feedback must be 2000 characters or less." };
 
   const email = user.email ?? "";
-  // The generated database types predate the feedback migration, so keep this
-  // isolated until the next type generation updates database.ts.
-  const db = supabase as any;
+  const db = supabase as unknown as FeedbackDb;
   const { error } = await db.from("feedback").insert({
     user_id: user.id,
     email,
