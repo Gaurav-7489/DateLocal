@@ -185,3 +185,5 @@ export function PushNotifications() {
     document.body,
   );
 }
+
+// Keep the notification prompt behavior in the production deployment in sync with main.
