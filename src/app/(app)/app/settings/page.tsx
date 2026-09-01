@@ -30,6 +30,9 @@ export default async function SettingsPage() {
 
   if (!user) return null;
 
+  const authProviders = (user.identities ?? []).map((identity) => identity.provider);
+  const hasPassword = authProviders.includes("email");
+
   const [
     { data: profile },
     { data: preferences },
@@ -163,6 +166,8 @@ export default async function SettingsPage() {
           initialGhostMode={Boolean(profile?.ghost_mode)}
           blockedUsers={blockedUsers}
           currentEmail={user.email ?? ""}
+          hasPassword={hasPassword}
+          authProviders={authProviders}
           subscription={{
             plan: subscription?.plan ?? "free",
             status: subscription?.status ?? "inactive",
