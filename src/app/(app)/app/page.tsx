@@ -4,269 +4,87 @@ import Image from "next/image";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { isUniversityEmail, universityConfig } from "@/config/university";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
-import {
-  Compass,
-  Heart,
-  MessageSquare,
-  User,
-  Sparkles,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
-} from "lucide-react";
+import { calculateAge } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Compass, Heart, MessageSquare, User, BarChart3, Eye, ShieldCheck, CheckCircle2, ArrowUpRight } from "lucide-react";
 
 export const metadata: Metadata = { title: "Dashboard" };
-
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Load user profile & photos
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select(`
-      display_name,
-      department,
-      academic_year,
-      bio,
-      profile_completed,
-      ghost_mode,
-      profile_photos (
-        storage_path,
-        is_primary,
-        display_order
-      )
-    `)
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data: profile }, { count: matchCount }, { count: likesReceived }, { count: sentMessages }, { count: profileViews }] = await Promise.all([
+    supabase.from("profiles").select(`display_name, date_of_birth, department, academic_year, bio, profile_completed, ghost_mode, profile_photos(storage_path, is_primary, display_order)`).eq("id", user.id).maybeSingle(),
+    supabase.from("matches").select("id", { count: "exact", head: true }).or(`user_a.eq.${user.id},user_b.eq.${user.id}`),
+    supabase.from("likes").select("id", { count: "exact", head: true }).eq("liked_id", user.id),
+    supabase.from("messages").select("id", { count: "exact", head: true }).eq("sender_id", user.id),
+    supabase.from("profile_views").select("id", { count: "exact", head: true }).eq("viewed_id", user.id),
+  ]);
 
-  // Load match count
-  const { count: matchCount } = await supabase
-    .from("matches")
-    .select("*", { count: "exact", head: true })
-    .or(`user_a.eq.${user.id},user_b.eq.${user.id}`);
+  const displayName = profile?.display_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || "Student";
+  const photos = [...(profile?.profile_photos ?? [])].sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.display_order - b.display_order);
+  const photoUrl = getProfilePhotoUrl(photos[0]?.storage_path, 320);
+  const age = profile?.date_of_birth ? calculateAge(profile.date_of_birth) : null;
+  const complete = Boolean(profile?.profile_completed);
+  const verified = isUniversityEmail(user.email);
 
-  // Load unread / recent message matches
-  const isProfileComplete = Boolean(profile?.profile_completed);
+  const stats = [
+    { label: "Matches", value: matchCount ?? 0, href: routes.matches, icon: Heart, tone: "text-rose-600 bg-rose-50 border-rose-100" },
+    { label: "Likes received", value: likesReceived ?? 0, href: routes.dashboard, icon: Heart, tone: "text-orange-600 bg-orange-50 border-orange-100" },
+    { label: "Profile views", value: profileViews ?? 0, href: routes.profileViews, icon: Eye, tone: "text-blue-600 bg-blue-50 border-blue-100" },
+    { label: "Messages sent", value: sentMessages ?? 0, href: routes.messages, icon: MessageSquare, tone: "text-emerald-600 bg-emerald-50 border-emerald-100" },
+  ];
 
-  const displayName =
-    profile?.display_name ||
-    user?.user_metadata?.full_name ||
-    user?.user_metadata?.name ||
-    user?.email?.split("@")[0] ||
-    "Student";
-
-  const photos = [...(profile?.profile_photos ?? [])].sort((a, b) => {
-    if (a.is_primary && !b.is_primary) return -1;
-    if (!a.is_primary && b.is_primary) return 1;
-    return a.display_order - b.display_order;
-  });
-
-  const photoPath = photos[0]?.storage_path;
-  const photoUrl = getProfilePhotoUrl(photoPath, 160);
-
-  const isVerifiedUser = isUniversityEmail(user.email);
-
-  const quickActions = [
-    {
-      href: routes.discover,
-      icon: Compass,
-      title: "Discover",
-      description: "Browse campus profiles from your university",
-      color: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    },
-    {
-      href: routes.matches,
-      icon: Heart,
-      title: "Matches",
-      description: `${matchCount ?? 0} active student connections`,
-      color: "bg-rose-50 text-rose-700 border-rose-200",
-    },
-    {
-      href: routes.messages,
-      icon: MessageSquare,
-      title: "Chat",
-      description: "Continue campus conversations",
-      color: "bg-blue-50 text-blue-700 border-blue-200",
-    },
-    {
-      href: routes.profile,
-      icon: User,
-      title: "Profile",
-      description: isProfileComplete ? "View & manage your profile" : "Complete your profile",
-      color: "bg-amber-50 text-amber-700 border-amber-200",
-    },
+  const nav = [
+    { href: routes.discover, title: "Discover", description: "Meet students on your campus", icon: Compass },
+    { href: routes.matches, title: "Matches", description: "Your mutual connections", icon: Heart },
+    { href: routes.messages, title: "Chats", description: "Continue your conversations", icon: MessageSquare },
+    { href: routes.profileViews, title: "Profile views", description: "See who checked you out", icon: Eye },
+    { href: routes.profile, title: "My profile", description: "View what others see", icon: User },
+    { href: routes.dashboard, title: "Activity", description: "Personal tracking", icon: BarChart3 },
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      {/* Welcome header */}
-      <section className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          {isVerifiedUser && (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700 mb-2">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              Email verified
-            </div>
-          )}
-          <h1 className="text-2xl font-black text-foreground sm:text-3xl tracking-tight">
-            Welcome back, {displayName} 👋
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Your {universityConfig.appName} campus dashboard
-          </p>
+    <main className="mx-auto max-w-2xl px-3.5 py-4 pb-24 font-sans">
+      <section className="rounded-[2rem] border border-border bg-card p-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            {verified && <span className="mb-2 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700"><ShieldCheck className="h-3 w-3" /> Campus verified</span>}
+            <h1 className="text-2xl font-black tracking-tight text-foreground">Welcome back, {displayName}</h1>
+            <p className="mt-1 text-xs text-muted-foreground">Your {universityConfig.appName} campus hub</p>
+          </div>
+          <Link href={routes.settings} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground" aria-label="Settings">•••</Link>
         </div>
 
-        {isProfileComplete && (
-          <Link href={routes.discover}>
-            <Button variant="primary" size="md" className="gap-2">
-              <Compass className="w-4 h-4" /> Start Swiping
-            </Button>
-          </Link>
-        )}
+        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-muted/40 p-2.5">
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-muted">
+            {photoUrl ? <Image src={photoUrl} alt={displayName} fill className="object-cover" sizes="56px" /> : <div className="flex h-full items-center justify-center text-lg font-black text-emerald-700">{displayName.charAt(0).toUpperCase()}</div>}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5"><p className="truncate text-sm font-black text-foreground">{displayName}{age !== null ? `, ${age}` : ""}</p><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /></div>
+            <p className="truncate text-[10px] text-muted-foreground">{profile?.department || "Student"} · {profile?.academic_year || "Campus"}</p>
+          </div>
+          <Link href={routes.profile} className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-[10px] font-bold text-foreground">View</Link>
+        </div>
+
+        {!complete && <Link href={routes.profileSetup} className="mt-3 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-xs font-bold text-emerald-800"><span>Finish your profile to start matching</span><ArrowUpRight className="h-4 w-4" /></Link>}
+        {complete && <Link href={routes.discover} className="mt-3 block"><Button variant="primary" size="md" className="w-full gap-2"><Compass className="h-4 w-4" /> Start discovering</Button></Link>}
       </section>
 
-      {/* Profile completion / Status Card */}
-      {!isProfileComplete ? (
-        <section className="mb-8">
-          <Card className="relative overflow-hidden border-emerald-200 bg-gradient-to-r from-emerald-50 via-teal-50 to-background p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-emerald-600" />
-                  <h2 className="text-lg font-bold text-foreground">
-                    Complete your profile to start matching
-                  </h2>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Set up your {universityConfig.appName} profile to start discovering people at{" "}
-                  {universityConfig.name}. Add your interests, photos, and bio to connect.
-                </p>
+      <section className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {stats.map(({ label, value, href, icon: Icon, tone }) => <Link key={label} href={href} className={`rounded-2xl border p-3 ${tone} transition-transform active:scale-[.98]`}><Icon className="h-4 w-4" /><p className="mt-2 text-xl font-black">{value}</p><p className="text-[9px] font-bold opacity-70">{label}</p></Link>)}
+      </section>
 
-                {/* Progress bar */}
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="h-2 flex-1 rounded-full bg-border overflow-hidden">
-                    <div
-                      className="h-2 rounded-full bg-emerald-600 transition-all"
-                      style={{ width: "30%" }}
-                    />
-                  </div>
-                  <span className="text-xs font-medium text-emerald-700">
-                    Step 1 of 3
-                  </span>
-                </div>
-              </div>
-
-              <Link href={routes.profileSetup}>
-                <Button variant="primary" size="md" className="gap-1.5 shrink-0">
-                  Set Up Profile <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          </Card>
-        </section>
-      ) : (
-        <section className="mb-8">
-          <Card className="border-border bg-card p-6">
-            <div className="flex flex-col sm:flex-row items-center gap-5">
-              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border-2 border-emerald-500 bg-muted">
-                {photoUrl ? (
-                  <Image
-                    src={photoUrl}
-                    alt={displayName}
-                    fill
-                    className="object-contain bg-white p-1"
-                    sizes="80px"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-emerald-700 bg-emerald-100">
-                    {displayName.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex-1 text-center sm:text-left">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <h2 className="text-xl font-bold text-foreground">{displayName}</h2>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
-                    <CheckCircle2 className="w-3 h-3" /> Ready
-                  </span>
-                  {profile?.ghost_mode && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 border border-amber-200">
-                      👻 Ghost Mode Active
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {profile?.department} • {profile?.academic_year}
-                </p>
-                {profile?.bio && (
-                  <p className="mt-2 text-xs text-muted-foreground line-clamp-1">
-                    &ldquo;{profile.bio}&rdquo;
-                  </p>
-                )}
-              </div>
-
-              <div className="flex gap-2 shrink-0">
-                <Link href={routes.profile}>
-                  <Button variant="secondary" size="sm">
-                    View Profile
-                  </Button>
-                </Link>
-                <Link href={routes.profileSetup}>
-                  <Button variant="outline" size="sm">
-                    Edit
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </Card>
-        </section>
-      )}
-
-      {/* Quick actions grid */}
-      <section>
-        <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Quick Navigation
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {quickActions.map((action) => {
-            const Icon = action.icon;
-            return (
-              <Link key={action.href} href={action.href} className="group">
-                <Card className="h-full transition-all duration-200 group-hover:border-emerald-300 group-hover:shadow-md p-5 flex flex-col justify-between">
-                  <div>
-                    <div
-                      className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl border ${action.color}`}
-                    >
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-bold text-foreground text-base">
-                      {action.title}
-                    </h3>
-                    <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                      {action.description}
-                    </p>
-                  </div>
-                  <div className="mt-4 flex items-center text-xs font-semibold text-emerald-600 group-hover:text-emerald-700">
-                    Open {action.title} →
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
+      <section className="mt-6">
+        <div className="mb-2 flex items-center justify-between"><h2 className="text-xs font-black uppercase tracking-wider text-muted-foreground">Your space</h2><Link href={routes.dashboard} className="text-[10px] font-bold text-emerald-600">Activity →</Link></div>
+        <div className="overflow-hidden rounded-3xl border border-border bg-card">
+          {nav.map(({ href, title, description, icon: Icon }, index) => <Link key={href} href={href} className={`flex items-center gap-3 p-3.5 transition-colors hover:bg-muted/40 active:bg-muted/60 ${index ? "border-t border-border/70" : ""}`}><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground"><Icon className="h-4 w-4" /></div><div className="min-w-0 flex-1"><p className="text-xs font-black text-foreground">{title}</p><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{description}</p></div><ArrowUpRight className="h-4 w-4 text-muted-foreground" /></Link>)}
         </div>
       </section>
-    </div>
+    </main>
   );
 }
