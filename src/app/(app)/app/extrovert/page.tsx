@@ -1,57 +1,34 @@
 import type { Metadata } from "next";
-import { Clock3, Heart, Sparkles, Zap, ShieldCheck, Users, MessageCircle } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, BarChart3, Eye, Ghost, Heart, RotateCcw, Search, Sparkles, Zap } from "lucide-react";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { routes } from "@/config/routes";
+import { DateBuExtrovertCheckout } from "@/components/payments/datebu-extrovert-checkout";
+import { DateBuShop } from "@/components/payments/datebu-shop";
 
-export const metadata: Metadata = {
-  title: "DateBu Extrovert | Coming Soon",
-};
+export const metadata: Metadata = { title: "DateBu Extrovert" };
+export const dynamic = "force-dynamic";
 
-export default function ExtrovertPage() {
-  return (
-    <div className="mx-auto max-w-md px-3.5 py-5 space-y-4 font-sans select-none pb-24">
-      <div className="relative overflow-hidden rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-6 shadow-sm dark:border-emerald-900/50 dark:from-emerald-950/40 dark:via-card dark:to-teal-950/30">
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
-          <Sparkles className="h-3.5 w-3.5" />
-          DateBu Mode
-        </div>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-foreground">
-          Extrovert
-        </h1>
-        <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-black text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-          <Clock3 className="h-3.5 w-3.5" /> Coming soon
-        </div>
-        <p className="mt-4 text-xs leading-5 text-muted-foreground">
-          DateBu currently gives every free account <strong className="text-foreground">10 likes per day</strong>. Extrovert is a future mode and does not change your current limits yet.
-        </p>
-      </div>
+export default async function ExtrovertPage() {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: subscription } = user ? await supabase.from("subscriptions").select("plan,status,current_period_end").eq("user_id", user.id).maybeSingle() : { data: null };
+  const active = subscription?.plan === "pro" && ["active", "trialing"].includes(subscription.status) && !!subscription.current_period_end && new Date(subscription.current_period_end).getTime() > Date.now();
 
-      <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-amber-500" />
-          <h2 className="text-sm font-bold text-foreground">What&apos;s planned</h2>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-2.5">
-          {[
-            [Heart, "More ways to connect"],
-            [ShieldCheck, "Extra privacy controls"],
-            [Users, "New matching modes"],
-            [MessageCircle, "Richer conversations"],
-          ].map(([Icon, label]) => {
-            const FeatureIcon = Icon as typeof Heart;
-            return (
-              <div key={label as string} className="rounded-2xl border border-border/70 bg-muted/30 p-3">
-                <FeatureIcon className="h-4 w-4 text-emerald-600" />
-                <p className="mt-2 text-[10px] font-bold leading-4 text-foreground">{label as string}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+  return <main className="mx-auto max-w-md px-3.5 py-4 pb-24 space-y-4 font-sans">
+    <div className="flex items-center gap-3 px-1"><Link href={routes.app} className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-xs active:scale-95" aria-label="Back"><ArrowLeft className="h-4 w-4" /></Link><div><p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">DateBu</p><h1 className="text-xl font-black tracking-tight text-foreground">Extrovert</h1></div></div>
 
-      <div className="rounded-3xl border border-border bg-card p-4 text-center shadow-sm">
-        <p className="text-[11px] font-semibold text-muted-foreground">
-          No payment is required for this mode right now. We&apos;ll enable it here when it is ready.
-        </p>
-      </div>
-    </div>
-  );
+    <section className="relative overflow-hidden rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-5 shadow-sm dark:border-emerald-900/50 dark:from-emerald-950/40 dark:via-card dark:to-teal-950/30">
+      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300"><Sparkles className="h-3.5 w-3.5" /> More visibility. More control.</div>
+      <h2 className="mt-2 text-3xl font-black tracking-tight text-foreground">DateBu Extrovert</h2>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">The core DateBu experience stays free. Extrovert adds the information and control that help you make better connections.</p>
+      {active ? <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-100/70 p-3"><p className="text-xs font-black text-emerald-900">Extrovert is active</p><p className="mt-1 text-[10px] text-emerald-800">Your plan is active until {new Date(subscription?.current_period_end as string).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}.</p></div> : <DateBuExtrovertCheckout email={user?.email} />}
+    </section>
+
+    <section className="rounded-3xl border border-border bg-card p-4 shadow-xs"><div className="flex items-center justify-between"><div><p className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Extrovert includes</p><h2 className="mt-1 text-sm font-black text-foreground">Built around visibility</h2></div><Zap className="h-5 w-5 text-amber-500" /></div><div className="mt-3 grid grid-cols-2 gap-2">{[[Eye,"See who viewed you"],[Heart,"See who liked you"],[BarChart3,"Personal activity"],[Ghost,"Ghost Mode"],[RotateCcw,"Rewind"],[Search,"Advanced discovery"]].map(([Icon,label]) => { const FeatureIcon = Icon as typeof Eye; return <div key={label as string} className="rounded-2xl border border-border/70 bg-muted/20 p-3"><FeatureIcon className="h-4 w-4 text-emerald-600" /><p className="mt-2 text-[10px] font-bold leading-4 text-foreground">{label as string}</p></div>; })}</div><p className="mt-3 text-[9px] leading-relaxed text-muted-foreground">Extrovert gives you 10 likes per day. Free accounts get 7 starter likes, then 2 likes per day.</p></section>
+
+    <DateBuShop />
+
+    <section className="rounded-3xl border border-border bg-card p-4"><div className="flex items-center gap-2"><BarChart3 className="h-4 w-4 text-blue-600" /><div><h2 className="text-sm font-black text-foreground">Your Activity</h2><p className="text-[10px] text-muted-foreground">Personal tracking is an Extrovert feature.</p></div></div><Link href={routes.dashboard} className="mt-3 flex w-full items-center justify-center rounded-2xl border border-border bg-background py-2.5 text-xs font-bold text-foreground active:scale-[.99]">Open Personal Activity</Link></section>
+  </main>;
 }
