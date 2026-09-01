@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { isUuid } from "@/lib/validation";
+import { sendPushToUser } from "@/lib/push/server";
 
 export type LikeResult = {
   error: string | null;
@@ -60,8 +61,7 @@ export async function likeProfile(profileId: string): Promise<LikeResult> {
   }
 
   // The database RPC is the single source of truth for the like + mutual-like
-  // transaction. Do not insert into likes and then create matches separately:
-  // doing that makes the UI vulnerable to RLS/race-condition failures.
+  // transaction. Do not insert into likes and then create matches separately.
   const { data: result, error } = await supabase.rpc("like_profile", {
     p_profile_id: profileId,
   });
@@ -92,6 +92,40 @@ export async function likeProfile(profileId: string): Promise<LikeResult> {
   if (matched) {
     revalidatePath(routes.matches);
     revalidatePath(routes.messages);
+  }
+
+  // Push notifications are transactional follow-up work. They do not change
+  // the like/match result if the push service is unavailable.
+  const { data: targetProfile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  const targetName = targetProfile?.display_name || "someone";
+
+  if (matched && matchId) {
+    await Promise.all([
+      sendPushToUser(profileId, {
+        title: "It’s a Match!",
+        body: `You and ${targetName === "someone" ? "someone" : "the person you liked"} matched on DateBu.`,
+        url: `${routes.messages}/${matchId}`,
+        tag: `match-${matchId}`,
+      }),
+      sendPushToUser(user.id, {
+        title: "It’s a Match!",
+        body: `You matched with ${targetName}.`,
+        url: `${routes.messages}/${matchId}`,
+        tag: `match-${matchId}`,
+      }),
+    ]);
+  } else {
+    await sendPushToUser(profileId, {
+      title: "Someone likes you",
+      body: "Someone liked your profile. Open DateBu to see who.",
+      url: routes.discover,
+      tag: `like-${user.id}`,
+    });
   }
 
   return { error: null, matched, matchId };
