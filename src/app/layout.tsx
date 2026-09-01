@@ -2,6 +2,7 @@ import "@/app/globals.css";
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { universityConfig } from "@/config/university";
+import { InstallPwaButton } from "@/components/shared/install-pwa-button";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -49,6 +50,11 @@ export default function RootLayout({
         <div className="flex min-h-[100dvh] w-full items-center justify-center bg-zinc-100 sm:p-6">
           <div className="relative flex h-[100dvh] w-full max-h-[100dvh] flex-col overflow-hidden bg-white shadow-[0_25px_60px_rgba(0,0,0,0.08)] sm:h-[840px] sm:max-w-[420px] sm:rounded-[40px] sm:border-[8px] sm:border-white">
             {children}
+            <div className="pointer-events-none fixed inset-x-0 bottom-3 z-[99990] flex justify-center px-3 sm:absolute sm:bottom-3">
+              <div className="pointer-events-auto">
+                <InstallPwaButton />
+              </div>
+            </div>
           </div>
         </div>
       </body>
