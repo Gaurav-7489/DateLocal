@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { MessageSquare, Compass, Flame, HeartHandshake } from "lucide-react";
 import SuperChatRequestCard from "@/components/messages/superchat-request-card";
 export const metadata:Metadata={title:"Messages | DateBu"};export const dynamic="force-dynamic";
