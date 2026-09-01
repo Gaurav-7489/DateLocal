@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "supabase": "npm:@supabase/supabase-js@2.49.4",
+    "web-push-send": "npm:@mmmike/web-push@1.3.0/send",
+    "web-push-vapid": "npm:@mmmike/web-push@1.3.0/vapid"
+  }
+}
