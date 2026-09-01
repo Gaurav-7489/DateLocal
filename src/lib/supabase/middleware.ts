@@ -16,7 +16,6 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-
         setAll(
           cookiesToSet: {
             name: string;
@@ -25,11 +24,7 @@ export async function updateSession(request: NextRequest) {
           }[]
         ) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-
-          supabaseResponse = NextResponse.next({
-            request,
-          });
-
+          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -51,11 +46,11 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  const isAuthRoute =
-    pathname === routes.login ||
-    pathname === routes.register ||
-    pathname === routes.verify;
-
+  // Auth pages are only login/register now. The old email-verification page is
+  // intentionally no longer part of the authentication gate because DateBu
+  // currently accepts Google authentication and university-email accounts with
+  // Supabase Confirm Email disabled.
+  const isAuthRoute = pathname === routes.login || pathname === routes.register;
   const isAppRoute = pathname === routes.app || pathname.startsWith("/app/");
   const isAdminRoute = pathname === routes.admin.root || pathname.startsWith("/admin/");
   const isOnboardingRoute = pathname === routes.profileSetup;
@@ -64,32 +59,13 @@ export async function updateSession(request: NextRequest) {
   if (!user && (isAppRoute || isAdminRoute || isFaceVerifyRoute)) {
     const redirectUrl = new URL(routes.login, request.url);
     const redirectResponse = NextResponse.redirect(redirectUrl);
-
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       redirectResponse.cookies.set(cookie.name, cookie.value);
     });
-
     return redirectResponse;
   }
 
   if (user) {
-    const isEmailConfirmed = Boolean(user.email_confirmed_at || user.confirmed_at);
-
-    if (!isEmailConfirmed) {
-      if (pathname !== routes.verify && !pathname.startsWith("/auth/callback")) {
-        const redirectUrl = new URL(routes.verify, request.url);
-        redirectUrl.searchParams.set("email", user.email || "");
-        const redirectResponse = NextResponse.redirect(redirectUrl);
-
-        supabaseResponse.cookies.getAll().forEach((cookie) => {
-          redirectResponse.cookies.set(cookie.name, cookie.value);
-        });
-
-        return redirectResponse;
-      }
-      return supabaseResponse;
-    }
-
     const [profileResult, primaryPhotoResult] = await Promise.all([
       supabase
         .from("profiles")
@@ -124,6 +100,9 @@ export async function updateSession(request: NextRequest) {
       }
     }
 
+    // Both supported authentication methods enter the same onboarding gate.
+    // New Google users and new university-email users are sent to profile setup
+    // until they have completed their profile and added a primary photo.
     if (!isProfileComplete || !hasPrimaryPhoto) {
       if (
         (isAppRoute && !isOnboardingRoute) ||
@@ -133,11 +112,9 @@ export async function updateSession(request: NextRequest) {
         const redirectResponse = NextResponse.redirect(
           new URL(routes.profileSetup, request.url)
         );
-
         supabaseResponse.cookies.getAll().forEach((cookie) => {
           redirectResponse.cookies.set(cookie.name, cookie.value);
         });
-
         return redirectResponse;
       }
 
