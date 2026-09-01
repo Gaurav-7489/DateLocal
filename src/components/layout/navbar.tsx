@@ -27,28 +27,14 @@ const menuVariants: Variants = {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: {
-      type: "spring",
-      bounce: 0,
-      duration: 0.4,
-      staggerChildren: 0.05,
-    },
+    transition: { type: "spring", bounce: 0, duration: 0.4, staggerChildren: 0.05 },
   },
-  exit: {
-    opacity: 0,
-    y: -10,
-    scale: 0.95,
-    transition: { duration: 0.2, ease: "easeOut" },
-  },
+  exit: { opacity: 0, y: -10, scale: 0.95, transition: { duration: 0.2, ease: "easeOut" } },
 };
 
 const itemVariants: Variants = {
   hidden: { opacity: 0, x: -10 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: { type: "spring", stiffness: 300, damping: 24 },
-  },
+  visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
 };
 
 export function Navbar() {
@@ -56,22 +42,13 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredPath, setHoveredPath] = useState<string | null>(null);
-
   const { scrollY } = useScroll();
 
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    setIsScrolled(latest > 20);
-  });
+  useMotionValueEvent(scrollY, "change", (latest) => setIsScrolled(latest > 20));
 
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-    return () => {
-      document.body.style.overflow = "unset";
-    };
+    document.body.style.overflow = mobileOpen ? "hidden" : "unset";
+    return () => { document.body.style.overflow = "unset"; };
   }, [mobileOpen]);
 
   return (
@@ -79,15 +56,9 @@ export function Navbar() {
       <motion.nav
         initial={false}
         animate={{
-          backgroundColor: isScrolled
-            ? "rgba(255, 255, 255, 0.85)"
-            : "rgba(255, 255, 255, 0)",
-          borderColor: isScrolled
-            ? "rgba(228, 228, 231, 0.8)"
-            : "rgba(228, 228, 231, 0)",
-          boxShadow: isScrolled
-            ? "0 8px 30px rgba(0,0,0,0.06)"
-            : "0 0px 0px rgba(0,0,0,0)",
+          backgroundColor: isScrolled ? "rgba(255, 255, 255, 0.85)" : "rgba(255, 255, 255, 0)",
+          borderColor: isScrolled ? "rgba(228, 228, 231, 0.8)" : "rgba(228, 228, 231, 0)",
+          boxShadow: isScrolled ? "0 8px 30px rgba(0,0,0,0.06)" : "0 0px 0px rgba(0,0,0,0)",
           paddingTop: isScrolled ? "0.6rem" : "1rem",
           paddingBottom: isScrolled ? "0.6rem" : "1rem",
         }}
@@ -95,27 +66,19 @@ export function Navbar() {
         className="w-full max-w-5xl flex items-center justify-between px-4 sm:px-6 rounded-full backdrop-blur-xl border border-transparent"
         aria-label="Main navigation"
       >
-        <Link
-          href={routes.home}
-          className="flex items-center gap-2.5 group active:scale-95 transition-transform z-10"
-        >
+        <Link href={routes.home} className="flex items-center gap-2.5 group active:scale-95 transition-transform z-10">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-sm font-black text-white shadow-sm shadow-emerald-600/20 group-hover:bg-emerald-500 group-hover:rotate-3 transition-all duration-300">
             {universityConfig.shortName.charAt(0)}
           </div>
           <span className="text-base font-extrabold tracking-tight text-zinc-950">
-            {universityConfig.appName}
-            <span className="text-emerald-600">.</span>
+            {universityConfig.appName}<span className="text-emerald-600">.</span>
           </span>
         </Link>
 
-        <div
-          className="hidden md:flex items-center gap-1 relative z-10"
-          onMouseLeave={() => setHoveredPath(null)}
-        >
+        <div className="hidden md:flex items-center gap-1 relative z-10" onMouseLeave={() => setHoveredPath(null)}>
           {publicLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href;
-
             return (
               <Link
                 key={link.href}
@@ -123,43 +86,24 @@ export function Navbar() {
                 onMouseEnter={() => setHoveredPath(link.href)}
                 className={cn(
                   "relative flex items-center gap-1.5 px-4 py-2 text-xs font-bold transition-colors z-20",
-                  isActive
-                    ? "text-emerald-700"
-                    : "text-zinc-500 hover:text-zinc-900"
+                  isActive ? "text-emerald-700" : "text-zinc-500 hover:text-zinc-900"
                 )}
               >
-                {isActive && (
-                  <span className="absolute inset-0 bg-emerald-50 rounded-full -z-10" />
-                )}
+                {isActive && <span className="absolute inset-0 bg-emerald-50 rounded-full -z-10" />}
                 {hoveredPath === link.href && !isActive && (
-                  <motion.span
-                    layoutId="navbar-hover"
-                    className="absolute inset-0 bg-zinc-100 rounded-full -z-10"
-                    transition={{
-                      type: "spring",
-                      bounce: 0.2,
-                      duration: 0.6,
-                    }}
-                  />
+                  <motion.span layoutId="navbar-hover" className="absolute inset-0 bg-zinc-100 rounded-full -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
                 )}
-                {Icon && (
-                  <Icon
-                    className={cn(
-                      "w-3.5 h-3.5",
-                      isActive ? "text-emerald-600" : "text-zinc-400"
-                    )}
-                  />
-                )}
+                {Icon && <Icon className={cn("w-3.5 h-3.5", isActive ? "text-emerald-600" : "text-zinc-400")} />}
                 {link.label}
               </Link>
             );
           })}
         </div>
 
-        <div className="hidden md:flex items-center gap-3 z-10">
+        <div className="hidden md:flex items-center gap-2 z-10">
           <Link
             href={routes.login}
-            className="text-xs font-bold text-zinc-600 hover:text-zinc-950 px-3 py-1.5 transition-colors"
+            className="inline-flex items-center justify-center rounded-full border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-bold text-blue-700 shadow-sm transition-all hover:bg-blue-100 hover:border-blue-300 hover:scale-105 active:scale-95"
           >
             Log In
           </Link>
@@ -176,22 +120,9 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center md:hidden z-20">
-          <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-50/80 backdrop-blur-md border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition-colors active:scale-95"
-            aria-expanded={mobileOpen}
-            aria-label="Toggle navigation menu"
-          >
-            <motion.div
-              initial={false}
-              animate={{ rotate: mobileOpen ? 90 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              {mobileOpen ? (
-                <X className="w-4 h-4" />
-              ) : (
-                <Menu className="w-4 h-4" />
-              )}
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-50/80 backdrop-blur-md border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition-colors active:scale-95" aria-expanded={mobileOpen} aria-label="Toggle navigation menu">
+            <motion.div initial={false} animate={{ rotate: mobileOpen ? 90 : 0 }} transition={{ duration: 0.2 }}>
+              {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </motion.div>
           </button>
         </div>
@@ -199,18 +130,11 @@ export function Navbar() {
 
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div
-            variants={menuVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="absolute top-20 left-4 right-4 rounded-3xl border border-zinc-200/90 bg-white/95 p-5 backdrop-blur-2xl shadow-[0_24px_50px_rgba(0,0,0,0.1)] md:hidden z-50 origin-top"
-          >
+          <motion.div variants={menuVariants} initial="hidden" animate="visible" exit="exit" className="absolute top-20 left-4 right-4 rounded-3xl border border-zinc-200/90 bg-white/95 p-5 backdrop-blur-2xl shadow-[0_24px_50px_rgba(0,0,0,0.1)] md:hidden z-50 origin-top">
             <div className="flex flex-col gap-2">
               {publicLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname === link.href;
-
                 return (
                   <motion.div key={link.href} variants={itemVariants}>
                     <Link
@@ -218,19 +142,10 @@ export function Navbar() {
                       onClick={() => setMobileOpen(false)}
                       className={cn(
                         "flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold transition-all active:scale-95",
-                        isActive
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                          : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
+                        isActive ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950"
                       )}
                     >
-                      {Icon && (
-                        <Icon
-                          className={cn(
-                            "w-4 h-4",
-                            isActive ? "text-emerald-600" : "text-zinc-400"
-                          )}
-                        />
-                      )}
+                      {Icon && <Icon className={cn("w-4 h-4", isActive ? "text-emerald-600" : "text-zinc-400")} />}
                       {link.label}
                     </Link>
                   </motion.div>
@@ -243,7 +158,7 @@ export function Navbar() {
                 <Link
                   href={routes.login}
                   onClick={() => setMobileOpen(false)}
-                  className="block w-full rounded-2xl px-4 py-3.5 text-sm font-bold text-zinc-600 hover:bg-zinc-50 hover:text-zinc-950 text-center transition-colors active:scale-95"
+                  className="block w-full rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3.5 text-sm font-bold text-blue-700 hover:bg-blue-100 text-center transition-colors active:scale-95"
                 >
                   Log In
                 </Link>
