@@ -15,7 +15,10 @@ export async function submitFeedback(formData: FormData) {
   if (message.length > 2000) return { error: "Feedback must be 2000 characters or less." };
 
   const email = user.email ?? "";
-  const { error } = await supabase.from("feedback").insert({
+  // The generated database types predate the feedback migration, so keep this
+  // isolated until the next type generation updates database.ts.
+  const db = supabase as any;
+  const { error } = await db.from("feedback").insert({
     user_id: user.id,
     email,
     message,
