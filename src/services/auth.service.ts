@@ -1,20 +1,12 @@
 import { createClient } from "@/lib/supabase/client";
 
 export type AuthResult =
-  | {
-      success: true;
-      needsEmailConfirmation?: boolean;
-    }
-  | {
-      success: false;
-      error: string;
-    };
+  | { success: true; needsEmailConfirmation?: boolean }
+  | { success: false; error: string };
 
 let cachedClient: ReturnType<typeof createClient> | null = null;
 function getClient() {
-  if (!cachedClient) {
-    cachedClient = createClient();
-  }
+  if (!cachedClient) cachedClient = createClient();
   return cachedClient;
 }
 
@@ -24,7 +16,6 @@ function getAuthCallbackUrl(next = "/app/profile/setup") {
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Error && error.message) return error.message;
-  if (typeof error === "string" && error.trim()) return error;
   if (error && typeof error === "object" && "message" in error) {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string" && message.trim()) return message;
@@ -32,155 +23,68 @@ function getErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
-export async function registerWithEmail(
-  email: string,
-  password: string,
-): Promise<AuthResult> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const supabase = getClient();
-
+export async function signInWithGoogle(): Promise<AuthResult> {
   try {
-    // Signup intentionally does not send a redirect URL. DateBu currently
-    // runs without mandatory email verification, so a direct session is the
-    // expected result when Supabase Auth has "Confirm email" disabled.
-    const { data, error } = await supabase.auth.signUp({
-      email: normalizedEmail,
+    const { error } = await getClient().auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: getAuthCallbackUrl(),
+        queryParams: { prompt: "select_account" },
+      },
+    });
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error, "Google sign-in is temporarily unavailable.") };
+  }
+}
+
+export async function registerWithEmail(email: string, password: string): Promise<AuthResult> {
+  try {
+    const { data, error } = await getClient().auth.signUp({
+      email: email.trim().toLowerCase(),
       password,
     });
-
-    if (error) {
-      return {
-        success: false,
-        error: getErrorMessage(error, "Unable to create your account. Please try again."),
-      };
-    }
-
-    if (!data.user) {
-      return {
-        success: false,
-        error: "Unable to create your account. Please try again.",
-      };
-    }
-
-    if (data.session) {
-      return { success: true, needsEmailConfirmation: false };
-    }
-
-    // If confirmation is still enabled in Supabase, sign in immediately so
-    // the app can work as soon as the Supabase setting is corrected.
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
-      password,
-    });
-
-    if (!signInError) {
-      return { success: true, needsEmailConfirmation: false };
-    }
-
-    const lowerMessage = signInError.message.toLowerCase();
-    if (lowerMessage.includes("email not confirmed")) {
-      return {
-        success: false,
-        error: "Supabase still requires email confirmation. Disable 'Confirm email' in Supabase Auth > Sign In / Providers > Email, then try again.",
-      };
-    }
-
-    return {
-      success: false,
-      error: signInError.message,
-    };
+    if (error) return { success: false, error: getErrorMessage(error, "Unable to create your account.") };
+    if (!data.user) return { success: false, error: "Unable to create your account. Please try again." };
+    if (data.session) return { success: true, needsEmailConfirmation: false };
+    return { success: false, error: "University-email signup requires Confirm email to be disabled in Supabase." };
   } catch (error) {
     console.error("Registration failed:", error);
-    return {
-      success: false,
-      error: getErrorMessage(error, "Authentication service is temporarily unavailable. Please try again."),
-    };
+    return { success: false, error: getErrorMessage(error, "Authentication service is temporarily unavailable.") };
   }
 }
 
-export async function signInWithEmail(
-  email: string,
-  password: string,
-): Promise<AuthResult> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const supabase = getClient();
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email: normalizedEmail,
-    password,
-  });
-
-  if (error) {
-    const lowerMessage = error.message.toLowerCase();
-
-    if (lowerMessage.includes("email not confirmed")) {
-      return {
-        success: false,
-        error: "Email verification is disabled for DateBu. If you still see this message, disable 'Confirm email' in Supabase Auth.",
-      };
+export async function signInWithEmail(email: string, password: string): Promise<AuthResult> {
+  try {
+    const { error } = await getClient().auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) {
+      const message = error.message.toLowerCase().includes("invalid login credentials")
+        ? "Incorrect university email or password."
+        : error.message;
+      return { success: false, error: message };
     }
-
-    const message = lowerMessage.includes("invalid login credentials")
-      ? "Incorrect email or password. Please check your credentials."
-      : error.message;
-
-    return {
-      success: false,
-      error: message,
-    };
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: getErrorMessage(error, "Authentication service is temporarily unavailable.") };
   }
-
-  return {
-    success: true,
-  };
 }
 
-export async function resendVerificationEmail(
-  email: string,
-): Promise<AuthResult> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const supabase = getClient();
-
-  const { error } = await supabase.auth.resend({
+export async function resendVerificationEmail(email: string): Promise<AuthResult> {
+  const { error } = await getClient().auth.resend({
     type: "signup",
-    email: normalizedEmail,
-    options: {
-      emailRedirectTo: getAuthCallbackUrl(),
-    },
+    email: email.trim().toLowerCase(),
+    options: { emailRedirectTo: getAuthCallbackUrl() },
   });
-
-  if (error) {
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
-
-  return {
-    success: true,
-  };
+  return error ? { success: false, error: error.message } : { success: true };
 }
 
-export async function sendPasswordResetEmail(
-  email: string,
-): Promise<AuthResult> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const supabase = getClient();
-
-  const resetRedirect = getAuthCallbackUrl("/reset-password");
-
-  const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-    redirectTo: resetRedirect,
+export async function sendPasswordResetEmail(email: string): Promise<AuthResult> {
+  const { error } = await getClient().auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+    redirectTo: getAuthCallbackUrl("/reset-password"),
   });
-
-  if (error) {
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
-
-  return {
-    success: true,
-  };
+  return error ? { success: false, error: error.message } : { success: true };
 }
