@@ -30,8 +30,9 @@ export async function signInWithGoogle(): Promise<AuthResult> {
     const { error } = await getClient().auth.signInWithOAuth({
       provider: "google",
       options: {
+        // The callback decides whether setup is required. Avoid forcing an
+        // account chooser so returning users can authenticate faster.
         redirectTo: getAuthCallbackUrl(),
-        queryParams: { prompt: "select_account" },
       },
     });
     if (error) return { success: false, error: error.message };
