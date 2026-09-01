@@ -40,8 +40,9 @@ export async function POST(request: Request) {
       cache: "no-store",
     });
     if (!paymentResponse.ok) return NextResponse.json({ error: "We couldn't confirm the payment yet. Please try again in a moment." }, { status: 409 });
-    const payment = await paymentResponse.json() as { order_id?: string; status?: string };
+    const payment = await paymentResponse.json() as { order_id?: string; status?: string; method?: string };
     if (payment.order_id !== order.razorpay_order_id || payment.status !== "captured") return NextResponse.json({ error: "Payment is not captured yet." }, { status: 409 });
+    if (payment.method !== "upi") return NextResponse.json({ error: "Only UPI payments are accepted for DateBu Shop." }, { status: 400 });
 
     await admin.from("shop_orders").update({ razorpay_payment_id: paymentId, updated_at: new Date().toISOString() }).eq("id", shopOrderId);
     const { error: fulfillError } = await admin.rpc("fulfill_shop_order", { p_order_id: shopOrderId });
