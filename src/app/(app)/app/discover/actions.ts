@@ -6,7 +6,7 @@ import { routes } from "@/config/routes";
 import { isUuid } from "@/lib/validation";
 import { sendPushToUser } from "@/lib/push/server";
 
-export type LikeResult={error:string|null;matched:boolean;matchId?:string};export type ActionResult={error:string|null;success?:boolean};
+export type LikeResult={error:string|null;matched:boolean;matchId?:string};export type ActionResult={error:string|null;success?:boolean;count?:number};
 
 type RpcClient={rpc:(name:string,args:Record<string,string>)=>Promise<{data:unknown;error:{message:string}|null}>};
 
@@ -18,7 +18,7 @@ export async function passProfile(profileId:string):Promise<ActionResult>{if(!is
 
 export async function rewindLastPass():Promise<ActionResult>{const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return{error:"You must be logged in."};const {data:isPro}=await supabase.rpc("is_datebu_pro");if(!isPro)return{error:"Rewind is a DateBu Extrovert feature."};const {data:lastPass}=await supabase.from("passes").select("id,passed_id").eq("passer_id",user.id).order("created_at",{ascending:false}).limit(1).maybeSingle();if(!lastPass)return{error:"There is nothing to rewind yet."};const {error}=await supabase.from("passes").delete().eq("id",lastPass.id).eq("passer_id",user.id);if(error)return{error:"Couldn't rewind that profile. Please try again."};revalidatePath(routes.discover);return{error:null,success:true};}
 
-export async function resetPassedProfiles():Promise<ActionResult>{const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return{error:"You must be logged in."};const {error}=await supabase.from("passes").delete().eq("passer_id",user.id);if(error)return{error:"Couldn't bring back passed profiles. Please try again."};revalidatePath(routes.discover);return{error:null,success:true};}
+export async function resetPassedProfiles():Promise<ActionResult>{const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return{error:"You must be logged in."};const {count,error:countError}=await supabase.from("passes").select("id",{count:"exact",head:true}).eq("passer_id",user.id);if(countError)return{error:"Couldn't check passed profiles. Please try again."};if(!count)return{error:null,success:true,count:0};const {error}=await supabase.from("passes").delete().eq("passer_id",user.id);if(error)return{error:"Couldn't bring back passed profiles. Please try again."};revalidatePath(routes.discover);return{error:null,success:true,count};}
 
 export async function blockUser(targetUserId:string):Promise<ActionResult>{if(!isUuid(targetUserId))return{error:"Invalid profile."};const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return{error:"You must be logged in to block a user."};if(user.id===targetUserId)return{error:"You cannot block yourself."};const {error}=await supabase.from("blocks").insert({blocker_id:user.id,blocked_id:targetUserId});if(error&&error.code!=="23505")return{error:"Failed to block user. Please try again."};const [userA,userB]=user.id<targetUserId?[user.id,targetUserId]:[targetUserId,user.id];await supabase.from("matches").delete().eq("user_a",userA).eq("user_b",userB);revalidatePath(routes.discover);revalidatePath(routes.matches);revalidatePath(routes.messages);return{error:null,success:true};}
 
