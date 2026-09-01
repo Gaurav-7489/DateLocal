@@ -10,6 +10,7 @@ type RazorpayOptions = { key: string; amount: number; currency: string; order_id
 type RazorpayResponse = { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string };
 type RazorpayInstance = { open: () => void; on?: (event: string, callback: (response: unknown) => void) => void };
 type RazorpayWindow = Window & { Razorpay?: new (options: RazorpayOptions) => RazorpayInstance };
+type WalletClient={from:(table:string)=>{select:(columns:string)=>{maybeSingle:()=>Promise<{data:{purchased_superchats?:number}|null}>}};rpc:(name:string,args:Record<string,string>)=>Promise<{error:{message:string}|null}>};
 
 function loadRazorpayScript() { return new Promise<boolean>((resolve) => { const win = window as RazorpayWindow; if (win.Razorpay) return resolve(true); const existing = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]'); if (existing) { existing.addEventListener("load", () => resolve(true), { once: true }); existing.addEventListener("error", () => resolve(false), { once: true }); return; } const script = document.createElement("script"); script.src = "https://checkout.razorpay.com/v1/checkout.js"; script.async = true; script.onload = () => resolve(true); script.onerror = () => resolve(false); document.body.appendChild(script); }); }
 
@@ -20,10 +21,10 @@ export default function SuperChatComposer({ targetUserId, targetName, onClose, o
   const [credits, setCredits] = useState(0);
   const product = SHOP_PRODUCTS.superchat;
 
-  useEffect(() => { const supabase = createClient(); void supabase.from("superchat_wallets").select("purchased_superchats").maybeSingle().then(({ data }) => setCredits(data?.purchased_superchats ?? 0)); }, []);
+  useEffect(() => { const supabase = createClient() as unknown as WalletClient; void supabase.from("superchat_wallets").select("purchased_superchats").maybeSingle().then(({ data }) => setCredits(data?.purchased_superchats ?? 0)); }, []);
 
   async function sendWithCredit(text: string) {
-    const supabase = createClient();
+    const supabase = createClient() as unknown as WalletClient;
     const { error: rpcError } = await supabase.rpc("send_superchat_with_credit", { p_recipient_id: targetUserId, p_content: text });
     if (rpcError) throw new Error(rpcError.message.includes("SUPERCHAT_EMPTY") ? "Your SuperChat credits are empty." : "Couldn't send the SuperChat. Please try again.");
     setCredits((value) => Math.max(0, value - 1)); onComplete?.(); onClose();
