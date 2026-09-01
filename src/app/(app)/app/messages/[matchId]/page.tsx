@@ -21,6 +21,24 @@ type Props = {
   }>;
 };
 
+type MatchProfile = {
+  id: string;
+  display_name: string | null;
+  department: string | null;
+  academic_year: string | null;
+  relationship_goal: string | null;
+  campus_residency: string | null;
+  campus_hangout: string | null;
+  zodiac: string | null;
+  prompt_question: string | null;
+  prompt_answer: string | null;
+  profile_photos: Array<{
+    storage_path: string;
+    display_order: number;
+    is_primary: boolean;
+  }>;
+};
+
 export default async function ChatPage({ params }: Props) {
   const { matchId } = await params;
 
@@ -38,7 +56,6 @@ export default async function ChatPage({ params }: Props) {
     redirect(routes.login);
   }
 
-  // Ensure this match belongs to the current user
   const { data: match, error: matchError } = await supabase
     .from("matches")
     .select("id, user_a, user_b")
@@ -53,45 +70,36 @@ export default async function ChatPage({ params }: Props) {
   const otherUserId =
     match.user_a === user.id ? match.user_b : match.user_a;
 
-  // Check if either user has blocked the other
   const { data: blockRecord } = await supabase
     .from("blocks")
     .select("id")
-    .or(`and(blocker_id.eq.${user.id},blocked_id.eq.${otherUserId}),and(blocker_id.eq.${otherUserId},blocked_id.eq.${user.id})`)
+    .or(
+      `and(blocker_id.eq.${user.id},blocked_id.eq.${otherUserId}),and(blocker_id.eq.${otherUserId},blocked_id.eq.${user.id})`,
+    )
     .maybeSingle();
 
   if (blockRecord) {
     redirect(routes.messages);
   }
 
-  // Load the other user's profile with full badges & prompt info
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select(`
-      id,
-      display_name,
-      department,
-      academic_year,
-      relationship_goal,
-      campus_residency,
-      campus_hangout,
-      zodiac,
-      prompt_question,
-      prompt_answer,
-      profile_photos (
-        storage_path,
-        display_order,
-        is_primary
-      )
-    `)
-    .eq("id", otherUserId)
-    .maybeSingle();
+  // Profiles are intentionally private. Use the same secure match-scoped RPC
+  // as the Matches page instead of bypassing RLS with a direct profiles query.
+  const { data: profileRows, error: profileError } = await supabase.rpc(
+    "get_match_profiles",
+    { p_user_ids: [otherUserId] },
+  );
 
-  if (profileError || !profile) {
+  if (profileError) {
+    console.error("Failed to load matched profile:", profileError);
     notFound();
   }
 
-  // Load message history
+  const profile = (profileRows?.[0] ?? null) as MatchProfile | null;
+
+  if (!profile) {
+    notFound();
+  }
+
   const { data: messages, error: messagesError } = await supabase
     .from("messages")
     .select("id, sender_id, content, created_at")
@@ -114,7 +122,6 @@ export default async function ChatPage({ params }: Props) {
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-4rem)] max-w-2xl flex-col px-2 sm:px-4 font-sans overflow-hidden pb-20 md:pb-4">
-      {/* Sleek Top Navigation Header */}
       <div className="shrink-0 flex items-center justify-between border-b border-border/80 bg-background/80 backdrop-blur-md py-2.5 px-1 z-20">
         <div className="flex items-center gap-3">
           <Link
@@ -161,7 +168,6 @@ export default async function ChatPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Interactive Chat Client */}
       <ChatClient
         matchId={matchId}
         currentUserId={user.id}
