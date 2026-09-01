@@ -7,23 +7,23 @@ import { routes } from "@/config/routes";
 import { universityConfig } from "@/config/university";
 
 const campusImages = [
-  { src: "/campus-main.jpeg", alt: "Bahra University campus", label: "Campus" },
-  { src: "/campus-building-01.jpeg", alt: "Bahra University academic building", label: "Academic" },
-  { src: "/campus-building-02.jpeg", alt: "Bahra University campus space", label: "Campus life" },
-  { src: "/campus-building-03.jpeg", alt: "Bahra University building", label: "Student life" },
+  { src: "/campus-main.jpeg", alt: "Main view of Bahra University campus", label: "Main campus" },
+  { src: "/campus-building-01.jpeg", alt: "Bahra University academic building", label: "Academic block" },
+  { src: "/campus-building-02.jpeg", alt: "Bahra University campus surroundings", label: "Campus surroundings" },
+  { src: "/campus-building-03.jpeg", alt: "Bahra University student area", label: "Student life" },
   { src: "/campus-building-04.jpeg", alt: "Bahra University campus view", label: "Around campus" },
-  { src: "/campus-building-05.jpeg", alt: "Bahra University campus building", label: "Your university" },
+  { src: "/campus-building-05.jpeg", alt: "Bahra University campus building", label: "University grounds" },
 ];
 
 const features = [
-  { icon: ShieldCheck, title: "Student verification", text: "Google sign-in or a valid Bahra University email keeps access tied to the campus." },
-  { icon: Users, title: "Discover", text: "Browse student profiles using campus-aware discovery and your preferences." },
-  { icon: Heart, title: "Likes & matches", text: "Like people you are interested in. Mutual likes become matches." },
-  { icon: MessageCircle, title: "Messages", text: "Take a match into a direct conversation with a simple campus-first chat flow." },
-  { icon: Sparkles, title: "Extrovert", text: "Use the wider social mode when you want to meet more people around campus." },
-  { icon: Lock, title: "Ghost mode & safety", text: "Control visibility, block users, report problems, and keep your experience private." },
-  { icon: Newspaper, title: "Campus news & feedback", text: "A small place for DateBu updates, announcements, and student feedback." },
-  { icon: CheckCircle2, title: "Profile & preferences", text: "Build your profile, manage discovery preferences, and keep your campus identity current." },
+  { icon: ShieldCheck, title: "1. Get into the campus", text: "Use the available sign-in method, then complete DateBu's student verification and account checks." },
+  { icon: Users, title: "2. Build your profile", text: "Add your name, department, year, interests, campus habits, photos, and the preferences that actually matter to you." },
+  { icon: Users, title: "3. Discover students", text: "Browse people from the campus using your discovery preferences instead of scrolling through a random public feed." },
+  { icon: Heart, title: "4. Like & match", text: "Send a like when someone feels like your kind of person. When it is mutual, you get a match." },
+  { icon: MessageCircle, title: "5. Start talking", text: "Matches open the conversation flow so you can move from a profile to an actual chat." },
+  { icon: Sparkles, title: "6. Meet more people", text: "Extrovert gives you a wider social mode when you want to explore beyond your usual discovery range." },
+  { icon: Lock, title: "7. Stay in control", text: "Ghost Mode, blocking, reporting, privacy controls, and safety guidance let you decide who gets access to you." },
+  { icon: Newspaper, title: "8. Keep up with campus", text: "News & Feedback gives DateBu a place for updates, announcements, and things students should know." },
 ];
 
 export default function HomePage() {
@@ -46,12 +46,12 @@ export default function HomePage() {
                 <span className="text-emerald-600">Your people.</span>
               </h1>
               <p className="mt-5 max-w-xl text-base leading-7 text-zinc-600 sm:text-lg">
-                {universityConfig.appName} is a student-only space for genuine campus connections — friendships, study groups, dates, matches, and conversations without random outsiders.
+                {universityConfig.appName} is a campus-first space for the people you actually share university life with — friends, study partners, dates, matches, and conversations.
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link href={routes.register} className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-6 py-3.5 text-sm font-black text-white shadow-md shadow-emerald-600/20 transition-transform hover:-translate-y-0.5 hover:bg-emerald-700 active:translate-y-0">
-                  Join with Student Email <ArrowRight className="h-4 w-4" />
+                  Join with Email <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link href={routes.about} className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-6 py-3.5 text-sm font-bold text-zinc-700 shadow-sm hover:border-emerald-200 hover:text-emerald-700">
                   See the campus
@@ -59,8 +59,8 @@ export default function HomePage() {
               </div>
 
               <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 border-t border-zinc-200 pt-5 text-xs font-semibold text-zinc-600">
-                <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Verified access</span>
-                <span className="inline-flex items-center gap-2"><Heart className="h-4 w-4 text-rose-500" /> Campus matching</span>
+                <span className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Student access</span>
+                <span className="inline-flex items-center gap-2"><Heart className="h-4 w-4 text-rose-500" /> Likes &amp; matches</span>
                 <span className="inline-flex items-center gap-2"><Lock className="h-4 w-4 text-blue-600" /> Privacy controls</span>
               </div>
             </div>
@@ -70,8 +70,8 @@ export default function HomePage() {
                 <div className="relative aspect-[4/3] overflow-hidden rounded-[24px]">
                   <Image src="/campus-main.jpeg" alt="Bahra University campus" fill priority sizes="(max-width: 1024px) 100vw, 45vw" className="object-cover" />
                   <div className="absolute inset-x-3 bottom-3 rounded-2xl bg-black/55 px-4 py-3 text-white backdrop-blur-sm">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/70">Real campus</p>
-                    <p className="mt-1 text-sm font-bold">The people you see here are the people you can meet there.</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-white/70">This is the place</p>
+                    <p className="mt-1 text-sm font-bold">The app is built around the campus you already know.</p>
                   </div>
                 </div>
               </div>
@@ -82,9 +82,9 @@ export default function HomePage() {
         <section className="border-y border-zinc-200/80 bg-white px-5 py-14 sm:px-8 sm:py-20">
           <div className="mx-auto max-w-5xl">
             <div className="max-w-2xl">
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600">The campus, but online</p>
-              <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Everything we have built around student connections.</h2>
-              <p className="mt-3 text-sm leading-6 text-zinc-600">The important parts are deliberately simple: get verified, build your profile, discover people, match, talk, and control who can reach you.</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600">How DateBu works</p>
+              <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">A short guide before you join.</h2>
+              <p className="mt-3 text-sm leading-6 text-zinc-600">Think of this page as the quick manual: get access, make yourself recognizable, find people, match, talk, and control your experience.</p>
             </div>
 
             <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -105,11 +105,11 @@ export default function HomePage() {
           <div className="mx-auto max-w-5xl">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600">Built for {universityConfig.name}</p>
-                <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">You should recognize the place.</h2>
-                <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-600">These are real campus views used to make the product feel like a university space, not another generic social app.</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600">Know the place</p>
+                <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">These are real {universityConfig.name} campus views.</h2>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-zinc-600">You should be able to look at DateBu and immediately know where it belongs. These six views are here to make the product feel connected to the university, not like a generic social app.</p>
               </div>
-              <Link href={routes.about} className="inline-flex w-fit items-center gap-1.5 text-xs font-black text-emerald-700 hover:text-emerald-800">Open About <ArrowRight className="h-3.5 w-3.5" /></Link>
+              <Link href={routes.about} className="inline-flex w-fit items-center gap-1.5 text-xs font-black text-emerald-700 hover:text-emerald-800">Open the full campus page <ArrowRight className="h-3.5 w-3.5" /></Link>
             </div>
 
             <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -129,12 +129,12 @@ export default function HomePage() {
           <div className="mx-auto max-w-5xl rounded-[30px] border border-zinc-200 bg-white p-7 shadow-sm sm:p-10">
             <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600">Start simple</p>
-                <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Verify. Set up your profile. Find your people.</h2>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600">Google is available for students without a university mailbox. University-email accounts can use the direct email flow. Completed profiles go straight into the campus app.</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-600">Ready?</p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Join, set yourself up, and find your people.</h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600">Once your profile is complete, DateBu takes you straight into the campus experience instead of making you repeat setup every time you sign in.</p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Link href={routes.register} className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 text-xs font-black text-white hover:bg-emerald-700">Create account <ArrowRight className="h-3.5 w-3.5" /></Link>
+                <Link href={routes.register} className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 text-xs font-black text-white hover:bg-emerald-700">Join with Email <ArrowRight className="h-3.5 w-3.5" /></Link>
                 <Link href={routes.safety} className="inline-flex items-center gap-2 rounded-full border border-zinc-200 px-5 py-3 text-xs font-bold text-zinc-700 hover:border-emerald-200 hover:text-emerald-700"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Safety</Link>
               </div>
             </div>
