@@ -13,13 +13,31 @@ import {
   Compass,
   ShieldCheck,
   MapPin,
-  } from "lucide-react";
+} from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Your Matches | DateBu",
 };
 
 export const dynamic = "force-dynamic";
+
+type MatchProfile = {
+  id: string;
+  display_name: string;
+  date_of_birth: string;
+  gender: string;
+  department: string;
+  academic_year: string;
+  bio: string | null;
+  campus_residency: string | null;
+  relationship_goal: string | null;
+  zodiac: string | null;
+  profile_photos: Array<{
+    storage_path: string;
+    display_order: number;
+    is_primary: boolean;
+  }> | null;
+};
 
 export default async function MatchesPage() {
   const supabase = await createServerSupabaseClient();
@@ -32,7 +50,6 @@ export default async function MatchesPage() {
     redirect(routes.login);
   }
 
-  // Single round-trip parallel fetch
   const [
     { data: blocksCreated },
     { data: blocksReceived },
@@ -90,34 +107,33 @@ export default async function MatchesPage() {
     match.user_a === user.id ? match.user_b : match.user_a,
   );
 
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select(`
-      id,
-      display_name,
-      date_of_birth,
-      gender,
-      department,
-      academic_year,
-      bio,
-      campus_residency,
-      relationship_goal,
-      zodiac,
-      profile_photos (
-        storage_path,
-        display_order,
-        is_primary
-      )
-    `)
-    .in("id", otherUserIds);
+  // Profiles are private and cannot be queried directly by other users.
+  // Use the server-side RPC, which only exposes profiles belonging to an
+  // actual match with the current user and excludes blocked users.
+  const { data: profiles, error: profilesError } = await supabase.rpc(
+    "get_match_profiles",
+    { p_user_ids: otherUserIds },
+  );
 
+  if (profilesError) {
+    console.error("Failed to load match profiles:", profilesError);
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center font-sans">
+        <h1 className="text-xl font-bold text-foreground">Something went wrong</h1>
+        <p className="mt-2 text-xs text-muted-foreground">
+          We found your matches, but couldn&apos;t load their profiles. Please try again.
+        </p>
+      </div>
+    );
+  }
+
+  const typedProfiles = (profiles ?? []) as MatchProfile[];
   const profileMap = new Map(
-    (profiles ?? []).map((profile) => [profile.id, profile]),
+    typedProfiles.map((profile) => [profile.id, profile]),
   );
 
   return (
     <div className="mx-auto max-w-md px-3.5 py-4 space-y-4 font-sans select-none pb-24">
-      {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-foreground flex items-center gap-2">
@@ -125,7 +141,7 @@ export default async function MatchesPage() {
             <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
           </h1>
           <p className="text-[11px] text-muted-foreground font-medium">
-            {matches.length} verified {matches.length === 1 ? "student" : "students"} connected with you
+            {matches.length} student{matches.length === 1 ? "" : "s"} connected with you
           </p>
         </div>
 
@@ -137,7 +153,6 @@ export default async function MatchesPage() {
         </Link>
       </div>
 
-      {/* 2-Column Match Cards Grid */}
       <div className="grid grid-cols-2 gap-2.5 pt-1">
         {matches.map((match, idx) => {
           const otherUserId =
@@ -159,7 +174,6 @@ export default async function MatchesPage() {
               key={match.id}
               className="group relative flex flex-col overflow-hidden rounded-3xl border border-border/80 bg-card shadow-2xs transition-all hover:shadow-md"
             >
-              {/* Photo Area */}
               <div className="relative aspect-[4/5] w-full overflow-hidden bg-zinc-950">
                 {photoUrl ? (
                   <Image
@@ -179,12 +193,10 @@ export default async function MatchesPage() {
 
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
 
-                {/* Verified Badge */}
                 <div className="absolute top-2.5 right-2.5 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-bold text-emerald-400 backdrop-blur-xs border border-white/10 shadow-xs pointer-events-none">
-                  <ShieldCheck className="w-2.5 h-2.5" /> Verified
+                  <ShieldCheck className="w-2.5 h-2.5" /> Student
                 </div>
 
-                {/* Overlaid Info */}
                 <div className="absolute bottom-2.5 left-2.5 right-2.5 text-white pointer-events-none">
                   <h2 className="text-sm font-black truncate leading-tight">
                     {profile.display_name || "Student"}
@@ -203,7 +215,6 @@ export default async function MatchesPage() {
                 </div>
               </div>
 
-              {/* Chat CTA Button */}
               <div className="p-2 bg-card">
                 <Link
                   href={`${routes.messages}/${match.id}`}
