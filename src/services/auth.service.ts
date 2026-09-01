@@ -22,6 +22,16 @@ function getAuthCallbackUrl(next = "/app/profile/setup") {
   return `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+  return fallback;
+}
+
 export async function registerWithEmail(
   email: string,
   password: string,
@@ -30,18 +40,18 @@ export async function registerWithEmail(
   const supabase = getClient();
 
   try {
+    // Signup intentionally does not send a redirect URL. DateBu currently
+    // runs without mandatory email verification, so a direct session is the
+    // expected result when Supabase Auth has "Confirm email" disabled.
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
-      options: {
-        emailRedirectTo: getAuthCallbackUrl(),
-      },
     });
 
     if (error) {
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error, "Unable to create your account. Please try again."),
       };
     }
 
@@ -52,15 +62,12 @@ export async function registerWithEmail(
       };
     }
 
-    // DateBu currently runs without mandatory email verification. When
-    // Supabase returns a session directly, registration is complete.
     if (data.session) {
       return { success: true, needsEmailConfirmation: false };
     }
 
-    // If the Supabase project still has email confirmation enabled, signUp
-    // intentionally returns no session. Try signing in immediately so the
-    // app still works as soon as confirmation is disabled in Supabase Auth.
+    // If confirmation is still enabled in Supabase, sign in immediately so
+    // the app can work as soon as the Supabase setting is corrected.
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
       password,
@@ -74,7 +81,7 @@ export async function registerWithEmail(
     if (lowerMessage.includes("email not confirmed")) {
       return {
         success: false,
-        error: "Email verification is currently disabled in DateBu, but Supabase Auth still requires confirmation. Disable 'Confirm email' in Supabase Auth > Sign In / Providers > Email, then try again.",
+        error: "Supabase still requires email confirmation. Disable 'Confirm email' in Supabase Auth > Sign In / Providers > Email, then try again.",
       };
     }
 
@@ -86,7 +93,7 @@ export async function registerWithEmail(
     console.error("Registration failed:", error);
     return {
       success: false,
-      error: "Authentication service is temporarily unavailable. Please try again.",
+      error: getErrorMessage(error, "Authentication service is temporarily unavailable. Please try again."),
     };
   }
 }
