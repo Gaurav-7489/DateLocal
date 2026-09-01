@@ -4,7 +4,7 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, Mail, Lock } from "lucide-react";
 import { isUniversityEmail, universityConfig } from "@/config/university";
 import { routes } from "@/config/routes";
 import { registerWithEmail, signInWithGoogle } from "@/services/auth.service";
@@ -64,7 +64,13 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-[100dvh] bg-[#f7fbf9] px-4 py-6 text-zinc-950 antialiased">
-      <div className="mx-auto flex min-h-[calc(100dvh-3rem)] w-full max-w-md items-center justify-center">
+      <div className="mx-auto w-full max-w-md">
+        <Link href={routes.home || "/"} className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-600 shadow-sm transition-colors hover:border-emerald-200 hover:text-emerald-700 active:scale-[.98]" aria-label="Back to campus">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to campus
+        </Link>
+      </div>
+      <div className="mx-auto flex min-h-[calc(100dvh-7rem)] w-full max-w-md items-center justify-center py-6">
         <section className="w-full rounded-[28px] border border-zinc-200 bg-white p-5 shadow-[0_16px_50px_rgba(0,0,0,0.07)] sm:p-7">
           <header className="mb-6 text-center">
             <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-emerald-600 text-sm font-black text-white shadow-sm">DB</div>
