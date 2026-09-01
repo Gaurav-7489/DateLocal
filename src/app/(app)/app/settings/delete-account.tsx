@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
-import { deleteAccount } from "../actions";
+import { deleteAccount } from "../../actions";
 
 export function DeleteAccount() {
   const router = useRouter();
@@ -49,9 +49,7 @@ export function DeleteAccount() {
           </span>
         </p>
 
-        <label htmlFor="delete-account-confirmation" className="sr-only">
-          Type delete to confirm account deletion
-        </label>
+        <label htmlFor="delete-account-confirmation" className="sr-only">Type delete to confirm account deletion</label>
         <input
           id="delete-account-confirmation"
           type="text"
@@ -68,11 +66,7 @@ export function DeleteAccount() {
           className="mt-3 w-full rounded-2xl border border-rose-200 bg-background px-4 py-3.5 text-sm font-medium text-foreground outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/60"
         />
 
-        {error && (
-          <p role="alert" className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-400">
-            {error}
-          </p>
-        )}
+        {error && <p role="alert" className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-400">{error}</p>}
 
         <button
           type="button"
@@ -80,17 +74,7 @@ export function DeleteAccount() {
           disabled={!canDelete || isPending}
           className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-rose-600 px-4 py-3.5 text-sm font-bold text-white transition-all hover:bg-rose-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Deleting account...
-            </>
-          ) : (
-            <>
-              <Trash2 className="h-4 w-4" />
-              Permanently delete account
-            </>
-          )}
+          {isPending ? <><Loader2 className="h-4 w-4 animate-spin" /> Deleting account...</> : <><Trash2 className="h-4 w-4" /> Permanently delete account</>}
         </button>
       </div>
     </section>
