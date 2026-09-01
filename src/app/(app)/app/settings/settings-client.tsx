@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useId } from "react";
+import React, { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toggleGhostMode, unblockUser } from "../discover/actions";
 import { routes } from "@/config/routes";
+import { isUniversityEmail } from "@/config/university";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -37,6 +38,8 @@ interface SettingsClientProps {
   blockedUsers: BlockedProfile[];
   subscription: Subscription;
   currentEmail: string;
+  hasPassword: boolean;
+  authProviders: string[];
 }
 
 interface PasswordInputFieldProps {
@@ -95,7 +98,6 @@ function PasswordInputField({
           type="button"
           onClick={onToggleVisibility}
           disabled={disabled}
-          tabIndex={0}
           aria-label={showPassword ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
           title={showPassword ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
           className="absolute right-3 inline-flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30 disabled:pointer-events-none"
@@ -122,47 +124,73 @@ export function SettingsClient({
   blockedUsers: initialBlocked,
   subscription,
   currentEmail: initialCurrentEmail,
+  hasPassword,
+  authProviders,
 }: SettingsClientProps) {
   const router = useRouter();
 
-  // Ghost Mode & Blocked List State
   const [ghostMode, setGhostMode] = useState(initialGhostMode);
   const [ghostLoading, setGhostLoading] = useState(false);
   const [blockedList, setBlockedList] = useState(initialBlocked);
   const [unblockLoadingId, setUnblockLoadingId] = useState<string | null>(null);
 
-  // Global Feedback Message
   const [statusMessage, setStatusMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
 
-  // Account - Email State
   const emailInputId = useId();
-  const [currentEmailState, setCurrentEmailState] = useState(initialCurrentEmail);
-  const [email, setEmail] = useState(initialCurrentEmail);
-  const [emailLoading, setEmailLoading] = useState(false);
-
-  // Account - Password State
   const currentPasswordId = useId();
   const newPasswordId = useId();
   const confirmPasswordId = useId();
 
+  // Keep the real, currently active auth email separate from a pending email change.
+  const [currentEmailState] = useState(initialCurrentEmail);
+  const [email, setEmail] = useState(initialCurrentEmail);
+  const [emailPending, setEmailPending] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // Email Submit Handler
+  const isGoogleAccount = authProviders.includes("google") && !hasPassword;
+  const hasTypedNewPassword = newPassword.length > 0;
+  const isNewPasswordLengthValid = newPassword.length >= 8;
+  const hasTypedConfirm = confirmPassword.length > 0;
+  const doPasswordsMatch = newPassword === confirmPassword;
+
+  const isPremium =
+    subscription.plan !== "free" &&
+    subscription.status === "active" &&
+    !!subscription.currentPeriodEnd &&
+    new Date(subscription.currentPeriodEnd).getTime() > Date.now();
+
   async function handleUpdateEmail(e: React.FormEvent) {
     e.preventDefault();
+    if (emailLoading) return;
+
     const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail || normalizedEmail === currentEmailState.toLowerCase() || emailLoading) {
+
+    if (!normalizedEmail) {
+      setStatusMessage({ type: "error", text: "Enter the new email address." });
+      return;
+    }
+
+    if (!isUniversityEmail(normalizedEmail)) {
+      setStatusMessage({
+        type: "error",
+        text: "Use a valid Bahra University email address. Your DateBu account must stay tied to the university domain.",
+      });
+      return;
+    }
+
+    if (normalizedEmail === currentEmailState.trim().toLowerCase()) {
+      setStatusMessage({ type: "error", text: "That is already your current email address." });
       return;
     }
 
@@ -178,38 +206,30 @@ export function SettingsClient({
           type: "error",
           text: `We couldn't change your email: ${error.message}`,
         });
-      } else {
-        setStatusMessage({
-          type: "success",
-          text: "Confirmation links were sent to your old and new email addresses. Your email changes after both are confirmed.",
-        });
-        setCurrentEmailState(normalizedEmail);
+        return;
       }
+
+      // Supabase keeps the current email active until the configured confirmation flow completes.
+      // Do not overwrite currentEmailState with the pending address.
+      setEmailPending(true);
+      setStatusMessage({
+        type: "success",
+        text: "Confirmation links were sent. Your current email stays active until the email-change verification is completed.",
+      });
     } catch {
       setStatusMessage({
         type: "error",
-        text: "An unexpected network error occurred while updating email.",
+        text: "An unexpected network error occurred while updating your email.",
       });
     } finally {
       setEmailLoading(false);
     }
   }
 
-  // Password Validations
-  const hasTypedNewPassword = newPassword.length > 0;
-  const isNewPasswordLengthValid = newPassword.length >= 8;
-  const hasTypedConfirm = confirmPassword.length > 0;
-  const doPasswordsMatch = newPassword === confirmPassword;
-
-  // Password Submit Handler
   async function handleUpdatePassword(e: React.FormEvent) {
     e.preventDefault();
     if (passwordLoading) return;
 
-    if (!currentPassword) {
-      setStatusMessage({ type: "error", text: "Current password is required." });
-      return;
-    }
     if (!newPassword) {
       setStatusMessage({ type: "error", text: "New password is required." });
       return;
@@ -226,7 +246,11 @@ export function SettingsClient({
       setStatusMessage({ type: "error", text: "Passwords don't match." });
       return;
     }
-    if (newPassword === currentPassword) {
+    if (hasPassword && !currentPassword) {
+      setStatusMessage({ type: "error", text: "Current password is required." });
+      return;
+    }
+    if (hasPassword && newPassword === currentPassword) {
       setStatusMessage({ type: "error", text: "New password must not equal your current password." });
       return;
     }
@@ -237,22 +261,23 @@ export function SettingsClient({
     try {
       const supabase = createClient();
 
-      // 1. Verify current credentials against current email
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: currentEmailState,
-        password: currentPassword,
-      });
-
-      if (signInError) {
-        setStatusMessage({
-          type: "error",
-          text: "Current password is incorrect.",
+      if (hasPassword) {
+        // The project currently uses supabase-js 2.49.x, which predates the
+        // currentPassword updateUser option. Re-authenticating first gives us
+        // the same current-password check without upgrading the whole lockfile.
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: currentEmailState,
+          password: currentPassword,
         });
-        setPasswordLoading(false);
-        return;
+
+        if (signInError) {
+          setStatusMessage({ type: "error", text: "Current password is incorrect." });
+          return;
+        }
       }
 
-      // 2. Perform the update
+      // Google-only accounts can add a DateBu password directly. Supabase supports
+      // attaching password authentication to an existing OAuth account.
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -260,13 +285,11 @@ export function SettingsClient({
       if (updateError) {
         setStatusMessage({
           type: "error",
-          text: `We couldn't change your password: ${updateError.message}`,
+          text: `We couldn't ${hasPassword ? "change" : "set"} your password: ${updateError.message}`,
         });
-        setPasswordLoading(false);
         return;
       }
 
-      // 3. Reset form and visibility states
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -275,8 +298,11 @@ export function SettingsClient({
       setShowConfirmPassword(false);
       setStatusMessage({
         type: "success",
-        text: "Password changed successfully.",
+        text: hasPassword
+          ? "Password changed successfully."
+          : "Password added successfully. You can now use your university email and password to sign in too.",
       });
+      router.refresh();
     } catch {
       setStatusMessage({
         type: "error",
@@ -294,31 +320,24 @@ export function SettingsClient({
     }
 
     const nextState = !ghostMode;
-
     setGhostLoading(true);
     setStatusMessage(null);
 
     const result = await toggleGhostMode(nextState);
-
     setGhostLoading(false);
 
     if (result.error) {
-      setStatusMessage({
-        type: "error",
-        text: result.error,
-      });
+      setStatusMessage({ type: "error", text: result.error });
       return;
     }
 
     setGhostMode(nextState);
-
     setStatusMessage({
       type: "success",
       text: nextState
         ? "Ghost Mode enabled. Your profile is now hidden from discovery."
         : "Ghost Mode disabled. Your profile is visible to matching students.",
     });
-
     router.refresh();
   }
 
@@ -327,54 +346,40 @@ export function SettingsClient({
     setStatusMessage(null);
 
     const result = await unblockUser(userId);
-
     setUnblockLoadingId(null);
 
     if (result.error) {
-      setStatusMessage({
-        type: "error",
-        text: result.error,
-      });
+      setStatusMessage({ type: "error", text: result.error });
       return;
     }
 
     setBlockedList((prev) => prev.filter((user) => user.id !== userId));
-
-    setStatusMessage({
-      type: "success",
-      text: `${name} has been unblocked.`,
-    });
-
+    setStatusMessage({ type: "success", text: `${name} has been unblocked.` });
     router.refresh();
   }
-
-  const isPremium =
-    subscription.plan !== "free" &&
-    subscription.status === "active" &&
-    !!subscription.currentPeriodEnd &&
-    new Date(subscription.currentPeriodEnd).getTime() > Date.now();
 
   const isEmailButtonDisabled =
     emailLoading ||
     !email.trim() ||
-    email.trim().toLowerCase() === currentEmailState.toLowerCase();
+    email.trim().toLowerCase() === currentEmailState.trim().toLowerCase();
 
   const isPasswordButtonDisabled =
     passwordLoading ||
-    !currentPassword ||
     !newPassword ||
     !confirmPassword ||
     !isNewPasswordLengthValid ||
-    !doPasswordsMatch;
+    !doPasswordsMatch ||
+    (hasPassword && !currentPassword);
 
   return (
     <div className="space-y-6">
       {statusMessage && (
         <div
+          role="status"
           className={`flex items-center gap-2 rounded-2xl p-3.5 text-xs font-semibold ${
             statusMessage.type === "success"
-              ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-              : "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+              : "border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300"
           }`}
         >
           {statusMessage.type === "success" ? (
@@ -382,42 +387,47 @@ export function SettingsClient({
           ) : (
             <AlertCircle className="h-4 w-4 shrink-0" />
           )}
-
           <span>{statusMessage.text}</span>
         </div>
       )}
 
-      {/* ACCOUNT DETAILS SECTION */}
-      <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-7 space-y-6">
+      <div className="space-y-6 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-7">
         <div>
           <h2 className="text-base font-bold text-foreground">Account Details</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Keep your login email and password secure.
+            Keep your DateBu login credentials secure.
           </p>
         </div>
 
-        {/* Email Form */}
         <form onSubmit={handleUpdateEmail} className="space-y-4">
           <div className="space-y-1.5">
             <label
               htmlFor={emailInputId}
               className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
             >
-              Email Address
+              University email
             </label>
             <div className="relative flex items-center">
               <input
                 id={emailInputId}
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setEmailPending(false);
+                }}
                 disabled={emailLoading}
                 autoComplete="email"
-                placeholder="name@example.com"
+                placeholder="student@bahrauniversity.edu.in"
                 className="w-full rounded-2xl border border-border bg-background/50 px-4 py-3.5 pr-11 text-sm text-foreground transition-colors placeholder:text-muted-foreground/50 focus:border-emerald-500 focus:bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
               />
               <Mail className="pointer-events-none absolute right-4 h-4 w-4 text-muted-foreground" />
             </div>
+            {emailPending && (
+              <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                Verification is pending. Your current email remains active until the change is confirmed.
+              </p>
+            )}
           </div>
 
           <Button
@@ -438,31 +448,34 @@ export function SettingsClient({
 
         <div className="border-t border-border" />
 
-        {/* Password Form */}
         <div className="space-y-1">
           <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
-            Password
+            {hasPassword ? "Password" : "Create a password"}
           </h3>
           <p className="text-xs text-muted-foreground">
-            Change your password securely.
+            {isGoogleAccount
+              ? "Your account currently uses Google. Add a DateBu password so you can also sign in with your university email."
+              : "Change your DateBu password securely."}
           </p>
         </div>
 
         <form onSubmit={handleUpdatePassword} className="space-y-4">
-          <PasswordInputField
-            id={currentPasswordId}
-            label="Current password"
-            value={currentPassword}
-            onChange={setCurrentPassword}
-            showPassword={showCurrentPassword}
-            onToggleVisibility={() => setShowCurrentPassword((prev) => !prev)}
-            disabled={passwordLoading}
-            autoComplete="current-password"
-          />
+          {hasPassword && (
+            <PasswordInputField
+              id={currentPasswordId}
+              label="Current password"
+              value={currentPassword}
+              onChange={setCurrentPassword}
+              showPassword={showCurrentPassword}
+              onToggleVisibility={() => setShowCurrentPassword((prev) => !prev)}
+              disabled={passwordLoading}
+              autoComplete="current-password"
+            />
+          )}
 
           <PasswordInputField
             id={newPasswordId}
-            label="New password"
+            label={hasPassword ? "New password" : "Password"}
             value={newPassword}
             onChange={setNewPassword}
             showPassword={showNewPassword}
@@ -472,7 +485,7 @@ export function SettingsClient({
             hint={
               hasTypedNewPassword ? (
                 <span
-                  className={`flex items-center gap-1 transition-colors ${
+                  className={`flex items-center gap-1 ${
                     isNewPasswordLengthValid
                       ? "font-medium text-emerald-600 dark:text-emerald-400"
                       : "text-muted-foreground"
@@ -493,51 +506,48 @@ export function SettingsClient({
 
           <PasswordInputField
             id={confirmPasswordId}
-            label="Confirm new password"
+            label="Confirm password"
             value={confirmPassword}
             onChange={setConfirmPassword}
             showPassword={showConfirmPassword}
             onToggleVisibility={() => setShowConfirmPassword((prev) => !prev)}
             disabled={passwordLoading}
             autoComplete="new-password"
-            error={
-              hasTypedConfirm && !doPasswordsMatch ? "Passwords don't match." : null
-            }
+            error={hasTypedConfirm && !doPasswordsMatch ? "Passwords don't match." : null}
           />
 
           <Button
             type="submit"
             disabled={isPasswordButtonDisabled}
-            className="w-full rounded-2xl bg-emerald-600 hover:bg-emerald-500 py-3.5 text-sm font-semibold text-white shadow-sm shadow-emerald-600/20 disabled:shadow-none"
+            className="w-full rounded-2xl bg-emerald-600 py-3.5 text-sm font-semibold text-white shadow-sm shadow-emerald-600/20 hover:bg-emerald-500 disabled:shadow-none"
           >
             {passwordLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Verifying &amp; changing...
+                {hasPassword ? "Verifying & changing..." : "Creating password..."}
               </>
-            ) : (
+            ) : hasPassword ? (
               "Change password"
+            ) : (
+              "Create password"
             )}
           </Button>
         </form>
       </div>
 
-      {/* GHOST MODE SECTION */}
-      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
+      <div className="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+            <h2 className="flex items-center gap-2 text-base font-bold text-foreground">
               {ghostMode ? (
-                <EyeOff className="w-5 h-5 text-amber-600" />
+                <EyeOff className="h-5 w-5 text-amber-600" />
               ) : (
-                <Eye className="w-5 h-5 text-emerald-600" />
+                <Eye className="h-5 w-5 text-emerald-600" />
               )}
               Ghost Mode
             </h2>
-
-            <p className="text-xs text-muted-foreground leading-relaxed max-w-md mt-1">
-              Hide your profile from student discovery while keeping your
-              existing matches and chats active.
+            <p className="mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
+              Hide your profile from student discovery while keeping existing matches and chats active.
             </p>
           </div>
 
@@ -547,7 +557,7 @@ export function SettingsClient({
             size="sm"
             disabled={ghostLoading || !isPremium}
             onClick={handleToggleGhost}
-            className={ghostMode ? "bg-amber-600 hover:bg-amber-700 text-white" : ""}
+            className={ghostMode ? "bg-amber-600 text-white hover:bg-amber-700" : ""}
           >
             {ghostLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -561,8 +571,8 @@ export function SettingsClient({
           </Button>
         </div>
 
-        <div className="rounded-2xl bg-muted/50 p-3 text-[11px] text-muted-foreground flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="flex items-center gap-2 rounded-2xl bg-muted/50 p-3 text-[11px] text-muted-foreground">
+          <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-600" />
           <span>
             Current Status:{" "}
             <strong>
@@ -578,47 +588,31 @@ export function SettingsClient({
         )}
       </div>
 
-      {/* BLOCKED USERS SECTION */}
-      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm space-y-4">
+      <div className="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-sm">
         <div>
-          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
-            <UserX className="w-5 h-5 text-rose-600" />
+          <h2 className="flex items-center gap-2 text-base font-bold text-foreground">
+            <UserX className="h-5 w-5 text-rose-600" />
             Blocked Users
           </h2>
-
-          <p className="text-xs text-muted-foreground mt-1">
-            Manage students you have blocked.
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">Manage students you have blocked.</p>
         </div>
 
         {blockedList.length === 0 ? (
-          <p className="text-xs italic text-muted-foreground py-2">
-            You haven&apos;t blocked any users.
-          </p>
+          <p className="py-2 text-xs italic text-muted-foreground">You haven&apos;t blocked any users.</p>
         ) : (
           <div className="divide-y divide-border">
             {blockedList.map((blocked) => (
-              <div
-                key={blocked.id}
-                className="flex items-center justify-between py-3"
-              >
+              <div key={blocked.id} className="flex items-center justify-between py-3">
                 <div>
-                  <p className="text-xs font-bold text-foreground">
-                    {blocked.display_name}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {blocked.department}
-                  </p>
+                  <p className="text-xs font-bold text-foreground">{blocked.display_name}</p>
+                  <p className="text-[10px] text-muted-foreground">{blocked.department}</p>
                 </div>
-
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   disabled={unblockLoadingId === blocked.id}
-                  onClick={() =>
-                    handleUnblock(blocked.id, blocked.display_name)
-                  }
+                  onClick={() => handleUnblock(blocked.id, blocked.display_name)}
                   className="text-xs"
                 >
                   {unblockLoadingId === blocked.id ? (
@@ -633,35 +627,25 @@ export function SettingsClient({
         )}
       </div>
 
-      {/* SUBSCRIPTION SECTION */}
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 p-3">
+          <div className="rounded-2xl bg-emerald-50 p-3 dark:bg-emerald-950/50">
             <Crown className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           </div>
-
           <div>
             <Link href={routes.extrovert} className="text-base font-bold text-foreground hover:text-emerald-700">
               DateBu Extrovert
             </Link>
-
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Plan:{" "}
-              <span className="font-semibold capitalize">
-                {subscription.plan}
-              </span>
-              {" · "}
-              <span className="capitalize">
-                {subscription.status}
-              </span>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Plan: <span className="font-semibold capitalize">{subscription.plan}</span> ·{" "}
+              <span className="capitalize">{subscription.status}</span>
             </p>
           </div>
         </div>
 
         {isPremium && subscription.currentPeriodEnd && (
           <p className="mt-4 text-[11px] text-muted-foreground">
-            Current period ends{" "}
-            {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+            Current period ends {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
           </p>
         )}
       </div>
