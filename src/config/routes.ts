@@ -11,7 +11,6 @@ export const routes = {
   login: "/login",
   register: "/register",
   verify: "/verify",
-  verifyFace: "/verify/face",
   resetPassword: "/reset-password",
 
   app: "/app",
