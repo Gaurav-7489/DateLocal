@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { isUniversityEmail } from "@/config/university";
+import { routes } from "@/config/routes";
 
 export type AuthResult =
   | { success: true; needsEmailConfirmation?: boolean }
@@ -11,7 +12,7 @@ function getClient() {
   return cachedClient;
 }
 
-function getAuthCallbackUrl(next = "/app/profile/setup") {
+function getAuthCallbackUrl(next = routes.profileSetup) {
   return `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 }
 
@@ -125,7 +126,7 @@ export async function sendPasswordResetEmail(email: string): Promise<AuthResult>
   }
 
   const { error } = await getClient().auth.resetPasswordForEmail(normalizedEmail, {
-    redirectTo: getAuthCallbackUrl("/reset-password"),
+    redirectTo: getAuthCallbackUrl(routes.resetPassword),
   });
   return error ? { success: false, error: error.message } : { success: true };
 }
