@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { createAdminClient, } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createRazorpayClient, getRazorpayKeyId } from "@/lib/razorpay/server";
 import { getShopProduct, type ShopProduct } from "@/lib/shop";
 import { isUuid } from "@/lib/validation";
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       amount: config.amountPaise,
       currency: "INR",
       receipt: `db_${shopOrderId.replaceAll("-", "").slice(0, 32)}`,
-      notes: { product, shop_order_id: shopOrderId },
+      notes: { product, shop_order_id: shopOrderId, payment_method: "upi" },
     });
 
     await admin.from("shop_orders").update({ razorpay_order_id: order.id, updated_at: new Date().toISOString() }).eq("id", shopOrderId);
