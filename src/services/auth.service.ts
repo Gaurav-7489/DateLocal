@@ -12,7 +12,7 @@ function getClient() {
   return cachedClient;
 }
 
-function getAuthCallbackUrl(next: string = routes.profileSetup) {
+function getAuthCallbackUrl(next: string = routes.app) {
   return `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
 }
 
@@ -30,9 +30,9 @@ export async function signInWithGoogle(): Promise<AuthResult> {
     const { error } = await getClient().auth.signInWithOAuth({
       provider: "google",
       options: {
-        // The callback decides whether setup is required. Avoid forcing an
-        // account chooser so returning users can authenticate faster.
-        redirectTo: getAuthCallbackUrl(),
+        // Returning users should always come back through the normal app
+        // callback. The callback itself decides whether setup is required.
+        redirectTo: getAuthCallbackUrl(routes.app),
       },
     });
     if (error) return { success: false, error: error.message };
