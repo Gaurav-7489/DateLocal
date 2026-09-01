@@ -46,10 +46,6 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Auth pages are only login/register now. The old email-verification page is
-  // intentionally no longer part of the authentication gate because DateBu
-  // currently accepts Google authentication and university-email accounts with
-  // Supabase Confirm Email disabled.
   const isAuthRoute = pathname === routes.login || pathname === routes.register;
   const isAppRoute = pathname === routes.app || pathname.startsWith("/app/");
   const isAdminRoute = pathname === routes.admin.root || pathname.startsWith("/admin/");
@@ -66,23 +62,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user) {
-    const [profileResult, primaryPhotoResult] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("profile_completed, role")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("profile_photos")
-        .select("id")
-        .eq("profile_id", user.id)
-        .eq("is_primary", true)
-        .maybeSingle(),
-    ]);
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("profile_completed, role")
+      .eq("id", user.id)
+      .maybeSingle();
 
-    const profile = profileResult.data;
     const isProfileComplete = Boolean(profile?.profile_completed);
-    const hasPrimaryPhoto = Boolean(primaryPhotoResult.data?.id);
 
     if (isAdminRoute) {
       const hasAdminAccess =
@@ -100,10 +86,10 @@ export async function updateSession(request: NextRequest) {
       }
     }
 
-    // Both supported authentication methods enter the same onboarding gate.
-    // New Google users and new university-email users are sent to profile setup
-    // until they have completed their profile and added a primary photo.
-    if (!isProfileComplete || !hasPrimaryPhoto) {
+    // profile_completed is the single onboarding source of truth. Once a user
+    // has completed setup, do not send them back to setup just because a photo
+    // query is temporarily unavailable during OAuth/session refresh.
+    if (!isProfileComplete) {
       if (
         (isAppRoute && !isOnboardingRoute) ||
         isFaceVerifyRoute ||
