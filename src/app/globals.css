@@ -63,7 +63,6 @@ body {
   overflow-x: hidden;
 }
 
-/* Keep scrolling and touch interaction on the compositor where possible. */
 * {
   -webkit-tap-highlight-color: transparent;
 }
@@ -84,6 +83,18 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+
+/*
+ * User photos are uploaded with arbitrary camera aspect ratios. The UI uses
+ * fixed portrait/square frames, so a mathematically centered crop can put the
+ * person's face outside the visible area (especially on 1:1 avatars). Keep the
+ * existing edge-to-edge crop, but bias the crop toward the upper focal area.
+ * This selector only matches images served from the profile-photos bucket.
+ */
+img[src*="/storage/v1/render/image/public/profile-photos/"] {
+  object-position: 50% 24% !important;
+  background-color: rgb(24 24 27);
 }
 
 @keyframes marquee {
@@ -218,7 +229,6 @@ form.space-y-6.font-sans > div:last-child > button:disabled::after {
   animation: profile-save-shimmer 1.25s ease-in-out infinite;
 }
 
-/* Lightweight CSS replacement for notification enter animation. */
 @keyframes notification-enter {
   from {
     opacity: 0;
@@ -235,7 +245,6 @@ form.space-y-6.font-sans > div:last-child > button:disabled::after {
   contain: layout paint;
 }
 
-/* Prefer static rendering for users who explicitly disable motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
