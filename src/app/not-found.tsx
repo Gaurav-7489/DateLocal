@@ -14,7 +14,7 @@ export default function NotFound() {
       <section className="relative z-10 w-full max-w-md overflow-hidden rounded-[30px] border border-zinc-200 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
         <div className="relative h-48 w-full overflow-hidden sm:h-56">
           <Image
-            src="/images/campus-outside.jpg"
+            src="/campus-outside.jpg"
             alt="View outside the campus"
             fill
             priority
@@ -39,7 +39,7 @@ export default function NotFound() {
           </p>
 
           <div className="mt-6 grid gap-2.5">
-            <Link href={routes.home || "/"} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3.5 text-xs font-black text-white shadow-sm shadow-emerald-600/20 transition-colors hover:bg-emerald-700 active:scale-[.99]">
+            <Link href={routes.home} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3.5 text-xs font-black text-white shadow-sm shadow-emerald-600/20 transition-colors hover:bg-emerald-700 active:scale-[.99]">
               <Compass className="h-4 w-4" />
               Go back to campus
             </Link>
