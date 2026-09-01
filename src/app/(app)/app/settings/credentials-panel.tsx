@@ -1,0 +1,264 @@
+"use client";
+
+import { useId, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { isUniversityEmail } from "@/config/university";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
+
+interface CredentialsPanelProps {
+  currentEmail: string;
+  hasPassword: boolean;
+}
+
+function Message({
+  type,
+  text,
+}: {
+  type: "success" | "error";
+  text: string;
+}) {
+  return (
+    <div
+      role={type === "error" ? "alert" : "status"}
+      className={`flex items-start gap-2 rounded-2xl border p-3 text-xs font-semibold ${
+        type === "success"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+          : "border-rose-200 bg-rose-50 text-rose-700"
+      }`}
+    >
+      {type === "success" ? (
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+      ) : (
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+      )}
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function PasswordField({
+  id,
+  label,
+  value,
+  onChange,
+  visible,
+  onToggle,
+  autoComplete,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  visible: boolean;
+  onToggle: () => void;
+  autoComplete: "current-password" | "new-password";
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          type={visible ? "text" : "password"}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete={autoComplete}
+          className="w-full rounded-2xl border border-border bg-background/50 px-4 py-3.5 pr-11 text-sm outline-none transition-colors focus:border-emerald-500 focus:bg-background focus:ring-2 focus:ring-emerald-500/20"
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={visible ? `Hide ${label}` : `Show ${label}`}
+          className="absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-xl text-muted-foreground hover:text-foreground"
+        >
+          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function CredentialsPanel({ currentEmail, hasPassword }: CredentialsPanelProps) {
+  const emailId = useId();
+  const currentPasswordId = useId();
+  const newPasswordId = useId();
+  const confirmPasswordId = useId();
+
+  const [email, setEmail] = useState(currentEmail);
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailMessage, setEmailMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  async function changeEmail(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (emailLoading) return;
+
+    const nextEmail = email.trim().toLowerCase();
+    setEmailMessage(null);
+
+    if (!nextEmail) {
+      setEmailMessage({ type: "error", text: "Enter the new university email address." });
+      return;
+    }
+    if (!isUniversityEmail(nextEmail)) {
+      setEmailMessage({ type: "error", text: "Use a valid Bahra University email address." });
+      return;
+    }
+    if (nextEmail === currentEmail.trim().toLowerCase()) {
+      setEmailMessage({ type: "error", text: "That is already your current email address." });
+      return;
+    }
+
+    setEmailLoading(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ email: nextEmail });
+      if (error) {
+        setEmailMessage({ type: "error", text: `We couldn't change your email: ${error.message}` });
+        return;
+      }
+      setEmailMessage({
+        type: "success",
+        text: "Check your email to confirm the change. Your current email stays active until confirmation is complete.",
+      });
+    } catch {
+      setEmailMessage({ type: "error", text: "Something went wrong while changing your email. Please try again." });
+    } finally {
+      setEmailLoading(false);
+    }
+  }
+
+  async function changePassword(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (passwordLoading) return;
+
+    setPasswordMessage(null);
+
+    if (hasPassword && !currentPassword) {
+      setPasswordMessage({ type: "error", text: "Enter your current password." });
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordMessage({ type: "error", text: "Your new password must be at least 8 characters." });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({ type: "error", text: "The new passwords do not match." });
+      return;
+    }
+    if (hasPassword && newPassword === currentPassword) {
+      setPasswordMessage({ type: "error", text: "Your new password must be different from the current password." });
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const supabase = createClient();
+
+      if (hasPassword) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: currentEmail,
+          password: currentPassword,
+        });
+        if (error) {
+          setPasswordMessage({ type: "error", text: "Your current password is incorrect." });
+          return;
+        }
+      }
+
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        setPasswordMessage({ type: "error", text: `We couldn't ${hasPassword ? "change" : "set"} your password: ${error.message}` });
+        return;
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowCurrent(false);
+      setShowNew(false);
+      setShowConfirm(false);
+      setPasswordMessage({
+        type: "success",
+        text: hasPassword ? "Your password was changed successfully." : "Password added. You can now sign in with your university email and password.",
+      });
+    } catch {
+      setPasswordMessage({ type: "error", text: "Something went wrong while updating your password. Please try again." });
+    } finally {
+      setPasswordLoading(false);
+    }
+  }
+
+  return (
+    <section className="space-y-6 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-7">
+      <div>
+        <h2 className="flex items-center gap-2 text-base font-bold text-foreground">
+          <Lock className="h-4 w-4 text-emerald-600" /> Account credentials
+        </h2>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          These controls are available for university-email accounts only.
+        </p>
+      </div>
+
+      <form onSubmit={changeEmail} className="space-y-3">
+        <div className="space-y-1.5">
+          <label htmlFor={emailId} className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            University email
+          </label>
+          <div className="relative">
+            <input
+              id={emailId}
+              type="email"
+              value={email}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setEmailMessage(null);
+              }}
+              autoComplete="email"
+              disabled={emailLoading}
+              className="w-full rounded-2xl border border-border bg-background/50 px-4 py-3.5 pr-11 text-sm outline-none transition-colors focus:border-emerald-500 focus:bg-background focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-60"
+            />
+            <Mail className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          </div>
+        </div>
+        <Button type="submit" disabled={emailLoading || !email.trim() || email.trim().toLowerCase() === currentEmail.trim().toLowerCase()} className="w-full rounded-2xl py-3.5 text-sm">
+          {emailLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating email...</> : "Change email"}
+        </Button>
+        {emailMessage && <Message type={emailMessage.type} text={emailMessage.text} />}
+      </form>
+
+      <div className="border-t border-border" />
+
+      <form onSubmit={changePassword} className="space-y-3">
+        <div>
+          <h3 className="text-sm font-bold text-foreground">{hasPassword ? "Change password" : "Set a password"}</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {hasPassword ? "Enter your current password before choosing a new one." : "Add a password so you can also use email login."}
+          </p>
+        </div>
+
+        {hasPassword && (
+          <PasswordField id={currentPasswordId} label="Current password" value={currentPassword} onChange={setCurrentPassword} visible={showCurrent} onToggle={() => setShowCurrent((value) => !value)} autoComplete="current-password" />
+        )}
+        <PasswordField id={newPasswordId} label="New password" value={newPassword} onChange={setNewPassword} visible={showNew} onToggle={() => setShowNew((value) => !value)} autoComplete="new-password" />
+        <PasswordField id={confirmPasswordId} label="Confirm new password" value={confirmPassword} onChange={setConfirmPassword} visible={showConfirm} onToggle={() => setShowConfirm((value) => !value)} autoComplete="new-password" />
+
+        <Button type="submit" disabled={passwordLoading || newPassword.length < 8 || !confirmPassword || (hasPassword && !currentPassword)} className="w-full rounded-2xl py-3.5 text-sm">
+          {passwordLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating password...</> : hasPassword ? "Change password" : "Set password"}
+        </Button>
+        {passwordMessage && <Message type={passwordMessage.type} text={passwordMessage.text} />}
+      </form>
+    </section>
+  );
+}
