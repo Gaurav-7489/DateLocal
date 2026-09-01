@@ -508,45 +508,6 @@ export interface Database {
         };
         Relationships: [];
       };
-
-      face_verifications: {
-        Row: {
-          user_id: string;
-          reference_embedding: number[] | null;
-          didit_session_id: string | null;
-          status: "pending" | "verified" | "rejected";
-          verified_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          user_id: string;
-          reference_embedding?: number[] | null;
-          didit_session_id?: string | null;
-          status?: "pending" | "verified" | "rejected";
-          verified_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          user_id?: string;
-          reference_embedding?: number[] | null;
-          didit_session_id?: string | null;
-          status?: "pending" | "verified" | "rejected";
-          verified_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "face_verifications_user_id_fkey";
-            columns: ["user_id"];
-            isOneToOne: true;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
     };
 
     Views: {
