@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { routes } from "@/config/routes";
-import { MessageCircle, Sparkles, X } from "lucide-react";
+import { Heart, MessageCircle, Sparkles, X } from "lucide-react";
 
 interface NotificationItem {
   id: string;
-  type: "message" | "match";
+  type: "message" | "match" | "like";
   title: string;
   body: string;
   link: string;
@@ -20,8 +20,6 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
   const pathnameRef = useRef(pathname);
   const [notification, setNotification] = useState<NotificationItem | null>(null);
 
-  // Keep the current route available to the realtime callback without
-  // tearing down and recreating three Supabase channels on every navigation.
   useEffect(() => {
     pathnameRef.current = pathname;
   }, [pathname]);
@@ -41,11 +39,7 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
       .channel(`global_notifications_messages_${currentUserId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-        },
+        { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
           const newMsg = payload.new as {
             id: string;
@@ -68,71 +62,81 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
         },
       )
       .subscribe((status) => {
-        if (status === "CHANNEL_ERROR") {
-          console.warn("[DateBu] Message realtime subscription failed.");
-        }
+        if (status === "CHANNEL_ERROR") console.warn("[DateBu] Message realtime subscription failed.");
       });
 
-    const matchUserAChannel = supabase
-      .channel(`global_notifications_matches_a_${currentUserId}`)
+    const matchChannels = [
+      supabase
+        .channel(`global_notifications_matches_a_${currentUserId}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "matches", filter: `user_a=eq.${currentUserId}` },
+          (payload) => {
+            const match = payload.new as { id: string };
+            triggerHaptic([40, 60, 80]);
+            setNotification({
+              id: match.id,
+              type: "match",
+              title: "It’s a Match!",
+              body: "You and another student liked each other.",
+              link: `${routes.messages}/${match.id}`,
+            });
+          },
+        )
+        .subscribe(),
+      supabase
+        .channel(`global_notifications_matches_b_${currentUserId}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "matches", filter: `user_b=eq.${currentUserId}` },
+          (payload) => {
+            const match = payload.new as { id: string };
+            triggerHaptic([40, 60, 80]);
+            setNotification({
+              id: match.id,
+              type: "match",
+              title: "It’s a Match!",
+              body: "You and another student liked each other.",
+              link: `${routes.messages}/${match.id}`,
+            });
+          },
+        )
+        .subscribe(),
+    ];
+
+    const likeChannel = supabase
+      .channel(`global_notifications_likes_${currentUserId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "matches",
-          filter: `user_a=eq.${currentUserId}`,
-        },
-        (payload) => {
-          const match = payload.new as { id: string };
-          triggerHaptic([40, 60, 80]);
+        { event: "INSERT", schema: "public", table: "likes", filter: `liked_id=eq.${currentUserId}` },
+        async (payload) => {
+          const like = payload.new as { id: string; liker_id: string };
+          if (like.liker_id === currentUserId) return;
+
+          const { data: liker } = await supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("id", like.liker_id)
+            .maybeSingle();
+
+          triggerHaptic([25, 40, 25]);
           setNotification({
-            id: match.id,
-            type: "match",
-            title: "It’s a Match!",
-            body: "You and another student liked each other.",
-            link: `${routes.messages}/${match.id}`,
+            id: like.id,
+            type: "like",
+            title: "Someone likes you",
+            body: `${liker?.display_name ?? "Someone"} liked your profile.`,
+            link: routes.discover,
           });
         },
       )
       .subscribe((status) => {
-        if (status === "CHANNEL_ERROR") {
-          console.warn("[DateBu] Match realtime subscription (user_a) failed.");
-        }
-      });
-
-    const matchUserBChannel = supabase
-      .channel(`global_notifications_matches_b_${currentUserId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "matches",
-          filter: `user_b=eq.${currentUserId}`,
-        },
-        (payload) => {
-          const match = payload.new as { id: string };
-          triggerHaptic([40, 60, 80]);
-          setNotification({
-            id: match.id,
-            type: "match",
-            title: "It’s a Match!",
-            body: "You and another student liked each other.",
-            link: `${routes.messages}/${match.id}`,
-          });
-        },
-      )
-      .subscribe((status) => {
-        if (status === "CHANNEL_ERROR") {
-          console.warn("[DateBu] Match realtime subscription (user_b) failed.");
-        }
+        if (status === "CHANNEL_ERROR") console.warn("[DateBu] Like realtime subscription failed.");
       });
 
     return () => {
       void supabase.removeChannel(messageChannel);
-      void supabase.removeChannel(matchUserAChannel);
-      void supabase.removeChannel(matchUserBChannel);
+      for (const channel of matchChannels) void supabase.removeChannel(channel);
+      void supabase.removeChannel(likeChannel);
     };
   }, [currentUserId]);
 
@@ -141,6 +145,12 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
     const timer = window.setTimeout(() => setNotification(null), 5000);
     return () => window.clearTimeout(timer);
   }, [notification]);
+
+  const Icon = notification?.type === "match"
+    ? Sparkles
+    : notification?.type === "like"
+      ? Heart
+      : MessageCircle;
 
   return (
     <>
@@ -155,18 +165,14 @@ export function NotificationListener({ currentUserId }: { currentUserId: string 
         >
           <div className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card/95 p-3 text-foreground shadow-2xl backdrop-blur-md">
             <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-emerald-500/50 bg-emerald-50 text-emerald-700">
-              {notification.type === "match" ? (
-                <Sparkles className="h-4 w-4" />
-              ) : (
-                <MessageCircle className="h-4 w-4" />
-              )}
+              <Icon className="h-4 w-4" />
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-black truncate">{notification.title}</span>
                 <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.2 text-[8px] font-bold text-emerald-700">
-                  {notification.type === "match" ? "Match" : "Chat"}
+                  {notification.type === "match" ? "Match" : notification.type === "like" ? "Like" : "Chat"}
                 </span>
               </div>
               <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">
