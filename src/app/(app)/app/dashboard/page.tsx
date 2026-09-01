@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, BarChart3, Heart, MessageCircle, RotateCcw, Sparkles, UserRound } from "lucide-react";
+import { ArrowLeft, BarChart3, Eye, Heart, MessageCircle, RotateCcw, Sparkles, UserRound } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
+
+type ProfileViewCountDb = { from: (table: "profile_views") => { select: (columns: string, options: { count: "exact"; head: boolean }) => { eq: (column: string, value: string) => Promise<{ count: number | null }> } } };
 
 export const metadata: Metadata = { title: "Your Activity | DateBu" };
 export const dynamic = "force-dynamic";
@@ -20,101 +22,33 @@ export default async function PersonalDashboardPage() {
   if (!user) redirect(routes.login);
 
   const today = startOfToday();
-  const [
-    { count: likesSent },
-    { count: likesReceived },
-    { count: matches },
-    { count: passes },
-    { count: todayLikes },
-    { data: profile },
-  ] = await Promise.all([
+  const [{ count: likesSent }, { count: likesReceived }, { count: matches }, { count: passes }, { count: todayLikes }, { data: profile }, { count: profileViews }] = await Promise.all([
     supabase.from("likes").select("id", { count: "exact", head: true }).eq("liker_id", user.id),
     supabase.from("likes").select("id", { count: "exact", head: true }).eq("liked_id", user.id),
     supabase.from("matches").select("id", { count: "exact", head: true }).or(`user_a.eq.${user.id},user_b.eq.${user.id}`),
     supabase.from("passes").select("id", { count: "exact", head: true }).eq("passer_id", user.id),
     supabase.from("likes").select("id", { count: "exact", head: true }).eq("liker_id", user.id).gte("created_at", today),
     supabase.from("profiles").select("display_name, profile_completed").eq("id", user.id).maybeSingle(),
+    (supabase as unknown as ProfileViewCountDb).from("profile_views").select("id", { count: "exact", head: true }).eq("viewed_id", user.id),
   ]);
 
   const sentToday = todayLikes ?? 0;
   const remaining = Math.max(0, 10 - sentToday);
   const completion = profile?.profile_completed ? 100 : 0;
-
   const stats = [
     { label: "Likes sent", value: likesSent ?? 0, icon: Heart, className: "text-rose-600 bg-rose-50" },
     { label: "Likes received", value: likesReceived ?? 0, icon: Sparkles, className: "text-orange-600 bg-orange-50" },
     { label: "Matches", value: matches ?? 0, icon: MessageCircle, className: "text-emerald-600 bg-emerald-50" },
+    { label: "Profile views", value: profileViews ?? 0, icon: Eye, className: "text-blue-600 bg-blue-50" },
     { label: "Passed", value: passes ?? 0, icon: RotateCcw, className: "text-zinc-600 bg-zinc-100" },
   ];
 
   return (
     <main className="mx-auto max-w-md px-3.5 py-4 font-sans pb-24 space-y-4">
-      <div className="flex items-center gap-3 px-1">
-        <Link href={routes.app} className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-2xs active:scale-95" aria-label="Back to app">
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <div className="min-w-0">
-          <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">Personal tracking</p>
-          <h1 className="text-xl font-black tracking-tight text-foreground">{profile?.display_name || "Your activity"}</h1>
-        </div>
-      </div>
-
-      <section className="rounded-3xl border border-border/80 bg-card p-4 shadow-xs">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><BarChart3 className="h-4 w-4" /></div>
-              <div>
-                <h2 className="text-sm font-black text-foreground">Your DateBu activity</h2>
-                <p className="text-[10px] text-muted-foreground">Real activity from your account.</p>
-              </div>
-            </div>
-          </div>
-          <Link href={routes.profile} className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground hover:text-foreground">
-            <UserRound className="h-3 w-3" /> Profile
-          </Link>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          {stats.map(({ label, value, icon: Icon, className }) => (
-            <div key={label} className="rounded-2xl border border-border/70 bg-muted/20 p-3">
-              <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-xl ${className}`}><Icon className="h-4 w-4" /></div>
-              <p className="text-xl font-black text-foreground">{value}</p>
-              <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground">{label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-3xl border border-emerald-200/70 bg-emerald-50/60 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Daily likes</p>
-            <p className="mt-1 text-sm font-black text-emerald-950">{remaining} of 10 free likes left</p>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-black text-emerald-700">{sentToday}/10</p>
-            <p className="text-[9px] font-semibold text-emerald-700/70">today</p>
-          </div>
-        </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80">
-          <div className="h-full rounded-full bg-emerald-600 transition-[width] duration-500" style={{ width: `${Math.min(100, sentToday * 10)}%` }} />
-        </div>
-        <p className="mt-2 text-[10px] leading-relaxed text-emerald-800">Your free daily limit resets automatically each day. Extrovert is coming soon.</p>
-      </section>
-
-      <section className="rounded-3xl border border-border/80 bg-card p-4 shadow-xs">
-        <p className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Profile status</p>
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-black text-foreground">{completion === 100 ? "Profile is live" : "Finish your profile"}</p>
-            <p className="text-[10px] text-muted-foreground">{completion === 100 ? "You're ready to be discovered." : "Complete setup to start matching."}</p>
-          </div>
-          <Link href={completion === 100 ? routes.profile : routes.profileSetup} className="rounded-full bg-emerald-600 px-3 py-2 text-[10px] font-bold text-white active:scale-95">
-            {completion === 100 ? "View profile" : "Complete"}
-          </Link>
-        </div>
-      </section>
+      <div className="flex items-center gap-3 px-1"><Link href={routes.app} className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-2xs active:scale-95" aria-label="Back to app"><ArrowLeft className="h-4 w-4" /></Link><div className="min-w-0"><p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">Personal tracking</p><h1 className="text-xl font-black tracking-tight text-foreground">{profile?.display_name || "Your activity"}</h1></div></div>
+      <section className="rounded-3xl border border-border/80 bg-card p-4 shadow-xs"><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><BarChart3 className="h-4 w-4" /></div><div><h2 className="text-sm font-black text-foreground">Your DateBu activity</h2><p className="text-[10px] text-muted-foreground">Real activity from your account.</p></div></div><Link href={routes.profileViews} className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground hover:text-foreground"><Eye className="h-3 w-3" /> Views</Link></div><div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">{stats.map(({ label, value, icon: Icon, className }) => <div key={label} className="rounded-2xl border border-border/70 bg-muted/20 p-3"><div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-xl ${className}`}><Icon className="h-4 w-4" /></div><p className="text-xl font-black text-foreground">{value}</p><p className="mt-0.5 text-[10px] font-semibold text-muted-foreground">{label}</p></div>)}</div></section>
+      <section className="rounded-3xl border border-emerald-200/70 bg-emerald-50/60 p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Daily likes</p><p className="mt-1 text-sm font-black text-emerald-950">{remaining} of 10 free likes left</p></div><div className="text-right"><p className="text-2xl font-black text-emerald-700">{sentToday}/10</p><p className="text-[9px] font-semibold text-emerald-700/70">today</p></div></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80"><div className="h-full rounded-full bg-emerald-600 transition-[width] duration-500" style={{ width: `${Math.min(100, sentToday * 10)}%` }} /></div><p className="mt-2 text-[10px] leading-relaxed text-emerald-800">Your free daily limit resets automatically each day.</p></section>
+      <section className="rounded-3xl border border-border/80 bg-card p-4 shadow-xs"><p className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Profile status</p><div className="mt-2 flex items-center justify-between gap-3"><div><p className="text-sm font-black text-foreground">{completion === 100 ? "Profile is live" : "Finish your profile"}</p><p className="text-[10px] text-muted-foreground">{completion === 100 ? "You're ready to be discovered." : "Complete setup to start matching."}</p></div><Link href={completion === 100 ? routes.profile : routes.profileSetup} className="rounded-full bg-emerald-600 px-3 py-2 text-[10px] font-bold text-white active:scale-95">{completion === 100 ? "View profile" : "Complete"}</Link></div></section>
     </main>
   );
 }
