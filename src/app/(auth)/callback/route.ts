@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") ?? routes.profileSetup;
+  const requestedNext = requestUrl.searchParams.get("next");
 
   if (!code) {
     return NextResponse.redirect(new URL(routes.login, requestUrl.origin));
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   if (error) {
     console.error("Auth callback error:", error.message);
     return NextResponse.redirect(
-      new URL(`${routes.login}?error=verification_failed`, requestUrl.origin)
+      new URL(`${routes.login}?error=verification_failed`, requestUrl.origin),
     );
   }
 
@@ -27,33 +27,28 @@ export async function GET(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user) {
-    // Check profile completion and primary photo existence in parallel
-    const [profileResult, primaryPhotoResult] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("profile_completed")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("profile_photos")
-        .select("id")
-        .eq("profile_id", user.id)
-        .eq("is_primary", true)
-        .maybeSingle(),
-    ]);
-
-    const isProfileComplete = Boolean(profileResult.data?.profile_completed);
-    const hasPrimaryPhoto = Boolean(primaryPhotoResult.data?.id);
-
-    // If profile or primary photo is missing, always route to Profile Setup
-    if (!isProfileComplete || !hasPrimaryPhoto) {
-      return NextResponse.redirect(
-        new URL(routes.profileSetup, requestUrl.origin)
-      );
-    }
+  if (!user) {
+    return NextResponse.redirect(new URL(routes.login, requestUrl.origin));
   }
 
-  const targetPath = next.startsWith("/") ? next : routes.app;
+  // profile_completed is the single source of truth for setup completion.
+  // Do not make login depend on a second photo query: that query is protected
+  // by RLS and can incorrectly look empty during an OAuth callback.
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("profile_completed")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error("Profile completion check failed:", profileError.message);
+    return NextResponse.redirect(new URL(routes.profileSetup, requestUrl.origin));
+  }
+
+  if (!profile?.profile_completed) {
+    return NextResponse.redirect(new URL(routes.profileSetup, requestUrl.origin));
+  }
+
+  const targetPath = requestedNext?.startsWith("/") ? requestedNext : routes.app;
   return NextResponse.redirect(new URL(targetPath, requestUrl.origin));
 }
