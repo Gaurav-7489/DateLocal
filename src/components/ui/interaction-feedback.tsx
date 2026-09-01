@@ -11,7 +11,9 @@ export function InteractionFeedback() {
       if (!control || (control as HTMLButtonElement).disabled) return;
 
       soundFx.playClick();
-      soundFx.haptic(7);
+      if (localStorage.getItem("datebu_haptics") !== "off") {
+        soundFx.haptic(7);
+      }
     };
 
     document.addEventListener("click", handleClick, { passive: true });
