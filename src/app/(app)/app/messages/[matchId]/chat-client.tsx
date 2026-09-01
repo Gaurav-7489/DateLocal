@@ -70,7 +70,14 @@ export default function ChatClient({
   initialMessages,
 }: Props) {
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const seen = new Set<string>();
+    return initialMessages.filter((message) => {
+      if (seen.has(message.id)) return false;
+      seen.add(message.id);
+      return true;
+    });
+  });
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -92,7 +99,8 @@ export default function ChatClient({
     "Studying for midterms or chilling today?",
   ];
 
-  // Robust Supabase Realtime Listener (No listener-after-subscribe error)
+  // Subscribe once per conversation. The send action and realtime event can race,
+  // so the message state below always deduplicates by the database message id.
   useEffect(() => {
     const supabase = createClient();
 
@@ -154,9 +162,15 @@ export default function ChatClient({
       }
 
       if (result.message) {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? result.message! : m))
-        );
+        setMessages((prev) => {
+          // Realtime may have already inserted the persisted message while the
+          // server action was still resolving. Remove both the optimistic copy
+          // and any realtime copy, then keep exactly one canonical message.
+          const withoutCopies = prev.filter(
+            (m) => m.id !== tempId && m.id !== result.message!.id
+          );
+          return [...withoutCopies, result.message!];
+        });
       }
     } catch {
       setError("Failed to deliver message. Please retry.");
