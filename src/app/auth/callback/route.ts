@@ -77,7 +77,7 @@ export async function GET(request: Request) {
       extrovertProfile.trust_state !== "banned",
   );
 
-  if (!authorized) {
+  if (!authorized || !extrovertProfile) {
     await supabase.auth.signOut({ scope: "local" });
     return NextResponse.redirect(new URL(`${routes.login}?error=extrovert_verification_required`, requestUrl.origin));
   }
