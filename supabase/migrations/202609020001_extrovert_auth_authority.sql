@@ -1,0 +1,4 @@
+-- The shared Supabase project owns this table. This file documents the
+-- Extrovert -> DateBu one-time authentication handoff used by DateBu.
+-- The table itself is created by the Extrovert migration so there is one
+-- authoritative schema owner.
