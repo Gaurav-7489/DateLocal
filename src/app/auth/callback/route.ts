@@ -13,6 +13,16 @@ function getExtrovertUrl() {
   return isVercel ? PRODUCTION_EXTROVERT_URL : "http://localhost:3000";
 }
 
+function ageFromDob(dob: string | null) {
+  if (!dob) return null;
+  const birth = new Date(`${dob}T00:00:00Z`);
+  const now = new Date();
+  let age = now.getUTCFullYear() - birth.getUTCFullYear();
+  const month = now.getUTCMonth() - birth.getUTCMonth();
+  if (month < 0 || (month === 0 && now.getUTCDate() < birth.getUTCDate())) age--;
+  return age;
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const bridgeCode = requestUrl.searchParams.get("code");
@@ -49,11 +59,7 @@ export async function GET(request: Request) {
   }
 
   const supabase = await createServerSupabaseClient();
-  const { error: sessionError } = await supabase.auth.setSession({
-    access_token: payload.access_token,
-    refresh_token: payload.refresh_token,
-  });
-
+  const { error: sessionError } = await supabase.auth.setSession({ access_token: payload.access_token, refresh_token: payload.refresh_token });
   if (sessionError) {
     console.error("DateBu session bootstrap failed:", sessionError.message);
     return NextResponse.redirect(new URL(`${routes.login}?error=session_failed`, requestUrl.origin));
@@ -65,16 +71,20 @@ export async function GET(request: Request) {
     .eq("id", payload.user_id)
     .maybeSingle();
 
+  // Extrovert owns identity. Face and area verification are trust layers, not
+  // profile completion blockers, so DateBu can be used before those optional
+  // checks are completed. Age and banned-account checks remain mandatory.
+  const age = ageFromDob(extrovertProfile?.date_of_birth ?? null);
   const authorized = Boolean(
     extrovertProfile?.profile_completed &&
-      extrovertProfile.verification_status === "verified" &&
-      extrovertProfile.area_verification_status === "verified" &&
-      extrovertProfile.trust_state !== "banned",
+    age !== null &&
+    age >= 18 &&
+    extrovertProfile.trust_state !== "banned",
   );
 
   if (!authorized || !extrovertProfile) {
     await supabase.auth.signOut({ scope: "local" });
-    return NextResponse.redirect(new URL(`${routes.login}?error=extrovert_verification_required`, requestUrl.origin));
+    return NextResponse.redirect(new URL(`${routes.login}?error=extrovert_profile_required`, requestUrl.origin));
   }
 
   const { data: existingProfile } = await supabase.from("profiles").select("department, academic_year, ghost_mode").eq("id", payload.user_id).maybeSingle();
@@ -96,10 +106,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL(`${routes.login}?error=profile_sync_failed`, requestUrl.origin));
   }
 
-  const { error: preferenceError } = await supabase.from("dating_preferences").upsert(
-    { user_id: payload.user_id },
-    { onConflict: "user_id", ignoreDuplicates: true },
-  );
+  const { error: preferenceError } = await supabase.from("dating_preferences").upsert({ user_id: payload.user_id }, { onConflict: "user_id", ignoreDuplicates: true });
   if (preferenceError) console.error("DateBu preference bootstrap failed:", preferenceError.message);
 
   return NextResponse.redirect(new URL(routes.app, requestUrl.origin));
