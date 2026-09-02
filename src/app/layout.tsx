@@ -19,8 +19,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: `${universityConfig.appName} — Campus Social Space`,
-  description: `Student dating and social network for ${universityConfig.name}.`,
+  title: `${universityConfig.appName} — Local Dating`,
+  description: `Local dating for ${universityConfig.name}, built on your verified Extrovert identity.`,
   manifest: "/manifest.json",
   icons: {
     icon: [
