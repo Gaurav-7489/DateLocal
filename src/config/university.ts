@@ -1,14 +1,13 @@
 /**
- * University branding configuration.
- * All university-specific values centralized here.
- * Change branding by updating env vars — zero component rewrites.
+ * University + product branding configuration.
+ * Extrovert is the identity/social foundation; DateLocal is the dating layer.
  */
 export const universityConfig = {
   name: process.env.NEXT_PUBLIC_UNIVERSITY_NAME ?? "University Name",
   shortName: process.env.NEXT_PUBLIC_UNIVERSITY_SHORT_NAME ?? "University",
   emailDomain: process.env.NEXT_PUBLIC_UNIVERSITY_EMAIL_DOMAIN ?? "university.edu",
-  appName: process.env.NEXT_PUBLIC_APP_NAME ?? "DateBu",
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  appName: process.env.NEXT_PUBLIC_APP_NAME ?? "DateLocal",
+  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001",
 } as const;
 
 export function isUniversityEmail(email?: string | null): boolean {
