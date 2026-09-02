@@ -1,84 +1,53 @@
-# Architecture — Phase 1 Foundation
+# DateLocal ↔ Extrovert Architecture
 
-## Overview
+## Product boundary
 
-This document describes the implemented Phase 1 foundation architecture.
+DateLocal is the dating layer. Extrovert is the identity and local-social foundation.
 
-## Design Decisions
+- **Extrovert owns:** authentication/identity, verification, local area, social discovery, connections and platform safety.
+- **DateLocal owns:** dating profile/preferences, romantic discovery, likes/passes, matches, dating chat, dating notifications, premium, SuperChat and dating rewards.
+- DateLocal must not create a second identity or second authentication authority.
+- Exact coordinates are never exposed; locality remains area-level.
 
-### Tailwind CSS v4 with `@theme`
+## Authentication authority
 
-Tailwind v4 uses a CSS-first configuration model. Design tokens are declared
-directly in `globals.css` using the `@theme` directive. This replaces the
-`tailwind.config.ts` approach from v3.
+Extrovert is the source of truth for the user's identity session. DateLocal login/register entry points send the user to Extrovert. After a verified Extrovert session exists, Extrovert creates a short-lived, single-use bridge in the shared Supabase project. DateLocal consumes that bridge and establishes the same Supabase user session.
 
-University branding colors are defined as `--color-uni-primary-*` and
-`--color-dept-accent-*` tokens, making them available as Tailwind utility
-classes (e.g., `bg-uni-primary`, `text-dept-accent`).
+The bridge contains only server-side session material and is never placed directly in a URL as an access token. The URL contains a short-lived opaque code that is hashed before lookup.
 
-### Supabase Client Architecture
+## Shared backend
 
-Three separate Supabase client factories:
+Both applications use the same Supabase project and the same `auth.users` identity. Extrovert owns the cross-app handoff table. DateLocal owns its dating tables and does not duplicate identity records.
 
-| Client | File | Key | Usage |
-|---|---|---|---|
-| Browser | `lib/supabase/client.ts` | Anon | Client components |
-| Server | `lib/supabase/server.ts` | Anon | Server components, actions |
-| Admin | `lib/supabase/admin.ts` | Service role | Server-only privileged ops |
+The canonical bridge table is `extrovert_datelocal_auth_bridges`.
 
-The admin client is protected by the `server-only` package, which causes a
-build error if any client component tries to import it.
+## Session flow
 
-### Route Architecture
-
-Routes are organized into groups:
-
-- `(public)` — unauthenticated informational pages
-- `(auth)` — authentication flow pages
-- `(app)` — authenticated application pages
-- `admin` — administrative pages (not a route group, deliberately separate)
-
-### Creator Invisibility
-
-The admin section:
-- Has no link from the public navbar, footer, or any student-facing page
-- Uses a separate header without the public brand nav
-- Does not display any creator name, email, role, or identity
-- Is marked `noindex` to prevent search engine discovery
-- Will be protected by server-side role checks in Phase 9
-
-### Security Boundaries
-
-```
-BROWSER (client components)
-│
-├── lib/supabase/client.ts    ← ANON key only
-├── components/*              ← No access to service role
-│
-─── BOUNDARY (server-only import guard) ───
-│
-SERVER (server components, actions, API routes)
-│
-├── lib/supabase/server.ts    ← ANON key + cookies
-├── lib/supabase/admin.ts     ← SERVICE ROLE (bypasses RLS)
-│
+```text
+User
+ │
+ ▼
+Extrovert
+ │  authentication + verification + local identity
+ │
+ │  one-time bridge code
+ ▼
+DateLocal /auth/extrovert
+ │
+ │  consume bridge + set same Supabase session
+ ▼
+DateLocal
+ │
+ ├── dating profile/preferences
+ ├── discovery / likes / matches
+ ├── dating messages
+ └── premium / rewards
 ```
 
-### Mobile Compatibility
+## Safety boundary
 
-Business logic will live in `src/services/` (future phases), not inside
-React components. The Supabase client architecture is SDK-based, meaning
-a React Native app can use the same Supabase JS SDK against the same
-backend.
+DateLocal may use the Extrovert identity to decide whether a user is eligible to enter the dating layer. It must not weaken Extrovert trust/ban state or expose Extrovert-only identity data that is not required for dating.
 
-## Not Implemented (by design)
+## Deployment contract
 
-- Authentication
-- Database schema / migrations
-- Profiles, discovery, matching, chat
-- Blocking, reporting, moderation
-- AI systems
-- Real admin operations
-- Production deployment
-
-These belong to Phases 2–13.
+Set `EXTROVERT_URL` in DateLocal to the deployed Extrovert origin and `NEXT_PUBLIC_DATELOCAL_URL` in Extrovert to the deployed DateLocal origin. Keep the Supabase URL/key pair aligned between both applications.
