@@ -1,13 +1,10 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 import { routes } from "@/config/routes";
 import { ADMIN_ROLES, isSuperAdminUser } from "@/types/roles";
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
-
+  let supabaseResponse = NextResponse.next({ request });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -16,107 +13,74 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(
-          cookiesToSet: {
-            name: string;
-            value: string;
-            options?: Record<string, unknown>;
-          }[]
-        ) {
+        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options));
         },
       },
-    }
+    },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
 
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|wasm|bin|ico)$/)
-  ) {
-    return supabaseResponse;
-  }
+  if (pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|wasm|bin|ico)$/)) return supabaseResponse;
 
   const isAuthRoute = pathname === routes.login || pathname === routes.register;
   const isAppRoute = pathname === routes.app || pathname.startsWith("/app/");
   const isAdminRoute = pathname === routes.admin.root || pathname.startsWith("/admin/");
-  const isOnboardingRoute = pathname === routes.profileSetup;
   const isFaceVerifyRoute = pathname === routes.verifyFace;
 
   if (!user && (isAppRoute || isAdminRoute || isFaceVerifyRoute)) {
-    const redirectUrl = new URL(routes.login, request.url);
-    const redirectResponse = NextResponse.redirect(redirectUrl);
-    supabaseResponse.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value);
-    });
-    return redirectResponse;
+    return NextResponse.redirect(new URL(routes.login, request.url));
   }
 
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("profile_completed, role")
-      .eq("id", user.id)
-      .maybeSingle();
+  if (!user) return supabaseResponse;
 
-    const isProfileComplete = Boolean(profile?.profile_completed);
+  // Extrovert is the identity, human-verification, locality-verification and
+  // trust authority. DateBu never grants access from its own verification state.
+  const { data: extrovertProfile } = await supabase
+    .from("extrovert_profiles")
+    .select("profile_completed, verification_status, area_verification_status, trust_state")
+    .eq("id", user.id)
+    .maybeSingle();
 
-    if (isAdminRoute) {
-      const hasAdminAccess =
-        isSuperAdminUser(user.id) ||
-        Boolean(profile?.role && ADMIN_ROLES.includes(profile.role));
+  const extrovertAuthorized = Boolean(
+    extrovertProfile?.profile_completed &&
+      extrovertProfile.verification_status === "verified" &&
+      extrovertProfile.area_verification_status === "verified" &&
+      extrovertProfile.trust_state !== "banned",
+  );
 
-      if (!hasAdminAccess) {
-        const redirectResponse = NextResponse.redirect(
-          new URL(routes.app, request.url)
-        );
-        supabaseResponse.cookies.getAll().forEach((cookie) => {
-          redirectResponse.cookies.set(cookie.name, cookie.value);
-        });
-        return redirectResponse;
-      }
-    }
-
-    // profile_completed is the single onboarding source of truth. Once a user
-    // has completed setup, do not send them back to setup just because a photo
-    // query is temporarily unavailable during OAuth/session refresh.
-    if (!isProfileComplete) {
-      if (
-        (isAppRoute && !isOnboardingRoute) ||
-        isFaceVerifyRoute ||
-        isAuthRoute
-      ) {
-        const redirectResponse = NextResponse.redirect(
-          new URL(routes.profileSetup, request.url)
-        );
-        supabaseResponse.cookies.getAll().forEach((cookie) => {
-          redirectResponse.cookies.set(cookie.name, cookie.value);
-        });
-        return redirectResponse;
-      }
-
-      return supabaseResponse;
-    }
-
-    if (isAuthRoute) {
-      const redirectResponse = NextResponse.redirect(
-        new URL(routes.app, request.url)
-      );
-      supabaseResponse.cookies.getAll().forEach((cookie) => {
-        redirectResponse.cookies.set(cookie.name, cookie.value);
-      });
-      return redirectResponse;
+  if (isAppRoute || isAdminRoute || isFaceVerifyRoute) {
+    if (!extrovertAuthorized) {
+      const extrovert = (process.env.EXTROVERT_URL || "http://localhost:3000").replace(/\/$/, "");
+      const returnTo = `${request.nextUrl.origin}/auth/callback`;
+      const redirectUrl = `${extrovert}/auth/datebu?returnTo=${encodeURIComponent(returnTo)}`;
+      return NextResponse.redirect(redirectUrl);
     }
   }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("profile_completed, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (isAdminRoute) {
+    const hasAdminAccess = isSuperAdminUser(user.id) || Boolean(profile?.role && ADMIN_ROLES.includes(profile.role));
+    if (!hasAdminAccess) return NextResponse.redirect(new URL(routes.app, request.url));
+  }
+
+  // DateBu profile data is a projection of the Extrovert identity. Dating-only
+  // preferences and dating photos can still be managed inside DateBu.
+  const isProfileComplete = Boolean(profile?.profile_completed);
+  if (!isProfileComplete && isAppRoute && !pathname.startsWith(routes.profileSetup)) {
+    return NextResponse.redirect(new URL(routes.profileSetup, request.url));
+  }
+
+  if (isAuthRoute) return NextResponse.redirect(new URL(routes.app, request.url));
 
   return supabaseResponse;
 }
