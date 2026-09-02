@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import SocialChatClient from "./social-chat-client";
 
-export const metadata: Metadata = { title: "Social chat | DateBu" };
+export const metadata: Metadata = { title: "Social chat | DateLocal" };
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ connectionId: string }> };
@@ -38,11 +38,14 @@ export default async function SocialChatPage({ params }: Props) {
     if (memberError) notFound();
   }
 
+  if (!conversationId) notFound();
+  const resolvedConversationId = conversationId;
+
   const [{ data: profile }, { data: messages }] = await Promise.all([
     admin.from("extrovert_profiles").select("id,display_name,verification_status,area_verification_status").eq("id", otherUserId).maybeSingle(),
-    admin.from("extrovert_messages").select("id,sender_id,ciphertext,created_at").eq("conversation_id", conversationId).order("created_at", { ascending: true }).limit(100),
+    admin.from("extrovert_messages").select("id,sender_id,ciphertext,created_at").eq("conversation_id", resolvedConversationId).order("created_at", { ascending: true }).limit(100),
   ]);
   if (!profile) notFound();
 
-  return <SocialChatClient conversationId={conversationId} currentUserId={user.id} otherProfile={profile as Profile} initialMessages={(messages ?? []) as Message[]} />;
+  return <SocialChatClient conversationId={resolvedConversationId} currentUserId={user.id} otherProfile={profile as Profile} initialMessages={(messages ?? []) as Message[]} />;
 }
