@@ -4,7 +4,7 @@ import { routes } from "@/config/routes";
 
 export const dynamic = "force-dynamic";
 
-const PRODUCTION_EXTROVERT_URL = "https://extrovert-ten.vercel.app";
+const PRODUCTION_EXTROVERT_URL = "https://extrovert-git-main-gaurav-7489s-projects.vercel.app";
 
 function getExtrovertUrl() {
   const configured = process.env.EXTROVERT_URL?.replace(/\/$/, "");
@@ -35,10 +35,7 @@ export async function GET(request: Request) {
   }
 
   const bridgeSecret = process.env.EXTROVERT_DATEBU_BRIDGE_SECRET;
-  if (!bridgeSecret) {
-    console.error("EXTROVERT_DATEBU_BRIDGE_SECRET is not configured");
-    return NextResponse.redirect(new URL(`${routes.login}?error=configuration`, requestUrl.origin));
-  }
+  if (!bridgeSecret) return NextResponse.redirect(new URL(`${routes.login}?error=configuration`, requestUrl.origin));
 
   const returnTo = `${requestUrl.origin}/auth/callback`;
   const exchangeResponse = await fetch(`${extrovert}/api/auth/datebu/exchange`, {
@@ -47,67 +44,28 @@ export async function GET(request: Request) {
     body: JSON.stringify({ code: bridgeCode, returnTo }),
     cache: "no-store",
   });
-
-  if (!exchangeResponse.ok) {
-    console.error("Extrovert auth bridge exchange failed", exchangeResponse.status);
-    return NextResponse.redirect(new URL(`${routes.login}?error=verification_failed`, requestUrl.origin));
-  }
+  if (!exchangeResponse.ok) return NextResponse.redirect(new URL(`${routes.login}?error=verification_failed`, requestUrl.origin));
 
   const payload = await exchangeResponse.json() as { user_id?: string; access_token?: string; refresh_token?: string };
-  if (!payload.user_id || !payload.access_token || !payload.refresh_token) {
-    return NextResponse.redirect(new URL(`${routes.login}?error=verification_failed`, requestUrl.origin));
-  }
+  if (!payload.user_id || !payload.access_token || !payload.refresh_token) return NextResponse.redirect(new URL(`${routes.login}?error=verification_failed`, requestUrl.origin));
 
   const supabase = await createServerSupabaseClient();
   const { error: sessionError } = await supabase.auth.setSession({ access_token: payload.access_token, refresh_token: payload.refresh_token });
-  if (sessionError) {
-    console.error("DateBu session bootstrap failed:", sessionError.message);
-    return NextResponse.redirect(new URL(`${routes.login}?error=session_failed`, requestUrl.origin));
-  }
+  if (sessionError) return NextResponse.redirect(new URL(`${routes.login}?error=session_failed`, requestUrl.origin));
 
-  const { data: extrovertProfile } = await supabase
-    .from("extrovert_profiles")
-    .select("id, display_name, date_of_birth, gender, bio, profile_completed, verification_status, area_verification_status, trust_state")
-    .eq("id", payload.user_id)
-    .maybeSingle();
-
-  // Extrovert owns identity. Face and area verification are trust layers, not
-  // profile completion blockers, so DateBu can be used before those optional
-  // checks are completed. Age and banned-account checks remain mandatory.
+  const { data: extrovertProfile } = await supabase.from("extrovert_profiles").select("id, display_name, date_of_birth, gender, bio, profile_completed, verification_status, area_verification_status, trust_state").eq("id", payload.user_id).maybeSingle();
   const age = ageFromDob(extrovertProfile?.date_of_birth ?? null);
-  const authorized = Boolean(
-    extrovertProfile?.profile_completed &&
-    age !== null &&
-    age >= 18 &&
-    extrovertProfile.trust_state !== "banned",
-  );
-
+  const authorized = Boolean(extrovertProfile?.profile_completed && age !== null && age >= 18 && extrovertProfile.trust_state !== "banned");
   if (!authorized || !extrovertProfile) {
     await supabase.auth.signOut({ scope: "local" });
     return NextResponse.redirect(new URL(`${routes.login}?error=extrovert_profile_required`, requestUrl.origin));
   }
 
   const { data: existingProfile } = await supabase.from("profiles").select("department, academic_year, ghost_mode").eq("id", payload.user_id).maybeSingle();
-  const { error: profileError } = await supabase.from("profiles").upsert({
-    id: payload.user_id,
-    display_name: extrovertProfile.display_name,
-    date_of_birth: extrovertProfile.date_of_birth,
-    gender: extrovertProfile.gender,
-    department: existingProfile?.department || "General",
-    academic_year: existingProfile?.academic_year || "postgraduate",
-    bio: extrovertProfile.bio,
-    profile_completed: true,
-    ghost_mode: existingProfile?.ghost_mode ?? false,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "id" });
-
-  if (profileError) {
-    console.error("DateBu identity projection failed:", profileError.message);
-    return NextResponse.redirect(new URL(`${routes.login}?error=profile_sync_failed`, requestUrl.origin));
-  }
+  const { error: profileError } = await supabase.from("profiles").upsert({ id: payload.user_id, display_name: extrovertProfile.display_name, date_of_birth: extrovertProfile.date_of_birth, gender: extrovertProfile.gender, department: existingProfile?.department || "General", academic_year: existingProfile?.academic_year || "postgraduate", bio: extrovertProfile.bio, profile_completed: true, ghost_mode: existingProfile?.ghost_mode ?? false, updated_at: new Date().toISOString() }, { onConflict: "id" });
+  if (profileError) return NextResponse.redirect(new URL(`${routes.login}?error=profile_sync_failed`, requestUrl.origin));
 
   const { error: preferenceError } = await supabase.from("dating_preferences").upsert({ user_id: payload.user_id }, { onConflict: "user_id", ignoreDuplicates: true });
   if (preferenceError) console.error("DateBu preference bootstrap failed:", preferenceError.message);
-
   return NextResponse.redirect(new URL(routes.app, requestUrl.origin));
 }
