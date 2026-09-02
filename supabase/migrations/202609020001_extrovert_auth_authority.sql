@@ -1,4 +1,5 @@
--- The shared Supabase project owns this table. This file documents the
--- Extrovert -> DateBu one-time authentication handoff used by DateBu.
--- The table itself is created by the Extrovert migration so there is one
--- authoritative schema owner.
+-- Extrovert is the identity authority for DateLocal.
+-- The shared Supabase project owns the canonical bridge table.
+-- Extrovert creates a short-lived, one-time session bridge; DateLocal consumes it.
+-- The physical table is created/renamed by the Extrovert migrations so there is
+-- one authoritative schema owner.
