@@ -1,8 +1,8 @@
 {
   "id": "/app",
-  "name": "DateBu",
-  "short_name": "DateBu",
-  "description": "DateBu - Student App",
+  "name": "Extrovert Date",
+  "short_name": "Extrovert Date",
+  "description": "Extrovert Date — a local dating experience powered by your Extrovert identity.",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",
@@ -10,17 +10,7 @@
   "background_color": "#ffffff",
   "theme_color": "#11043E",
   "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    {"src":"/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
   ]
 }
