@@ -25,7 +25,7 @@ export default async function SettingsPage() {
   ]);
   const blockedIds=(blocks??[]).map(b=>b.blocked_id); let blockedUsers:{id:string;display_name:string;department:string}[]=[];
   if(blockedIds.length){const {data}=await supabase.from("profiles").select("id,display_name,department").in("id",blockedIds);blockedUsers=(data??[]).map(p=>({id:p.id,display_name:p.display_name,department:p.department}));}
-  const showMe=preferences?.interested_in?.includes("everyone")||((preferences?.interested_in?.includes("men")??false)&&(preferences?.interested_in?.includes("women")??false))?"Everyone":preferences?.interested_in?.[0]?preferences.interested_in[0].replace(/^./,c=>c.toUpperCase()):"Everyone";
+  const showMe=preferences?.interested_in?.includes("everyone")||((preferences?.interested_in?.includes("men")??false)&&(preferences?.interested_in?.includes("women")??false))?"Everyone":preferences?.interested_in?.[0]?preferences.interested_in[0].replace(/^./,(c:string)=>c.toUpperCase()):"Everyone";
   const extrovertUrl=process.env.NEXT_PUBLIC_EXTROVERT_URL||"http://localhost:3000";
   return <div className="mx-auto max-w-md px-3.5 py-4 space-y-4 font-sans select-none pb-24">
     <div className="px-1"><h1 className="text-2xl font-black tracking-tight">Settings</h1><p className="text-[11px] text-muted-foreground font-medium">Dating controls, privacy and account safety</p></div>
