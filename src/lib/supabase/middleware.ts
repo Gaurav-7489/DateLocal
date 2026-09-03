@@ -13,7 +13,9 @@ function getExtrovertOrigin(request: NextRequest) {
   const preferred = configured.find((value) => {
     try {
       const hostname = new URL(value).hostname;
-      return isLocal ? ["localhost", "127.0.0.1"].includes(hostname) : !["localhost", "127.0.0.1"].includes(hostname);
+      return isLocal
+        ? ["localhost", "127.0.0.1"].includes(hostname)
+        : !["localhost", "127.0.0.1"].includes(hostname);
     } catch {
       return false;
     }
@@ -57,19 +59,16 @@ export async function updateSession(request: NextRequest) {
 
   if (!user) return supabaseResponse;
 
-  // Extrovert is the identity, human-verification, locality-verification and
-  // trust authority. DateLocal never grants access from its own verification state.
+  // Extrovert owns identity, verification, locality and trust. Verification
+  // can be completed later, so it must not block DateLocal access here.
   const { data: extrovertProfile } = await supabase
     .from("extrovert_profiles")
-    .select("profile_completed, verification_status, area_verification_status, trust_state")
+    .select("profile_completed, trust_state")
     .eq("id", user.id)
     .maybeSingle();
 
   const extrovertAuthorized = Boolean(
-    extrovertProfile?.profile_completed &&
-      extrovertProfile.verification_status === "verified" &&
-      extrovertProfile.area_verification_status === "verified" &&
-      extrovertProfile.trust_state !== "banned",
+    extrovertProfile?.profile_completed && extrovertProfile.trust_state !== "banned",
   );
 
   if (isAppRoute || isAdminRoute || isFaceVerifyRoute) {
