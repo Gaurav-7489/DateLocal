@@ -14,7 +14,6 @@ BEGIN
   IF identity.id IS NULL THEN
     RAISE EXCEPTION 'Extrovert identity is required before using DateLocal';
   END IF;
-
   NEW.display_name := identity.display_name;
   NEW.date_of_birth := identity.date_of_birth;
   NEW.gender := identity.gender;
@@ -30,3 +29,13 @@ BEFORE INSERT OR UPDATE OF display_name, date_of_birth, gender, department, acad
 ON public.profiles
 FOR EACH ROW
 EXECUTE FUNCTION public.sync_datelocal_identity_from_extrovert();
+
+-- Reconcile existing rows once when this migration is applied.
+UPDATE public.profiles AS p
+SET display_name = ep.display_name,
+    date_of_birth = ep.date_of_birth,
+    gender = ep.gender,
+    department = ep.department,
+    academic_year = ep.academic_year
+FROM public.extrovert_profiles AS ep
+WHERE ep.id = p.id;
