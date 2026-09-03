@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
-import { universityConfig } from "@/config/university";
 import { CredentialsPanel } from "./credentials-panel";
 import { SettingsControls } from "./settings-controls";
 import { DeleteAccount } from "./delete-account";
 import { DevicePreferences } from "@/components/settings/device-preferences";
 import { signOut } from "@/app/(app)/actions";
-import { ShieldCheck, SlidersHorizontal, LogOut, ExternalLink, Lock, Link2 } from "lucide-react";
+import { SlidersHorizontal, LogOut, ExternalLink, Lock, Link2 } from "lucide-react";
 
 export const metadata: Metadata = { title: "Settings | DateLocal" };
 export const dynamic = "force-dynamic";
