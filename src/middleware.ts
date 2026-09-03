@@ -2,18 +2,18 @@ import { type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  return updateSession(request);
 }
 
 export const config = {
+  // Only run auth/session middleware where it can affect navigation.
+  // Public pages and static assets no longer pay the Supabase middleware cost.
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico, sitemap.xml, robots.txt
-     * - Static asset file extensions (.svg, .png, .jpg, .jpeg, .gif, .webp, .ico, .css, .js)
-     */
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|assets/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)",
+    "/login",
+    "/register",
+    "/app/:path*",
+    "/admin/:path*",
+    "/verify",
+    "/reset-password",
   ],
 };
