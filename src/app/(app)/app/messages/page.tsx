@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { MessageSquare, Compass, Flame, HeartHandshake, Users, ShieldCheck } from "lucide-react";
+import { MessageSquare, Compass, Flame, HeartHandshake, Users, ShieldCheck, MapPin } from "lucide-react";
 import SuperChatRequestCard from "@/components/messages/superchat-request-card";
 import ConversationRow from "@/components/messages/conversation-row";
 
-export const metadata: Metadata = { title: "Chats | DateBu" };
+export const metadata: Metadata = { title: "Chats | DateLocal" };
 export const dynamic = "force-dynamic";
 
 type MatchRow = { id: string; user_a: string; user_b: string; created_at: string };
@@ -29,10 +29,16 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   if (!user) return null;
   if (section === "social") return <SocialSection userId={user.id} />;
 
-  const { data: rawMatches, error: matchesError } = await supabase.from("matches").select("id,user_a,user_b,created_at").or(`user_a.eq.${user.id},user_b.eq.${user.id}`).order("created_at", { ascending: false });
-  const { data: requestRows } = await supabase.rpc("get_superchat_requests");
+  const [{ data: rawMatches, error: matchesError }, { data: requestRows }, { data: identity }] = await Promise.all([
+    supabase.from("matches").select("id,user_a,user_b,created_at").or(`user_a.eq.${user.id},user_b.eq.${user.id}`).order("created_at", { ascending: false }),
+    supabase.rpc("get_superchat_requests"),
+    supabase.from("extrovert_profiles").select("area_id").eq("id", user.id).maybeSingle(),
+  ]);
   const requests = (requestRows ?? []) as SuperChatRequest[];
-  if (matchesError) return <div className="mx-auto max-w-lg px-4 py-4 font-sans"><Header section="datebu" /><EmptyState icon={<HeartHandshake className="h-6 w-6 text-emerald-600" />} title="Couldn&apos;t load conversations" description="Please try again in a moment." /></div>;
+  const areaId = identity?.area_id as string | null;
+  const { data: area } = areaId ? await supabase.from("extrovert_areas").select("name").eq("id", areaId).maybeSingle() : { data: null };
+  const dateLabel = `Date (${area?.name || "Local"})`;
+  if (matchesError) return <div className="mx-auto max-w-lg px-4 py-4 font-sans"><Header section="date" dateLabel={dateLabel} /><EmptyState icon={<HeartHandshake className="h-6 w-6 text-emerald-600" />} title="Couldn&apos;t load conversations" description="Please try again in a moment." /></div>;
 
   const matches = (rawMatches ?? []) as MatchRow[];
   const matchIds = matches.map((m) => m.id);
@@ -58,10 +64,10 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   }
   active.sort((a, b) => new Date(b.latestMessage.created_at).getTime() - new Date(a.latestMessage.created_at).getTime());
 
-  return <div className="mx-auto w-full max-w-lg px-4 py-4 font-sans pb-24"><Header section="datebu" />
+  return <div className="mx-auto w-full max-w-lg px-4 py-4 font-sans pb-24"><Header section="date" dateLabel={dateLabel} />
     {requests.length > 0 && <section className="mb-5 space-y-2.5"><div className="px-1 text-xs font-black uppercase tracking-wider text-violet-700">Message requests ({requests.length})</div><div className="space-y-2">{requests.map((r) => <SuperChatRequestCard key={r.id} requestId={r.id} senderName={r.display_name} content={r.content} />)}</div></section>}
     {newMatches.length > 0 && <section className="mb-6 space-y-2.5"><div className="flex items-center gap-1.5 px-1"><Flame className="h-4 w-4 text-emerald-600" /><h2 className="text-xs font-black uppercase tracking-wider text-zinc-600">New Matches ({newMatches.length})</h2></div><div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">{newMatches.map((m) => <Link key={m.matchId} href={`${routes.messages}/${m.matchId}`} className="group flex w-20 shrink-0 flex-col items-center gap-1.5"><div className="relative h-16 w-16 overflow-hidden rounded-2xl border-2 border-emerald-500/80 p-0.5">{m.photoUrl ? <Image src={m.photoUrl} alt={m.profile.display_name ?? "Student"} fill className="rounded-[14px] object-cover" sizes="64px" /> : <div className="flex h-full w-full items-center justify-center rounded-[14px] bg-zinc-100 text-base font-black text-zinc-700">{m.profile.display_name?.charAt(0)}</div>}</div><span className="w-full truncate text-center text-xs font-bold text-zinc-800">{m.profile.display_name?.split(" ")[0]}</span></Link>)}</div></section>}
-    {active.length === 0 && newMatches.length === 0 && requests.length === 0 ? <EmptyState icon={<HeartHandshake className="h-6 w-6 text-emerald-600" />} title="No DateBu conversations" description="Dating matches and chats will show up here."><Link href={routes.discover}><Button size="sm" leftIcon={<Compass className="h-3.5 w-3.5" />}>Start Exploring</Button></Link></EmptyState> : active.length > 0 && <section className="space-y-2"><div className="px-1 text-xs font-black uppercase tracking-wider text-zinc-600">DateBu chats</div><div className="space-y-1.5">{active.map((c) => <ConversationRow key={c.match.id} matchId={c.match.id} profileId={c.profile.id} displayName={c.profile.display_name} photoUrl={c.photoUrl} latestContent={c.latestMessage.content} timestamp={c.latestMessage.created_at} sent={c.latestMessage.sender_id === user.id} formatTimestamp={formatTimestamp} />)}</div></section>}
+    {active.length === 0 && newMatches.length === 0 && requests.length === 0 ? <EmptyState icon={<HeartHandshake className="h-6 w-6 text-emerald-600" />} title="No dating conversations" description="Your DateLocal matches and chats will show up here."><Link href={routes.discover}><Button size="sm" leftIcon={<Compass className="h-3.5 w-3.5" />}>Start Exploring</Button></Link></EmptyState> : active.length > 0 && <section className="space-y-2"><div className="px-1 text-xs font-black uppercase tracking-wider text-zinc-600">{dateLabel} chats</div><div className="space-y-1.5">{active.map((c) => <ConversationRow key={c.match.id} matchId={c.match.id} profileId={c.profile.id} displayName={c.profile.display_name} photoUrl={c.photoUrl} latestContent={c.latestMessage.content} timestamp={c.latestMessage.created_at} sent={c.latestMessage.sender_id === user.id} formatTimestamp={formatTimestamp} />)}</div></section>}
   </div>;
 }
 
@@ -72,13 +78,12 @@ async function SocialSection({ userId }: { userId: string }) {
   const { data: profiles } = ids.length ? await admin.from("extrovert_profiles").select("id,display_name,verification_status,area_verification_status").in("id", ids) : { data: [] as { id: string; display_name: string | null; verification_status: string | null; area_verification_status: string | null }[] };
   const map = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
   const connections = (rows ?? []).map((row) => ({ ...row, person: map.get(row.requester_id === userId ? row.target_id : row.requester_id) ?? null })) as SocialConnection[];
-
-  return <div className="mx-auto w-full max-w-lg px-4 py-4 font-sans pb-24"><Header section="social" />
-    <div className="mb-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-3"><p className="text-xs font-bold text-zinc-800">Social chats from Extrovert</p><p className="mt-1 text-[11px] leading-5 text-zinc-500">Friend and social conversations live here. Dating matches stay in DateBu.</p></div>
-    {connections.length === 0 ? <EmptyState icon={<Users className="h-6 w-6 text-zinc-600" />} title="No social chats yet" description="Accept an Extrovert connection and its chat will appear here." /> : <section className="space-y-2">{connections.map((connection) => <Link key={connection.id} href={`/app/messages/social/${connection.id}`} className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-3.5 active:scale-[.99]"><div className="grid size-11 shrink-0 place-items-center rounded-full bg-zinc-100 font-bold text-zinc-700">{connection.person?.display_name?.slice(0, 1).toUpperCase() || "?"}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-zinc-900">{connection.person?.display_name || "Connection"}</p><p className="mt-1 flex items-center gap-1 text-[10px] text-zinc-500">{connection.person?.verification_status === "verified" && <ShieldCheck className="h-3 w-3 text-emerald-600" />}Extrovert connection</p></div><span className="text-xs font-semibold text-zinc-500">Chat →</span></Link>)}</section>}
+  return <div className="mx-auto w-full max-w-lg px-4 py-4 font-sans pb-24"><Header section="social" dateLabel="Date (local)" />
+    <div className="mb-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-3"><p className="text-xs font-bold text-zinc-800">Extrovert social chats</p><p className="mt-1 text-[11px] leading-5 text-zinc-500">Friend and social conversations from Extrovert live here. Dating stays in DateLocal.</p></div>
+    {connections.length === 0 ? <EmptyState icon={<Users className="h-6 w-6 text-zinc-600" />} title="No social chats yet" description="Accept an Extrovert connection and its chat will appear here." /> : <section className="space-y-2">{connections.map((connection) => <Link key={connection.id} href={`/app/messages/social/${connection.id}`} className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-3.5 active:scale-[.99]"><div className="grid size-11 shrink-0 place-items-center rounded-full bg-zinc-100 font-bold text-zinc-700">{connection.person?.display_name?.slice(0, 1).toUpperCase() || "?"}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-zinc-900">{connection.person?.display_name || "Connection"}</p><div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-zinc-500">{connection.person?.verification_status === "verified" && <span className="inline-flex items-center gap-0.5 text-emerald-700"><ShieldCheck className="h-3 w-3" /> Identity verified</span>}{connection.person?.area_verification_status === "verified" && <span className="inline-flex items-center gap-0.5 text-sky-700"><MapPin className="h-3 w-3" /> Area verified</span>}</div></div><span className="text-xs font-semibold text-zinc-500">Chat →</span></Link>)}</section>}
   </div>;
 }
 
-function Header({ section }: { section: "datebu" | "social" }) {
-  return <><div className="mb-3 flex items-center justify-between"><div className="space-y-0.5"><div className="flex items-center gap-2"><MessageSquare className="h-6 w-6 text-emerald-600" /><h1 className="text-xl font-black tracking-tight text-zinc-950">Chats</h1></div><p className="text-xs text-zinc-500">DateBu and social conversations</p></div><Link href={routes.discover}><Button size="sm" variant="outline" leftIcon={<Compass className="h-3.5 w-3.5" />}>Explore</Button></Link></div><div className="mb-5 grid grid-cols-2 rounded-2xl border border-zinc-200 bg-zinc-50 p-1"><Link href={routes.messages} className={`rounded-xl px-3 py-2 text-center text-xs font-bold ${section === "datebu" ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-500"}`}>DateBu</Link><Link href={`${routes.messages}?section=social`} className={`rounded-xl px-3 py-2 text-center text-xs font-bold ${section === "social" ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-500"}`}>Social</Link></div></>;
+function Header({ section, dateLabel }: { section: "date" | "social"; dateLabel: string }) {
+  return <><div className="mb-3 flex items-center justify-between"><div className="space-y-0.5"><div className="flex items-center gap-2"><MessageSquare className="h-6 w-6 text-emerald-600" /><h1 className="text-xl font-black tracking-tight text-zinc-950">Chats</h1></div><p className="text-xs text-zinc-500">{dateLabel} and Extrovert social chats</p></div><Link href={routes.discover}><Button size="sm" variant="outline" leftIcon={<Compass className="h-3.5 w-3.5" />}>Explore</Button></Link></div><div className="mb-5 grid grid-cols-2 rounded-2xl border border-zinc-200 bg-zinc-50 p-1"><Link href={routes.messages} className={`rounded-xl px-3 py-2 text-center text-xs font-bold ${section === "date" ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-500"}`}>{dateLabel}</Link><Link href={`${routes.messages}?section=social`} className={`rounded-xl px-3 py-2 text-center text-xs font-bold ${section === "social" ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-500"}`}>Extrovert social</Link></div></>;
 }
