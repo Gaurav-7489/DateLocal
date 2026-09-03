@@ -11,6 +11,9 @@ import { Edit3, Settings, MapPin, ShieldCheck, Star, SlidersHorizontal, Eye, Eye
 export const metadata: Metadata = { title: "Profile | DateLocal" };
 export const dynamic = "force-dynamic";
 
+type ProfileInterest = { id: string; name: string };
+type ProfileInterestRow = { interests?: ProfileInterest | ProfileInterest[] | null };
+
 export default async function ProfilePage() {
   const supabase=await createServerSupabaseClient(); const {data:{user}}=await supabase.auth.getUser(); if(!user)redirect(routes.login);
   const [{data:profile},{data:preferences},{data:identity}]=await Promise.all([
@@ -20,7 +23,8 @@ export default async function ProfilePage() {
   ]);
   if(!profile?.profile_completed||!identity)redirect(routes.profileSetup);
   const photos=[...(profile.profile_photos??[])].sort((a,b)=>a.display_order-b.display_order); const photoUrls=photos.map(p=>getProfilePhotoUrl(p.storage_path,480)).filter(Boolean) as string[]; const age=identity.date_of_birth?calculateAge(identity.date_of_birth):null;
-  const interests=profile.profile_interests?.flatMap((pi:any)=>pi.interests?(Array.isArray(pi.interests)?pi.interests:[pi.interests]):[])??[];
+  const interestRows=(profile.profile_interests??[]) as ProfileInterestRow[];
+  const interests=interestRows.flatMap((pi)=>pi.interests?(Array.isArray(pi.interests)?pi.interests:[pi.interests]):[]);
   const showMe=preferences?.interested_in?.includes("everyone")||((preferences?.interested_in?.includes("men")??false)&&(preferences?.interested_in?.includes("women")??false))?"Everyone":preferences?.interested_in?.[0]?preferences.interested_in[0].replace(/^./,(c:string)=>c.toUpperCase()):"Everyone";
   const areaResult=identity.area_id?await supabase.from("extrovert_areas").select("name").eq("id",identity.area_id).maybeSingle():null;
   return <div className="mx-auto max-w-md px-3.5 py-4 space-y-3.5 font-sans select-none pb-24">
@@ -30,7 +34,7 @@ export default async function ProfilePage() {
     <div className="grid grid-cols-2 gap-2"><div className="rounded-2xl border border-border/70 bg-card p-3"><div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground"><SlidersHorizontal className="w-3 h-3 text-emerald-600"/>Matching</div><span className="mt-1 block truncate text-xs font-bold">{showMe}</span><span className="text-[10px] text-muted-foreground">{preferences?.min_age??18}–{preferences?.max_age??25} yrs</span></div><Link href={routes.settings} className="rounded-2xl border border-border/70 bg-card p-3"><div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{profile.ghost_mode?<EyeOff className="w-3 h-3 text-amber-600"/>:<Eye className="w-3 h-3 text-emerald-600"/>}Visibility</div><span className="mt-1 block text-xs font-bold">{profile.ghost_mode?"Ghost Mode":"Public"}</span><span className="text-[10px] text-muted-foreground">{profile.ghost_mode?"Hidden from deck":"Active in Discover"}</span></Link></div>
     {photoUrls.length>0&&<section className="rounded-3xl border border-border/80 bg-card p-3.5 space-y-2"><div className="flex items-center justify-between"><span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Dating photos ({photoUrls.length}/6)</span><Link href={routes.profileSetup} className="text-[10px] font-bold text-emerald-600">Update</Link></div><div className="grid grid-cols-3 gap-2">{photoUrls.map((url,i)=><div key={i} className="relative aspect-[4/5] overflow-hidden rounded-2xl border border-border/80 bg-zinc-950"><Image src={url} alt={`Dating photo ${i+1}`} fill decoding="async" className="object-cover" sizes="(max-width:640px) 30vw,140px"/>{i===0&&<span className="absolute top-1 left-1 rounded-full bg-emerald-600/90 px-1.5 py-0.5 text-[8px] font-bold text-white"><Star className="inline h-2 w-2"/> Main</span>}</div>)}</div></section>}
     {(profile.relationship_goal||profile.zodiac||profile.sleep_habit||profile.caffeine_pref||profile.weekend_vibe)&&<section className="rounded-2xl border border-border/70 bg-card p-3 space-y-2"><span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Dating vibe</span><div className="flex flex-wrap gap-1.5">{[profile.relationship_goal,profile.zodiac,profile.sleep_habit,profile.caffeine_pref,profile.weekend_vibe].filter(Boolean).map((x)=><span key={x} className="rounded-xl bg-muted/70 border border-border px-2.5 py-1 text-[11px] font-bold">{x}</span>)}</div></section>}
-    {interests.length>0&&<section className="rounded-2xl border border-border/70 bg-card p-3 space-y-1.5"><span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Dating interests</span><div className="flex flex-wrap gap-1">{interests.map((i:any)=><span key={i.id} className="rounded-full bg-muted/80 px-2.5 py-0.5 text-[11px] border border-border/60">{i.name}</span>)}</div></section>}
+    {interests.length>0&&<section className="rounded-2xl border border-border/70 bg-card p-3 space-y-1.5"><span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Dating interests</span><div className="flex flex-wrap gap-1">{interests.map((i)=><span key={i.id} className="rounded-full bg-muted/80 px-2.5 py-0.5 text-[11px] border border-border/60">{i.name}</span>)}</div></section>}
     {profile.prompt_question&&profile.prompt_answer&&<section className="rounded-2xl border border-border/70 bg-card p-3 space-y-1"><span className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground">Icebreaker</span><p className="text-xs font-semibold">{profile.prompt_question}</p><p className="text-xs text-foreground/80">&ldquo;{profile.prompt_answer}&rdquo;</p></section>}
   </div>;
 }
