@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +11,9 @@ export async function GET(request: Request) {
   const requestedNext = requestUrl.searchParams.get("next");
 
   // Extrovert OAuth/login returns here with a one-time DateLocal bridge.
-  // Route it to the bridge consumer instead of treating the bridge code as
-  // a Supabase OAuth authorization code.
+  // Give the client a tiny visual handoff state before consuming the bridge.
   if (bridge === "1" && code) {
-    const handoff = new URL("/auth/extrovert", requestUrl.origin);
+    const handoff = new URL("/auth/handoff", requestUrl.origin);
     handoff.searchParams.set("code", code);
     return NextResponse.redirect(handoff);
   }
