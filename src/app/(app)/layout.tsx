@@ -10,15 +10,17 @@ export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect(routes.login);
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = typeof claimsData?.claims?.sub === "string" ? claimsData.claims.sub : null;
+  const userEmail = typeof claimsData?.claims?.email === "string" ? claimsData.claims.email : "Unknown";
+  if (!userId) redirect(routes.login);
 
-  // Extrovert is the identity authority. DateLocal may only operate for a
-  // user who has an Extrovert identity in the shared Supabase project.
+  // Extrovert is the identity authority. Middleware has already checked this
+  // for the route; keep the server-side boundary here as defense in depth.
   const { data: extrovertProfile } = await supabase
     .from("extrovert_profiles")
     .select("profile_completed,trust_state")
-    .eq("id", user.id)
+    .eq("id", userId)
     .maybeSingle();
 
   if (!extrovertProfile?.profile_completed) {
@@ -29,17 +31,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect(routes.login);
   }
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
   const userRole = (profile?.role ?? "").toUpperCase();
   const ownerId = process.env.DATEBU_OWNER_ID?.trim();
   const adminEmails = (process.env.SUPER_ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
-  const isSuperAdmin = isSuperAdminUser(user.id) || userRole === "SUPER_ADMIN" || userRole === "ADMIN" || (Boolean(ownerId) && user.id === ownerId) || Boolean(user.email && adminEmails.includes(user.email.toLowerCase()));
+  const isSuperAdmin = isSuperAdminUser(userId) || userRole === "SUPER_ADMIN" || userRole === "ADMIN" || (Boolean(ownerId) && userId === ownerId) || Boolean(userEmail !== "Unknown" && adminEmails.includes(userEmail.toLowerCase()));
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-visible bg-background overscroll-none select-none">
       <PushNotifications />
       <PersonalDashboardShortcut />
-      <AppNavbar userEmail={user.email ?? "Unknown"} isSuperAdmin={isSuperAdmin} />
+      <AppNavbar userEmail={userEmail} isSuperAdmin={isSuperAdmin} />
       <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
     </div>
   );

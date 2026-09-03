@@ -1,3 +1,45 @@
-import type { Metadata } from "next";import Link from "next/link";import { redirect } from "next/navigation";import { createServerSupabaseClient } from "@/lib/supabase/server";import { routes } from "@/config/routes";import { getProfilePhotoUrl } from "@/lib/profile-photo";import { DatingProfileForm } from "./dating-profile-form";
-export const metadata:Metadata={title:"Dating Profile | Extrovert"};export const dynamic="force-dynamic";
-export default async function ProfileSetupPage(){const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)redirect(routes.login);const[{data:interests},{data:existingProfile},{data:existingPhotos},{data:existingPi},{data:existingPreferences},{data:identity}]=await Promise.all([supabase.from("interests").select("id,name").order("name"),supabase.from("profiles").select("bio,campus_residency,campus_hangout,relationship_goal,zodiac,sleep_habit,caffeine_pref,weekend_vibe,prompt_question,prompt_answer").eq("id",user.id).maybeSingle(),supabase.from("profile_photos").select("storage_path,display_order,is_primary").eq("profile_id",user.id).order("display_order",{ascending:true}),supabase.from("profile_interests").select("interest_id").eq("profile_id",user.id),supabase.from("dating_preferences").select("interested_in,min_age,max_age,preferred_department").eq("user_id",user.id).maybeSingle(),supabase.from("extrovert_profiles").select("display_name,date_of_birth,gender,department,academic_year,identity_type,institution_name,field_of_study,job_title,employer_name,role_description,area_id,profile_completed,trust_state").eq("id",user.id).maybeSingle()]);if(!identity)redirect(`${routes.login}?error=extrovert_identity_required`);const paths=(existingPhotos??[]).map(p=>p.storage_path);const urls=paths.flatMap(p=>{const u=getProfilePhotoUrl(p,320);return u?[u]:[]});const interestIds=(existingPi??[]).map(r=>r.interest_id);const{data:area}=identity.area_id?await supabase.from("extrovert_areas").select("name").eq("id",identity.area_id).maybeSingle():{data:null};const context=identity.identity_type==="student"?`${identity.institution_name||"College / university"} · ${identity.department||"Student"}${identity.academic_year?` · ${identity.academic_year}`:""}`:identity.identity_type==="professional"?`${identity.job_title||"Professional"}${identity.employer_name?` · ${identity.employer_name}`:""}`:(identity.role_description||"Current role");return <div className="mx-auto max-w-2xl px-4 py-6 pb-24 font-sans"><header className="mb-5"><div className="flex items-center justify-between"><div><span className="text-[10px] font-black uppercase tracking-[.16em] text-emerald-600">EXTROVERT DATE</span><h1 className="mt-1 text-2xl font-black tracking-tight">Your dating profile</h1></div><Link href={routes.profile} className="text-xs font-semibold text-muted-foreground">Back</Link></div><p className="mt-2 text-sm leading-6 text-muted-foreground">Connect your vibe, friends and more. Dating is optional; your verified Extrovert identity is always the foundation.</p></header><section className="mb-5 rounded-3xl border border-border bg-card p-4"><p className="text-[9px] font-black uppercase tracking-[.16em] text-emerald-600">SHARED IDENTITY</p><p className="mt-1 text-sm font-black">{identity.display_name||"Extrovert member"}</p><p className="mt-1 text-[11px] font-semibold text-foreground/80">{context}</p><p className="mt-2 text-[10px] leading-4 text-muted-foreground">Name, age, gender, work/study identity, local area and verification are owned by Extrovert.</p></section><DatingProfileForm userId={user.id} interests={interests??[]} existingProfile={existingProfile} existingPhotoUrls={urls} existingPhotoPaths={paths} existingInterestIds={interestIds} existingPreferences={existingPreferences} identity={{displayName:identity.display_name??"",dateOfBirth:identity.date_of_birth??"",gender:identity.gender??"",department:identity.department,academicYear:identity.academic_year,identityType:identity.identity_type??"student",institutionName:identity.institution_name,fieldOfStudy:identity.field_of_study,jobTitle:identity.job_title,employerName:identity.employer_name,roleDescription:identity.role_description,areaName:area?.name??""}}/></div>}
+import type { Metadata } from "next";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { routes } from "@/config/routes";
+import { getProfilePhotoUrl } from "@/lib/profile-photo";
+import { DatingProfileForm } from "./dating-profile-form";
+
+export const metadata: Metadata = { title: "Dating Profile | Extrovert" };
+export const dynamic = "force-dynamic";
+
+export default async function ProfileSetupPage() {
+  const supabase = await createServerSupabaseClient();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = typeof claimsData?.claims?.sub === "string" ? claimsData.claims.sub : null;
+  if (!userId) redirect(routes.login);
+
+  const [{ data: interests }, { data: existingProfile }, { data: existingPhotos }, { data: existingPi }, { data: existingPreferences }, { data: identity }] = await Promise.all([
+    supabase.from("interests").select("id,name").order("name"),
+    supabase.from("profiles").select("bio,campus_residency,campus_hangout,relationship_goal,zodiac,sleep_habit,caffeine_pref,weekend_vibe,prompt_question,prompt_answer").eq("id", userId).maybeSingle(),
+    supabase.from("profile_photos").select("storage_path,display_order,is_primary").eq("profile_id", userId).order("display_order", { ascending: true }),
+    supabase.from("profile_interests").select("interest_id").eq("profile_id", userId),
+    supabase.from("dating_preferences").select("interested_in,min_age,max_age,preferred_department").eq("user_id", userId).maybeSingle(),
+    supabase.from("extrovert_profiles").select("display_name,date_of_birth,gender,department,academic_year,identity_type,institution_name,field_of_study,job_title,employer_name,role_description,area_id,profile_completed,trust_state").eq("id", userId).maybeSingle(),
+  ]);
+
+  if (!identity) redirect(`${routes.login}?error=extrovert_identity_required`);
+
+  const paths = (existingPhotos ?? []).map((p) => p.storage_path);
+  const urls = paths.flatMap((p) => {
+    const u = getProfilePhotoUrl(p, 320);
+    return u ? [u] : [];
+  });
+  const interestIds = (existingPi ?? []).map((r) => r.interest_id);
+  const { data: area } = identity.area_id
+    ? await supabase.from("extrovert_areas").select("name").eq("id", identity.area_id).maybeSingle()
+    : { data: null };
+  const context = identity.identity_type === "student"
+    ? `${identity.institution_name || "College / university"} · ${identity.department || "Student"}${identity.academic_year ? ` · ${identity.academic_year}` : ""}`
+    : identity.identity_type === "professional"
+      ? `${identity.job_title || "Professional"}${identity.employer_name ? ` · ${identity.employer_name}` : ""}`
+      : (identity.role_description || "Current role");
+
+  return <div className="mx-auto max-w-2xl px-4 py-6 pb-24 font-sans"><header className="mb-5"><div className="flex items-center justify-between"><div><span className="text-[10px] font-black uppercase tracking-[.16em] text-emerald-600">EXTROVERT DATE</span><h1 className="mt-1 text-2xl font-black tracking-tight">Your dating profile</h1></div><Link href={routes.profile} className="text-xs font-semibold text-muted-foreground">Back</Link></div><p className="mt-2 text-sm leading-6 text-muted-foreground">Connect your vibe, friends and more. Dating is optional; your verified Extrovert identity is always the foundation.</p></header><section className="mb-5 rounded-3xl border border-border bg-card p-4"><p className="text-[9px] font-black uppercase tracking-[.16em] text-emerald-600">SHARED IDENTITY</p><p className="mt-1 text-sm font-black">{identity.display_name || "Extrovert member"}</p><p className="mt-1 text-[11px] font-semibold text-foreground/80">{context}</p><p className="mt-2 text-[10px] leading-4 text-muted-foreground">Name, age, gender, work/study identity, local area and verification are owned by Extrovert.</p></section><DatingProfileForm userId={userId} interests={interests ?? []} existingProfile={existingProfile} existingPhotoUrls={urls} existingPhotoPaths={paths} existingInterestIds={interestIds} existingPreferences={existingPreferences} identity={{ displayName: identity.display_name ?? "", dateOfBirth: identity.date_of_birth ?? "", gender: identity.gender ?? "", department: identity.department, academicYear: identity.academic_year, identityType: identity.identity_type ?? "student", institutionName: identity.institution_name, fieldOfStudy: identity.field_of_study, jobTitle: identity.job_title, employerName: identity.employer_name, roleDescription: identity.role_description, areaName: area?.name ?? "" }} /></div>;
+}

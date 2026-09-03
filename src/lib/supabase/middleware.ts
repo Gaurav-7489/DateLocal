@@ -25,6 +25,12 @@ function getExtrovertOrigin(request: NextRequest) {
 }
 
 export async function updateSession(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const isAuthRoute = pathname === routes.login || pathname === routes.register;
+  const isAppRoute = pathname === routes.app || pathname.startsWith("/app/");
+  const isAdminRoute = pathname === routes.admin.root || pathname.startsWith("/admin/");
+  const isFaceVerifyRoute = pathname === routes.verifyFace;
+
   let supabaseResponse = NextResponse.next({ request });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,41 +43,34 @@ export async function updateSession(request: NextRequest) {
         setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options));
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options),
+          );
         },
       },
     },
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const pathname = request.nextUrl.pathname;
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = typeof claimsData?.claims?.sub === "string" ? claimsData.claims.sub : null;
 
-  if (pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|wasm|bin|ico)$/)) return supabaseResponse;
-
-  const isAuthRoute = pathname === routes.login || pathname === routes.register;
-  const isAppRoute = pathname === routes.app || pathname.startsWith("/app/");
-  const isAdminRoute = pathname === routes.admin.root || pathname.startsWith("/admin/");
-  const isFaceVerifyRoute = pathname === routes.verifyFace;
-
-  if (!user && (isAppRoute || isAdminRoute || isFaceVerifyRoute)) {
+  if (!userId && (isAppRoute || isAdminRoute || isFaceVerifyRoute)) {
     return NextResponse.redirect(new URL(routes.login, request.url));
   }
 
-  if (!user) return supabaseResponse;
-
-  // Extrovert owns identity, verification, locality and trust. Verification
-  // can be completed later, so it must not block DateLocal access here.
-  const { data: extrovertProfile } = await supabase
-    .from("extrovert_profiles")
-    .select("profile_completed, trust_state")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const extrovertAuthorized = Boolean(
-    extrovertProfile?.profile_completed && extrovertProfile.trust_state !== "banned",
-  );
+  if (!userId) return supabaseResponse;
 
   if (isAppRoute || isAdminRoute || isFaceVerifyRoute) {
+    const { data: extrovertProfile } = await supabase
+      .from("extrovert_profiles")
+      .select("profile_completed, trust_state")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const extrovertAuthorized = Boolean(
+      extrovertProfile?.profile_completed && extrovertProfile.trust_state !== "banned",
+    );
+
     if (!extrovertAuthorized) {
       const extrovert = getExtrovertOrigin(request);
       const returnTo = `${request.nextUrl.origin}/auth/callback`;
@@ -80,20 +79,16 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("profile_completed, role")
-    .eq("id", user.id)
-    .maybeSingle();
-
   if (isAdminRoute) {
-    const hasAdminAccess = isSuperAdminUser(user.id) || Boolean(profile?.role && ADMIN_ROLES.includes(profile.role));
-    if (!hasAdminAccess) return NextResponse.redirect(new URL(routes.app, request.url));
-  }
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
 
-  const isProfileComplete = Boolean(profile?.profile_completed);
-  if (!isProfileComplete && isAppRoute && !pathname.startsWith(routes.profileSetup)) {
-    return NextResponse.redirect(new URL(routes.profileSetup, request.url));
+    const hasAdminAccess =
+      isSuperAdminUser(userId) || Boolean(profile?.role && ADMIN_ROLES.includes(profile.role));
+    if (!hasAdminAccess) return NextResponse.redirect(new URL(routes.app, request.url));
   }
 
   if (isAuthRoute) return NextResponse.redirect(new URL(routes.app, request.url));
