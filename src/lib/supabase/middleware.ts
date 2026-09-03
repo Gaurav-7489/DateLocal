@@ -3,6 +3,25 @@ import { createServerClient } from "@supabase/ssr";
 import { routes } from "@/config/routes";
 import { ADMIN_ROLES, isSuperAdminUser } from "@/types/roles";
 
+function getExtrovertOrigin(request: NextRequest) {
+  const configured = (process.env.EXTROVERT_URL || "http://localhost:3000")
+    .split(",")
+    .map((value) => value.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+
+  const isLocal = ["localhost", "127.0.0.1"].includes(request.nextUrl.hostname);
+  const preferred = configured.find((value) => {
+    try {
+      const hostname = new URL(value).hostname;
+      return isLocal ? ["localhost", "127.0.0.1"].includes(hostname) : !["localhost", "127.0.0.1"].includes(hostname);
+    } catch {
+      return false;
+    }
+  });
+
+  return preferred || configured[0] || "http://localhost:3000";
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
   const supabase = createServerClient(
@@ -39,7 +58,7 @@ export async function updateSession(request: NextRequest) {
   if (!user) return supabaseResponse;
 
   // Extrovert is the identity, human-verification, locality-verification and
-  // trust authority. DateBu never grants access from its own verification state.
+  // trust authority. DateLocal never grants access from its own verification state.
   const { data: extrovertProfile } = await supabase
     .from("extrovert_profiles")
     .select("profile_completed, verification_status, area_verification_status, trust_state")
@@ -55,9 +74,9 @@ export async function updateSession(request: NextRequest) {
 
   if (isAppRoute || isAdminRoute || isFaceVerifyRoute) {
     if (!extrovertAuthorized) {
-      const extrovert = (process.env.EXTROVERT_URL || "http://localhost:3000").replace(/\/$/, "");
+      const extrovert = getExtrovertOrigin(request);
       const returnTo = `${request.nextUrl.origin}/auth/callback`;
-      const redirectUrl = `${extrovert}/auth/datebu?returnTo=${encodeURIComponent(returnTo)}`;
+      const redirectUrl = `${extrovert}/auth/datelocal?returnTo=${encodeURIComponent(returnTo)}`;
       return NextResponse.redirect(redirectUrl);
     }
   }
@@ -73,8 +92,6 @@ export async function updateSession(request: NextRequest) {
     if (!hasAdminAccess) return NextResponse.redirect(new URL(routes.app, request.url));
   }
 
-  // DateBu profile data is a projection of the Extrovert identity. Dating-only
-  // preferences and dating photos can still be managed inside DateBu.
   const isProfileComplete = Boolean(profile?.profile_completed);
   if (!isProfileComplete && isAppRoute && !pathname.startsWith(routes.profileSetup)) {
     return NextResponse.redirect(new URL(routes.profileSetup, request.url));
