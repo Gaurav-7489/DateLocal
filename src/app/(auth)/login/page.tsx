@@ -1,9 +1,26 @@
 import Link from "next/link";
-import { ArrowRight, Heart, ShieldCheck, Users } from "lucide-react";
+import { ArrowRight, Heart, ShieldCheck, Users, Link2 } from "lucide-react";
+
+function getExtrovertOrigin(datelocalOrigin: string) {
+  const configured = (process.env.EXTROVERT_URL || "http://localhost:3000")
+    .split(",")
+    .map((value) => value.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+  const isLocal = ["localhost", "127.0.0.1"].includes(new URL(datelocalOrigin).hostname);
+  const preferred = configured.find((value) => {
+    try {
+      const hostname = new URL(value).hostname;
+      return isLocal ? ["localhost", "127.0.0.1"].includes(hostname) : !["localhost", "127.0.0.1"].includes(hostname);
+    } catch {
+      return false;
+    }
+  });
+  return preferred || configured[0] || "http://localhost:3000";
+}
 
 export default function LoginPage() {
-  const extrovert = (process.env.EXTROVERT_URL || "http://localhost:3000").replace(/\/$/, "");
   const datelocalOrigin = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001").replace(/\/$/, "");
+  const extrovert = getExtrovertOrigin(datelocalOrigin);
   const returnTo = `${datelocalOrigin}/auth/callback`;
   const handoffUrl = `${extrovert}/auth/datelocal?returnTo=${encodeURIComponent(returnTo)}`;
 
@@ -25,7 +42,12 @@ export default function LoginPage() {
         <Link href={handoffUrl} className="mt-6 flex h-13 w-full items-center justify-between rounded-2xl bg-zinc-950 px-5 text-sm font-black text-white shadow-lg shadow-zinc-950/10 transition-transform active:scale-[.99]">
           <span>Continue with Extrovert</span><ArrowRight className="h-4 w-4" />
         </Link>
-        <p className="mt-4 text-center text-[10px] leading-4 text-muted-foreground">New here? Extrovert will create your identity first. Returning users will continue with the same identity.</p>
+
+        <div className="mt-5 flex items-center justify-center gap-2 text-[10px] font-semibold text-muted-foreground">
+          <Link2 className="h-3.5 w-3.5 text-emerald-600" />
+          <span>Extrovert + DateLocal are interconnected</span>
+        </div>
+        <p className="mt-1.5 text-center text-[10px] leading-4 text-muted-foreground">One trusted identity. Extrovert handles identity and verification; DateLocal handles dating. Your social and dating experiences stay connected without becoming one app.</p>
       </div>
     </main>
   );
