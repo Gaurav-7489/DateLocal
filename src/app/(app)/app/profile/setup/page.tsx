@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
-import { universityConfig } from "@/config/university";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import { ProfileSetupForm } from "./profile-setup-form";
 import { IdentityFieldsLock } from "./components/identity-fields-lock";
