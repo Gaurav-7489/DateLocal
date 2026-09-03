@@ -25,22 +25,11 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/auth/login?error=expired_handoff", request.url));
   }
 
-  const returnTo = bridge.return_to.startsWith("/app/messages/social/")
-    ? bridge.return_to
-    : "/app";
-
+  const returnTo = "/app";
   const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.auth.setSession({
-    access_token: bridge.access_token,
-    refresh_token: bridge.refresh_token,
-  });
+  const { error } = await supabase.auth.setSession({ access_token: bridge.access_token, refresh_token: bridge.refresh_token });
   if (error) return NextResponse.redirect(new URL("/auth/login?error=handoff_failed", request.url));
 
-  await admin
-    .from("extrovert_datelocal_auth_bridges")
-    .update({ consumed_at: new Date().toISOString() })
-    .eq("id", bridge.id)
-    .is("consumed_at", null);
-
+  await admin.from("extrovert_datelocal_auth_bridges").update({ consumed_at: new Date().toISOString() }).eq("id", bridge.id).is("consumed_at", null);
   return NextResponse.redirect(new URL(returnTo, request.url));
 }
