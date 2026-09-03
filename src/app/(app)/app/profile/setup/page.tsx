@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
+import { universityConfig } from "@/config/university";
 import { DatingProfileForm } from "./dating-profile-form";
 
 export const metadata: Metadata = { title: "Dating Profile | DateLocal" };
@@ -31,6 +32,7 @@ export default async function ProfileSetupPage() {
 
   return <div className="mx-auto max-w-2xl px-4 py-6 pb-24 font-sans">
     <header className="mb-5"><div className="flex items-center justify-between"><div><span className="text-[10px] font-black uppercase tracking-[.16em] text-emerald-600">DateLocal</span><h1 className="mt-1 text-2xl font-black tracking-tight">Build your dating profile</h1></div><Link href={routes.profile} className="text-xs font-semibold text-muted-foreground">Back</Link></div><p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">DateLocal handles the dating experience. Your verified identity stays with Extrovert and is reflected here automatically.</p></header>
+    <section className="mb-5 rounded-3xl border border-border bg-card p-4"><div className="flex items-start gap-2.5"><GraduationCap className="mt-0.5 h-4 w-4 text-emerald-600"/><div><p className="text-sm font-black">College / university</p><p className="mt-1 text-[11px] font-bold">{universityConfig.name}</p><p className="mt-1 text-[10px] leading-4 text-muted-foreground">{identity.department || "Student"} · {identity.academic_year || "Current academic year"}</p><p className="mt-2 text-[10px] leading-4 text-muted-foreground">This is shared verified context from Extrovert. Change student identity there, not in DateLocal.</p></div></div></section>
     <DatingProfileForm userId={user.id} interests={interests ?? []} existingProfile={existingProfile} existingPhotoUrls={existingPhotoUrls} existingPhotoPaths={existingPhotoPaths} existingInterestIds={existingInterestIds} existingPreferences={existingPreferences} identity={{ displayName: identity.display_name ?? "", dateOfBirth: identity.date_of_birth ?? "", gender: identity.gender ?? "", department: identity.department ?? "", academicYear: identity.academic_year ?? "", areaName: area?.name ?? "" }} />
   </div>;
 }
