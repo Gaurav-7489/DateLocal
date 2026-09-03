@@ -51,25 +51,20 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = typeof claimsData?.claims?.sub === "string" ? claimsData.claims.sub : null;
 
-  if (!user && (isAppRoute || isAdminRoute || isFaceVerifyRoute)) {
+  if (!userId && (isAppRoute || isAdminRoute || isFaceVerifyRoute)) {
     return NextResponse.redirect(new URL(routes.login, request.url));
   }
 
-  if (!user) return supabaseResponse;
+  if (!userId) return supabaseResponse;
 
-  // Extrovert owns identity, verification, locality and trust. This is the
-  // only cross-app database check needed for normal DateLocal app requests.
-  // Profile completion is checked by the app layout, avoiding a second DB
-  // round-trip on every navigation.
   if (isAppRoute || isAdminRoute || isFaceVerifyRoute) {
     const { data: extrovertProfile } = await supabase
       .from("extrovert_profiles")
       .select("profile_completed, trust_state")
-      .eq("id", user.id)
+      .eq("id", userId)
       .maybeSingle();
 
     const extrovertAuthorized = Boolean(
@@ -84,17 +79,15 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Role checks are only needed for admin routes. Do not fetch the DateLocal
-  // profile for every authenticated app navigation.
   if (isAdminRoute) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
-      .eq("id", user.id)
+      .eq("id", userId)
       .maybeSingle();
 
     const hasAdminAccess =
-      isSuperAdminUser(user.id) || Boolean(profile?.role && ADMIN_ROLES.includes(profile.role));
+      isSuperAdminUser(userId) || Boolean(profile?.role && ADMIN_ROLES.includes(profile.role));
     if (!hasAdminAccess) return NextResponse.redirect(new URL(routes.app, request.url));
   }
 
