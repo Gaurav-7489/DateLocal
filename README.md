@@ -1,74 +1,80 @@
-# DateBu
+# Extrovert
 
-> A private university-exclusive social and dating platform.
+> Connect your vibe, friends and more.
 
-## Technology Stack
+This repository contains the **Extrovert Date** experience: the optional dating layer of the Extrovert product. Extrovert is one identity and one product with two connected experiences: **Extrovert Social** and **Extrovert Date**.
+
+## Product model
+
+### Extrovert Social
+- One verified identity and authentication
+- People and local discovery
+- Social connections and social chats
+- Privacy-safe area/location context
+- Verification, blocking, reporting and safety
+
+### Extrovert Date
+- Optional dating profile
+- Dating discovery and contextual profile cards
+- Dating preferences, likes, passes and matches
+- Dating chat and notifications
+- Super Likes and reward-token foundation
+- **Beyond** premium experience
+
+A person is not included in dating discovery until they create and complete their Extrovert Date profile.
+
+## Shared identity
+
+Extrovert is the source of truth for identity. Name, date of birth, gender, identity type, education/work context, verification and local area are supplied by Extrovert and are read-only in Extrovert Date.
+
+The identity flow supports everyone while remaining student-first:
+- Students get college/university, course/department, academic year and field-of-study context.
+- Professionals get job/role and organisation context.
+- Other users can describe their current role or situation.
+
+Dating-specific information such as photos, bio, interests, relationship goal, dating preferences and prompts belongs to Extrovert Date.
+
+## Brand language
+
+- Product: **Extrovert**
+- Tagline: **Connect your vibe, friends and more**
+- Social experience: **Extrovert Social**
+- Dating experience: **Extrovert Date** / **Extrovert (your location) Date**
+- Premium: **Beyond**
+
+## Technology
 
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 15 (App Router) |
 | Language | TypeScript (strict mode) |
-| Styling | Tailwind CSS v4 |
+| Styling | Tailwind CSS |
 | Backend | Supabase (PostgreSQL, Auth, Storage, Realtime) |
-| Runtime | Node.js 22 LTS |
 | Deployment | Vercel |
 
-## Local Development
-
-### Prerequisites
-
-- Node.js 22 LTS (`nvm use 22`)
-- npm 10+
-
-### Setup
+## Local development
 
 ```bash
 nvm use 22
 npm install
-cp .env.example .env.local
 npm run dev
 ```
 
-### Available Scripts
+Available scripts: `npm run dev`, `npm run build`, `npm run start`, `npm run lint`, `npm run type-check`.
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Start dev server (Turbopack) |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
-| `npm run type-check` | Run TypeScript type checking |
+## Reliability
 
-## Environment Variables
-
-See [`.env.example`](.env.example) for all required variables.
-
-**Security rules:**
-- Variables prefixed `NEXT_PUBLIC_` are exposed to the browser
-- `SUPABASE_SERVICE_ROLE_KEY` is server-only — never expose it to the client
-- Never commit `.env.local` or real secrets
-
-## Architecture
-
-See [`docs/architecture.md`](docs/architecture.md) for the application architecture and security boundaries.
-
-## Current Product
-
-DateBu is a university-exclusive social/dating platform with:
-- Free discovery, matching, chat, safety, and profile features
-- 7 starter likes, then 2 likes/day for free accounts
-- DateBu Extrovert with 10 likes/day plus visibility and control features
-- One-time Shop purchases for extra likes and SuperChat
-- Profile views and incoming likes with Extrovert identity unlocks
-- PWA installation, haptics, and push notifications
-- Personal activity insights for Extrovert users
+- Production never falls back to localhost URLs.
+- Unhandled route errors use a branded recovery screen rather than a blank page.
+- Server-side failures stay in server logs while users receive a clear recovery message.
+- Authentication and identity handoff use server-side Supabase sessions and one-time bridge codes.
+- Exact physical coordinates are never exposed to other users.
 
 ## Security
 
-- `server-only` guards privileged admin Supabase access
-- RLS protects user-owned data
-- Service role keys remain server-only
-- Profile discovery/viewing uses controlled RPCs
-- Payment fulfillment is server-side and signature verified
-
-<!-- Vercel production rebuild -->
+- RLS protects user-owned data.
+- Service-role access remains server-only.
+- Identity authority is enforced in Supabase, not just in the UI.
+- Dating discovery requires a completed dating profile.
+- Premium and interaction limits are decided server-side.
+- Super Like rewards are separate from chat features.
