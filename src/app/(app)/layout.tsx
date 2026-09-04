@@ -3,7 +3,6 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { AppNavbar } from "@/components/layout/app-navbar";
 import { PushNotifications } from "@/components/notifications/push-notifications";
-import { PersonalDashboardShortcut } from "@/components/shared/personal-dashboard-shortcut";
 import { MessageKeyBootstrap } from "@/components/security/message-key-bootstrap";
 import { isSuperAdminUser } from "@/types/roles";
 
@@ -41,7 +40,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-[100dvh] flex-col overflow-visible bg-white overscroll-none select-none">
       <PushNotifications />
-      <PersonalDashboardShortcut />
       <MessageKeyBootstrap userId={userId} />
       <AppNavbar userEmail={userEmail} isSuperAdmin={isSuperAdmin} />
       <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
