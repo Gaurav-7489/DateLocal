@@ -14,19 +14,19 @@ export async function requestSocialConnection(targetId: string) {
 
   const { data: existing } = await supabase
     .from("extrovert_connections")
-    .select("id,status")
+    .select("id,status,requester_id,target_id")
     .or(`and(requester_id.eq.${user.id},target_id.eq.${targetId}),and(requester_id.eq.${targetId},target_id.eq.${user.id})`)
     .maybeSingle();
 
   if (existing?.status === "accepted") return { error: "Already connected." };
-  if (existing?.status === "pending") return { error: "Request already sent." };
-  if (existing) {
-    const { error } = await supabase.from("extrovert_connections").update({ requester_id: user.id, target_id: targetId, status: "pending" }).eq("id", existing.id);
-    if (error) return { error: "Could not send connection request." };
-  } else {
-    const { error } = await supabase.from("extrovert_connections").insert({ requester_id: user.id, target_id: targetId, status: "pending" });
-    if (error) return { error: "Could not send connection request." };
-  }
+  if (existing?.status === "pending") return { error: existing.requester_id === user.id ? "Request already sent." : "This person has already requested you. Open your requests to accept it." };
+
+  const payload = { requester_id: user.id, target_id: targetId, status: "pending" };
+  const result = existing
+    ? await supabase.from("extrovert_connections").update(payload).eq("id", existing.id)
+    : await supabase.from("extrovert_connections").insert(payload);
+  if (result.error) return { error: "Could not send connection request." };
+
   revalidatePath(routes.social);
   return { error: null, success: true };
 }
@@ -36,9 +36,23 @@ export async function acceptSocialConnection(connectionId: string) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Please log in first." };
+
+  const { data: connection } = await supabase
+    .from("extrovert_connections")
+    .select("id,requester_id,target_id,status")
+    .eq("id", connectionId)
+    .eq("target_id", user.id)
+    .eq("status", "pending")
+    .maybeSingle();
+  if (!connection) return { error: "Connection request not found." };
+
   const { error } = await supabase.from("extrovert_connections").update({ status: "accepted" }).eq("id", connectionId).eq("target_id", user.id).eq("status", "pending");
   if (error) return { error: "Could not accept connection." };
+
+  const { data: conversationId, error: conversationError } = await supabase.rpc("get_or_create_extrovert_conversation", { p_connection_id: connectionId });
+  if (conversationError || !conversationId) return { error: "Connection accepted, but chat could not be opened yet." };
+
   revalidatePath(routes.social);
   revalidatePath(routes.messages);
-  return { error: null, success: true };
+  return { error: null, success: true, conversationId };
 }
