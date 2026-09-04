@@ -1,36 +1,36 @@
 # Extrovert product boundary
 
-Extrovert is the single product identity and master brand: **Connect your vibe, friends and more**.
+Extrovert is one standalone product: a dating-first people discovery platform with an integrated social experience.
 
 ## Experiences
 
-- **Extrovert Social** — discover local people and areas, send/accept social connections, and chat with accepted connections.
-- **Extrovert Date** — optional dating experience for the user's selected local area. It owns dating profile content, discovery, preferences, likes, Super Likes, matches, dating chat, Beyond and dating rewards.
+- **Dating** — discover compatible local people, like/pass, match, chat, use dating preferences, Super Likes, Beyond and dating safety tools.
+- **Social** — maintain a social profile, discover people, post/content, connect and interact socially. Social-only users can use this experience without dating verification.
 
-## One identity
+These are experiences inside the same Extrovert app and account. There is no second Extrovert social app and no DateLocal/Extrovert handoff.
 
-Extrovert owns the shared identity for everyone, not only students: name, date of birth, gender, local area, verification/trust and the person's current student/work/other context.
+## Authentication
 
-### Student context
+Google Sign-In is the only authentication method. Extrovert does not require a phone number, password, or separate dating account.
 
-College/university, course/department, academic year and optional field of study are collected because students are a major audience.
+## Verification
 
-### Professional context
+Identity and area verification are optional. Skipping verification never blocks the core app. Identity verification may establish that a person is real and, where supported by the verification provider, validate claimed gender and age. Area verification confirms the selected supported locality.
 
-Current job/role is collected; company/organisation is optional.
+Public profiles show only verification results: **Identity Verified** and **Area Verified**. Raw identity documents and selfies are private and are never shown to other users.
 
-### Other context
+Supported areas for the current launch are **Waknaghat, Solan and Shimla**. Exact coordinates are never exposed to other users. Changing the selected area requires area verification again.
 
-A short current-role description is collected.
+Verified profiles receive higher discovery priority as a trust signal; unverified profiles retain full access.
 
-## Dating eligibility
+## Profile modes
 
-A person can use Extrovert Social without dating. A person only enters dating discovery after creating a completed dating profile. Accessing the Date experience from a URL still goes through Extrovert identity creation/authentication first.
+A user can choose **Dating**, **Social**, or **Both**. Social-only users are exempt from dating verification requirements.
 
-## Privacy
+## Privacy and safety
 
-Exact coordinates are never shown to other users. Discovery uses approximate locality.
+Exact location is never public. Verification artifacts remain private. Users retain block, report and unmatch controls.
 
-## Premium
+## Performance
 
-The premium layer is named **Beyond**. Women receive Beyond at no charge and unlimited normal Likes. Super Like is available to everyone and is intentionally separate from SuperChat. Receiving a Super Like credits a reward token; cash-out is a separate reward flow.
+The app is mobile-first and optimized for a high-refresh-rate feel: minimal client JavaScript, lightweight loading states, optimized images, indexed discovery queries, efficient RLS policies, and explicit user-facing error states instead of indefinite spinners.
