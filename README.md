@@ -17,13 +17,13 @@ Extrovert is one app, one account and one identity with social and optional dati
 - Verified identity/area profiles receive higher discovery priority.
 - Users can use Social only, Dating only, or Both; social-only users are not forced through dating setup.
 
+## Social
+
+The Social home is the default in-app landing experience. It uses the selected area for local discovery, shows trust signals without exposing private verification data, and keeps connection/chat actions inside the same Extrovert account.
+
 ## Dating
 
 Discovery, preferences, likes, passes, matches, match celebration, chat, unmatch, block, report, Super Likes and Beyond.
-
-## Social
-
-People discovery, social profiles, posts/content, connections and social interaction share the same Extrovert identity and chat infrastructure.
 
 ## Trust architecture
 
