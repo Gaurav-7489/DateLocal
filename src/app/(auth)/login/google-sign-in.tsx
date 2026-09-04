@@ -12,7 +12,8 @@ export function GoogleSignIn() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const redirectTo = `${window.location.origin}/callback`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+    const redirectTo = `${appUrl || window.location.origin}/callback`;
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo, queryParams: { access_type: "offline", prompt: "select_account" } },
