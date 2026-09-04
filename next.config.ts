@@ -14,8 +14,9 @@ const nextConfig: NextConfig = {
     ] }];
   },
   images: {
-    formats: ["image/avif", "image/webp"],
+    formats: ["image/webp", "image/avif"],
     minimumCacheTTL: 60 * 60 * 24 * 30,
+    maximumResponseBody: 5_000_000,
     remotePatterns: [
       { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/**" },
       { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/render/image/**" },
