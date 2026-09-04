@@ -6,8 +6,10 @@ import { universityConfig } from "@/config/university";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap", preload: true });
 export const viewport: Viewport = { themeColor: "#10b981", width: "device-width", initialScale: 1, viewportFit: "cover" };
 export const metadata: Metadata = {
+  metadataBase: new URL(universityConfig.appUrl),
   title: `${universityConfig.appName} — Extrovert`,
   description: `Connect your vibe, friends and more. Social discovery and optional dating in one Extrovert identity.`,
+  alternates: { canonical: "/" },
   manifest: "/manifest.json",
   icons: { icon: [{ url: "/extrovert-date.svg", sizes: "any", type: "image/svg+xml" }, { url: "/icon-192.png", sizes: "192x192", type: "image/png" }], apple: "/icon-192.png" },
   appleWebApp: { capable: true, title: "Extrovert", statusBarStyle: "default" },
