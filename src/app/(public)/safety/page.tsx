@@ -4,84 +4,10 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { universityConfig } from "@/config/university";
 import { routes } from "@/config/routes";
-import { ShieldCheck, Flag, UserX, AlertTriangle, ArrowLeft, HeartHandshake } from "lucide-react";
+import { ShieldCheck, Flag, UserX, AlertTriangle, ArrowLeft, HeartHandshake, MapPin, EyeOff, MessageCircle } from "lucide-react";
 
-export const metadata: Metadata = { 
-  title: "Safety & Guidelines | DateBu" 
-};
-
+export const metadata: Metadata = { title: "Safety & Guidelines | Extrovert Date" };
 export const dynamic = "force-static";
 
-export default function SafetyPage() {
-  return (
-    <div className="flex min-h-screen flex-col bg-background font-sans">
-      <Navbar />
-      
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:py-12 space-y-8">
-        {/* Header */}
-        <div className="space-y-2">
-          <Link
-            href={routes.settings}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full border border-emerald-200 transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to App
-          </Link>
-          <div className="flex items-center gap-2 pt-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-              Campus Safety & Guidelines
-            </h1>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Maintaining a respectful, secure dating community at {universityConfig.name}.
-          </p>
-        </div>
-
-        {/* Safety Pillars Bento */}
-        <div className="space-y-4 text-xs leading-relaxed text-muted-foreground">
-          
-          <div className="rounded-3xl border border-border bg-card p-5 space-y-2 shadow-xs">
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <HeartHandshake className="w-4 h-4 text-emerald-600" /> 1. Campus Code of Conduct
-            </h2>
-            <p>
-              {universityConfig.appName} is designed for authentic student interactions. Harassment, hate speech, stalking, non-consensual sharing of private conversations, or commercial spam will lead to immediate permanent banishment and campus email blacklisting.
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-border bg-card p-5 space-y-2 shadow-xs">
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <UserX className="w-4 h-4 text-rose-600" /> 2. One-Tap Blocking
-            </h2>
-            <p>
-              You can block any user at any moment from the Discover card top menu or inside 1-on-1 chat. Blocking immediately unmatches both profiles, removes the conversation thread, and guarantees you will never see each other in the deck again.
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-border bg-card p-5 space-y-2 shadow-xs">
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Flag className="w-4 h-4 text-amber-600" /> 3. 24/7 Moderation Queue
-            </h2>
-            <p>
-              Reports submitted in-app are routed directly to the Executive Moderation Desk. Moderation audits include verification check revivals, temporary strike assignments, and permanent account suspensions.
-            </p>
-          </div>
-
-          <div className="rounded-3xl border border-border bg-card p-5 space-y-2 shadow-xs">
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-orange-500" /> 4. Meeting in Person
-            </h2>
-            <p>
-              When meeting a campus match for the first time, always choose well-lit public campus spots (such as the Central Canteen, Nescafe, or Library lawns) and notify a friend of your plans.
-            </p>
-          </div>
-
-        </div>
-      </main>
-
-      <Footer />
-    </div>
-  );
-}
+export default function SafetyPage(){return <div className="flex min-h-screen flex-col bg-background font-sans"><Navbar/><main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-8 sm:py-12"><div className="space-y-2"><Link href={routes.settings} className="inline-flex items-center gap-1.5 rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5 text-xs font-bold text-pink-700"><ArrowLeft className="h-3.5 w-3.5"/>Back to app</Link><div className="flex items-center gap-2 pt-2"><div className="flex h-9 w-9 items-center justify-center rounded-xl border border-pink-200 bg-pink-50 text-pink-600"><ShieldCheck className="h-4 w-4"/></div><h1 className="text-2xl font-black tracking-tight sm:text-3xl">Extrovert Date Safety</h1></div><p className="text-xs text-muted-foreground">A trust-first dating space for {universityConfig.name}. Safety controls are available before, during and after every connection.</p></div>
+<div className="grid gap-4 text-xs leading-relaxed text-muted-foreground"><section className="rounded-3xl border border-border bg-card p-5 shadow-xs"><h2 className="flex items-center gap-2 text-sm font-bold text-foreground"><HeartHandshake className="h-4 w-4 text-pink-500"/>1. Respect, consent and authenticity</h2><p className="mt-2">Be honest about who you are and respectful in every conversation. Harassment, threats, hate, stalking, sexual coercion, impersonation, scams, spam and non-consensual sharing of private content are not allowed.</p></section><section className="rounded-3xl border border-border bg-card p-5 shadow-xs"><h2 className="flex items-center gap-2 text-sm font-bold text-foreground"><ShieldCheck className="h-4 w-4 text-emerald-600"/>2. Trust signals are visible</h2><p className="mt-2">Extrovert Date shows shared identity signals such as gender, local area, identity verification and area verification. A green badge means that check is currently verified; a red badge means it is not verified. Verification is a trust signal, not a guarantee of someone&apos;s behaviour.</p></section><section className="rounded-3xl border border-border bg-card p-5 shadow-xs"><h2 className="flex items-center gap-2 text-sm font-bold text-foreground"><MapPin className="h-4 w-4 text-emerald-600"/>3. Location privacy</h2><p className="mt-2">Discovery uses an approximate local area. Exact GPS coordinates are not displayed to other users. Never post your home address, live location or private travel details in a public profile.</p></section><section className="rounded-3xl border border-border bg-card p-5 shadow-xs"><h2 className="flex items-center gap-2 text-sm font-bold text-foreground"><Flag className="h-4 w-4 text-amber-600"/>4. Report and block immediately</h2><p className="mt-2">Use the safety menu on a profile to report or block. Reporting removes the profile from your feed while the report is reviewed. Blocking prevents further discovery between the accounts.</p></section><section className="rounded-3xl border border-border bg-card p-5 shadow-xs"><h2 className="flex items-center gap-2 text-sm font-bold text-foreground"><MessageCircle className="h-4 w-4 text-violet-600"/>5. Dating chat safety</h2><p className="mt-2">Keep early conversations inside Extrovert Date until you are comfortable. Never send passwords, verification codes, financial information or money to another user.</p></section><section className="rounded-3xl border border-border bg-card p-5 shadow-xs"><h2 className="flex items-center gap-2 text-sm font-bold text-foreground"><AlertTriangle className="h-4 w-4 text-orange-500"/>6. Meeting in person</h2><p className="mt-2">For a first meeting, choose a busy public place, tell a trusted person where you are going, arrange your own transport and leave if anything feels wrong. Do not treat a verified badge as a substitute for normal safety judgement.</p></section><section className="rounded-3xl border border-border bg-card p-5 shadow-xs"><h2 className="flex items-center gap-2 text-sm font-bold text-foreground"><EyeOff className="h-4 w-4 text-emerald-600"/>7. Ghost Mode is your choice</h2><p className="mt-2">Ghost Mode is off by default. Premium access never silently enables it. You decide when to turn it on or off from Settings.</p></section><section className="rounded-3xl border border-rose-200 bg-rose-50 p-5"><h2 className="text-sm font-bold text-rose-900">If you are in immediate danger</h2><p className="mt-2 text-xs leading-5 text-rose-800">Leave the situation and contact local emergency services or a trusted person. Extrovert&apos;s report system is not an emergency service.</p></section></div></main><Footer/></div>}
