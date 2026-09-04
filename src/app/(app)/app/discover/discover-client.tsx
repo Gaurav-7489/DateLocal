@@ -11,7 +11,6 @@ import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
 import { calculateAge } from "@/lib/utils";
 import SuperChatComposer from "@/components/payments/superchat-composer";
-import { SHOP_PRODUCTS } from "@/lib/shop";
 
 type Interest = { id: string; name: string };
 type ProfileInterest = { interests: Interest | Interest[] | null };
@@ -240,7 +239,7 @@ export default function DiscoverClient({ profiles, isPro = false }: Props) {
         )}
       </AnimatePresence>
 
-      {superChat && <SuperChatComposer profileId={superChat.id} profileName={superChat.display_name ?? "Member"} price={SHOP_PRODUCTS.superchat.amountPaise / 100} onClose={() => setSuperChat(null)} />}
+      {superChat && <SuperChatComposer targetUserId={superChat.id} targetName={superChat.display_name ?? "Member"} onClose={() => setSuperChat(null)} />}
     </main>
   );
 }
@@ -253,12 +252,19 @@ function DiscoverCard({ profile, isTop, onSwipe, onSafety, onSuperChat }: { prof
   return (
     <motion.article drag={isTop ? "x" : false} dragConstraints={{ left: 0, right: 0 }} dragElastic={0.85} onDragEnd={(_, info: PanInfo) => { if (Math.abs(info.offset.x) > 110) onSwipe(info.offset.x > 0 ? "right" : "left"); }} className={`absolute inset-0 overflow-hidden rounded-[2rem] border border-zinc-200 bg-zinc-100 shadow-xl ${isTop ? "z-20 cursor-grab active:cursor-grabbing" : "z-10 scale-[.97] opacity-70"}`}>
       {photo ? <Image src={photo} alt="" fill sizes="(max-width: 420px) 100vw, 390px" className="object-cover" priority={isTop} /> : <div className="absolute inset-0 grid place-items-center text-zinc-400"><UserRound className="h-16 w-16" /></div>}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent p-5 pt-28 text-white">
-        <div className="flex items-end justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-2xl font-black">{profile.display_name || "Member"}{age ? `, ${age}` : ""}</h2><p className="mt-1 text-xs font-semibold opacity-90">{genderLabel(profile.gender)}{profile.department ? ` · ${profile.department}` : ""}{profile.area_name ? ` · ${profile.area_name}` : ""}</p></div><button type="button" onClick={onSafety} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 backdrop-blur" aria-label="Safety controls"><MoreVertical className="h-5 w-5" /></button></div>
-        <div className="mt-2 flex flex-wrap gap-1">{profile.verification_status === "verified" && <TrustBadge label="Identity verified" />}{profile.area_verification_status === "verified" && <TrustBadge label="Area verified" />}</div>
-        {profile.bio && <p className="mt-3 line-clamp-2 text-xs leading-5 opacity-95">{profile.bio}</p>}
-        {interests.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{interests.slice(0, 5).map((item) => <span key={item.id} className="rounded-full bg-white/15 px-2 py-1 text-[9px] font-bold backdrop-blur">{item.name}</span>)}</div>}
-        <button type="button" onClick={onSuperChat} className="mt-3 rounded-full bg-white/15 px-3 py-1.5 text-[9px] font-black backdrop-blur">Send SuperChat</button>
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-5 pt-28 text-white">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-2xl font-black">{profile.display_name ?? "Member"}{age ? `, ${age}` : ""}</h2>
+          {profile.verification_status === "verified" && <TrustBadge label="Identity verified" />}
+          {profile.area_verification_status === "verified" && profile.area_name && <TrustBadge label={`${profile.area_name} verified`} />}
+        </div>
+        <p className="mt-1 text-xs font-semibold text-white/85">{genderLabel(profile.gender)}{profile.department ? ` · ${profile.department}` : ""}{profile.academic_year ? ` · ${profile.academic_year}` : ""}</p>
+        {profile.bio && <p className="mt-2 line-clamp-2 text-sm leading-5 text-white/90">{profile.bio}</p>}
+        {interests.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{interests.slice(0, 5).map((interest) => <span key={interest.id} className="rounded-full bg-white/15 px-2.5 py-1 text-[9px] font-bold backdrop-blur">{interest.name}</span>)}</div>}
+        <div className="mt-4 flex items-center justify-between">
+          <button onClick={onSafety} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 backdrop-blur" aria-label="Safety"><MoreVertical className="h-4 w-4" /></button>
+          <button onClick={onSuperChat} className="rounded-2xl bg-white px-4 py-2 text-[10px] font-black text-zinc-900 shadow-lg">SuperChat</button>
+        </div>
       </div>
     </motion.article>
   );
