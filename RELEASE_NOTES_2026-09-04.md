@@ -8,9 +8,10 @@
 - Updated safety guidance and Ghost Mode wording
 - Added browser-side ECDH P-256 + AES-256-GCM encryption for new dating messages
 - New encrypted messages are stored as ciphertext; push notifications never include message previews
+- New secure-message keys are bootstrapped once per device and reused to reduce app-load writes
 - Added message-key bootstrap and secure chat status banner
 - Added protected admin console with report IDs, moderation actions, trust-state controls and audit logs
 - Added report moderation fields and targeted indexes
 - Parallelized authenticated app-shell queries and preserved package import optimization
-- Fixed chat hydration/server-to-client formatter error
+- Fixed chat hydration/server-to-client formatter error and removed plaintext conversation previews
 - Improved loading and scrolling feedback
