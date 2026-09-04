@@ -4,6 +4,38 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { isUuid } from "@/lib/validation";
 import { sendPushToUser } from "@/lib/push/server";
-export type SendMessageResult={error:string|null;message?:{id:string;sender_id:string;content:string;created_at:string}};
-export async function sendMessage(matchId:string,content:string):Promise<SendMessageResult>{if(!isUuid(matchId))return{error:"Invalid conversation."};const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return{error:"You must be logged in to send a message."};const text=content.trim();if(!text)return{error:"Message cannot be empty."};if(text.length>2000)return{error:"Message must be 2000 characters or less."};const {data:match,error:matchError}=await supabase.from("matches").select("id,user_a,user_b").eq("id",matchId).or(`user_a.eq.${user.id},user_b.eq.${user.id}`).maybeSingle();if(matchError||!match)return{error:"This conversation is no longer available."};const otherUserId=match.user_a===user.id?match.user_b:match.user_a;const {data:blockRecord}=await supabase.from("blocks").select("id").or(`and(blocker_id.eq.${user.id},blocked_id.eq.${otherUserId}),and(blocker_id.eq.${otherUserId},blocked_id.eq.${user.id})`).maybeSingle();if(blockRecord)return{error:"You cannot message this user."};const {data:message,error}=await supabase.from("messages").insert({match_id:matchId,sender_id:user.id,content:text}).select("id,sender_id,content,created_at").single();if(error)return{error:"Couldn't send the message. Please try again."};revalidatePath(`${routes.messages}/${matchId}`);revalidatePath(routes.messages);await sendPushToUser(otherUserId,{title:"New message",body:text.length>120?`${text.slice(0,117)}…`:text,url:`${routes.messages}/${matchId}`,tag:`message-${matchId}`});return{error:null,message};}
-export async function respondToSuperChat(superChatId:string,accept:boolean):Promise<{error:string|null;matchId?:string}>{if(!isUuid(superChatId))return{error:"Invalid message request."};const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return{error:"You must be logged in."};const {data:request,error:requestError}=await supabase.from("superchats").select("id,sender_id,recipient_id,status,content").eq("id",superChatId).eq("recipient_id",user.id).maybeSingle();if(requestError||!request)return{error:"Message request is no longer available."};const {data:result,error}=await supabase.rpc("respond_to_superchat",{p_superchat_id:superChatId,p_accept:accept});if(error){const message=error.message||"Unable to respond to this request.";if(message.includes("REQUEST_ALREADY_HANDLED"))return{error:"This message request has already been handled."};if(message.includes("USER_UNAVAILABLE"))return{error:"This message request is no longer available."};return{error:"Unable to respond to this request. Please try again."};}const matchId=Array.isArray(result)?result[0]?.match_id:result?.match_id;revalidatePath(routes.messages);if(matchId){revalidatePath(`${routes.messages}/${matchId}`);await sendPushToUser(request.sender_id,{title:"SuperChat accepted",body:"Your message request was accepted. You can chat now.",url:`${routes.messages}/${matchId}`,tag:`superchat-${superChatId}`});}return{error:null,matchId};}
+
+export type SendMessageResult={error:string|null;message?:{id:string;sender_id:string;content:string|null;ciphertext:string|null;encryption_version:number;created_at:string}};
+
+export async function sendMessage(matchId:string,ciphertext:string):Promise<SendMessageResult>{
+  if(!isUuid(matchId))return{error:"Invalid conversation."};
+  const supabase=await createServerSupabaseClient();
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user)return{error:"You must be logged in to send a message."};
+  const payload=ciphertext.trim();
+  if(!payload)return{error:"Message cannot be empty."};
+  if(payload.length>12000)return{error:"Message is too long."};
+  if(!payload.startsWith("v1."))return{error:"Secure message encryption is required."};
+  const {data:match,error:matchError}=await supabase.from("matches").select("id,user_a,user_b").eq("id",matchId).or(`user_a.eq.${user.id},user_b.eq.${user.id}`).maybeSingle();
+  if(matchError||!match)return{error:"This conversation is no longer available."};
+  const otherUserId=match.user_a===user.id?match.user_b:match.user_a;
+  const {data:blockRecord}=await supabase.from("blocks").select("id").or(`and(blocker_id.eq.${user.id},blocked_id.eq.${otherUserId}),and(blocker_id.eq.${otherUserId},blocked_id.eq.${user.id})`).maybeSingle();
+  if(blockRecord)return{error:"You cannot message this user."};
+  const {data:message,error}=await supabase.from("messages").insert({match_id:matchId,sender_id:user.id,content:null,ciphertext:payload,encryption_version:1}).select("id,sender_id,content,ciphertext,encryption_version,created_at").single();
+  if(error)return{error:"Couldn't send the encrypted message. Please try again."};
+  revalidatePath(`${routes.messages}/${matchId}`);revalidatePath(routes.messages);
+  await sendPushToUser(otherUserId,{title:"New encrypted message",body:"You have a new secure message.",url:`${routes.messages}/${matchId}`,tag:`message-${matchId}`});
+  return{error:null,message};
+}
+
+export async function respondToSuperChat(superChatId:string,accept:boolean):Promise<{error:string|null;matchId?:string}>{
+  if(!isUuid(superChatId))return{error:"Invalid message request."};
+  const supabase=await createServerSupabaseClient();const {data:{user}}=await supabase.auth.getUser();if(!user)return{error:"You must be logged in."};
+  const {data:request,error:requestError}=await supabase.from("superchats").select("id,sender_id,recipient_id,status,content").eq("id",superChatId).eq("recipient_id",user.id).maybeSingle();
+  if(requestError||!request)return{error:"Message request is no longer available."};
+  const {data:result,error}=await supabase.rpc("respond_to_superchat",{p_superchat_id:superChatId,p_accept:accept});
+  if(error){const message=error.message||"Unable to respond to this request.";if(message.includes("REQUEST_ALREADY_HANDLED"))return{error:"This message request has already been handled."};if(message.includes("USER_UNAVAILABLE"))return{error:"This message request is no longer available."};return{error:"Unable to respond to this request. Please try again."};}
+  const matchId=Array.isArray(result)?result[0]?.match_id:result?.match_id;revalidatePath(routes.messages);
+  if(matchId){revalidatePath(`${routes.messages}/${matchId}`);await sendPushToUser(request.sender_id,{title:"SuperChat accepted",body:"Your message request was accepted. You can chat now.",url:`${routes.messages}/${matchId}`,tag:`superchat-${superChatId}`});}
+  return{error:null,matchId};
+}
