@@ -4,5 +4,5 @@ import { routes } from "@/config/routes";
 export const dynamic = "force-dynamic";
 
 export default function AppHome() {
-  redirect(routes.discover);
+  redirect(routes.social);
 }
