@@ -5,7 +5,7 @@ export const universityConfig = {
   emailDomain: process.env.NEXT_PUBLIC_UNIVERSITY_EMAIL_DOMAIN ?? "university.edu",
   appName: "Extrovert",
   tagline: "Connect your vibe, friends and more",
-  appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "",
+  appUrl: "https://extrovert-nu.vercel.app",
 } as const;
 
 export function isUniversityEmail(email?: string | null): boolean {
