@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { routes } from "@/config/routes";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import { isUuid } from "@/lib/validation";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import ChatClient from "./chat-client";
 import { ArrowLeft, ShieldCheck, LockKeyhole } from "lucide-react";
 
