@@ -1,0 +1,56 @@
+name: Build Extrovert Date APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: 'Production URL for Extrovert Date (HTTPS)'
+        required: true
+        type: string
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      APP_URL: ${{ inputs.app_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install dependencies
+        run: npm ci
+      - name: Prepare Capacitor
+        run: |
+          npm install --no-save @capacitor/core @capacitor/cli @capacitor/android
+          cat > capacitor.config.ts <<'EOF'
+          import type { CapacitorConfig } from '@capacitor/cli';
+          const config: CapacitorConfig = {
+            appId: 'com.extrovert.date',
+            appName: 'Extrovert Date',
+            webDir: 'public',
+            server: { url: process.env.APP_URL, cleartext: false }
+          };
+          export default config;
+          EOF
+          npx cap add android
+          npx cap sync android
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: extrovert-date-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
