@@ -8,7 +8,7 @@ import { signOut } from "@/app/(app)/actions";
 import { cn } from "@/lib/utils";
 import { routes } from "@/config/routes";
 import { universityConfig } from "@/config/university";
-import { Compass, Heart, MessageSquare, User, Settings, LogOut, Menu, X, Download, Crown, Shield, Loader2, Share, PlusSquare } from "lucide-react";
+import { Compass, Heart, MessageSquare, User, LogOut, Menu, X, Download, Crown, Shield, Loader2 } from "lucide-react";
 
 const primaryLinks = [
   { href: routes.social, label: "Home", icon: Compass },
