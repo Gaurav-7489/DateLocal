@@ -4,6 +4,7 @@ import { routes } from "@/config/routes";
 import { AppNavbar } from "@/components/layout/app-navbar";
 import { PushNotifications } from "@/components/notifications/push-notifications";
 import { PersonalDashboardShortcut } from "@/components/shared/personal-dashboard-shortcut";
+import { MessageKeyBootstrap } from "@/components/security/message-key-bootstrap";
 import { isSuperAdminUser } from "@/types/roles";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +16,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const userEmail = typeof claimsData?.claims?.email === "string" ? claimsData.claims.email : "Unknown";
   if (!userId) redirect(routes.login);
 
-  // Extrovert is the identity authority. Middleware has already checked this
-  // for the route; keep the server-side boundary here as defense in depth.
   const { data: extrovertProfile } = await supabase
     .from("extrovert_profiles")
     .select("profile_completed,trust_state")
@@ -27,9 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     const extrovert = (process.env.EXTROVERT_URL || "http://localhost:3000").replace(/\/$/, "");
     redirect(`${extrovert}/app/setup`);
   }
-  if (extrovertProfile.trust_state === "banned") {
-    redirect(routes.login);
-  }
+  if (extrovertProfile.trust_state === "banned") redirect(routes.login);
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
   const userRole = (profile?.role ?? "").toUpperCase();
@@ -38,9 +35,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isSuperAdmin = isSuperAdminUser(userId) || userRole === "SUPER_ADMIN" || userRole === "ADMIN" || (Boolean(ownerId) && userId === ownerId) || Boolean(userEmail !== "Unknown" && adminEmails.includes(userEmail.toLowerCase()));
 
   return (
-    <div className="flex h-[100dvh] flex-col overflow-visible bg-background overscroll-none select-none">
+    <div className="flex h-[100dvh] flex-col overflow-visible bg-white overscroll-none select-none">
       <PushNotifications />
       <PersonalDashboardShortcut />
+      <MessageKeyBootstrap userId={userId} />
       <AppNavbar userEmail={userEmail} isSuperAdmin={isSuperAdmin} />
       <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
     </div>
