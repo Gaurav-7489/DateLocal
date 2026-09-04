@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, LockKeyhole, MessageCircle } from "lucide-react";
+import { ArrowLeft, LockKeyhole, MessageCircle, ShieldCheck } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
+import { getProfilePhotoUrl } from "@/lib/profile-photo";
+import SocialChatClient from "./social-chat-client";
 
 export const metadata: Metadata = { title: "Social Chat | Extrovert" };
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ conversationId: string }> };
+type Message = { id: string; sender_id: string; ciphertext: string; created_at: string; read_at?: string | null };
 
-type Message = { id: string; sender_id: string; ciphertext: string; created_at: string };
+type Profile = { id: string; display_name: string | null; department: string | null; profile_photo_path: string | null; verification_status: string | null; area_verification_status: string | null };
 
 export default async function SocialChatPage({ params }: Props) {
   const { conversationId } = await params;
@@ -18,49 +22,35 @@ export default async function SocialChatPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(routes.login);
 
-  const { data: conversation } = await supabase
-    .from("extrovert_conversations")
-    .select("id,connection_id")
-    .eq("id", conversationId)
-    .maybeSingle();
+  const { data: conversation } = await supabase.from("extrovert_conversations").select("id,connection_id").eq("id", conversationId).maybeSingle();
   if (!conversation) notFound();
 
-  const { data: membership } = await supabase
-    .from("extrovert_conversation_members")
-    .select("conversation_id")
-    .eq("conversation_id", conversationId)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const { data: membership } = await supabase.from("extrovert_conversation_members").select("conversation_id").eq("conversation_id", conversationId).eq("user_id", user.id).maybeSingle();
   if (!membership) notFound();
 
-  const { data: messages } = await supabase
-    .from("extrovert_messages")
-    .select("id,sender_id,ciphertext,created_at")
-    .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true })
-    .limit(100);
+  const { data: connection } = await supabase.from("extrovert_connections").select("id,requester_id,target_id,status").eq("id", conversation.connection_id).eq("status", "accepted").maybeSingle();
+  if (!connection || (connection.requester_id !== user.id && connection.target_id !== user.id)) notFound();
+  const otherUserId = connection.requester_id === user.id ? connection.target_id : connection.requester_id;
 
-  return (
-    <main className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-2xl flex-col px-3 pb-24 font-sans">
-      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-zinc-200 bg-white/95 py-3 backdrop-blur-md">
-        <Link href={routes.messages} className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white">
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <div className="min-w-0">
-          <h1 className="flex items-center gap-1.5 text-sm font-black"><MessageCircle className="h-4 w-4 text-emerald-600" />Social chat</h1>
-          <p className="flex items-center gap-1 text-[10px] text-zinc-500"><LockKeyhole className="h-3 w-3" />Shared Extrovert chat space</p>
-        </div>
-      </header>
-      <section className="flex-1 space-y-2 py-4">
-        {(messages as Message[] | null ?? []).map(message => (
-          <div key={message.id} className={`flex ${message.sender_id === user.id ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[82%] rounded-2xl px-3 py-2 text-xs ${message.sender_id === user.id ? "bg-emerald-600 text-white" : "bg-zinc-100 text-zinc-900"}`}>
-              {message.ciphertext}
-            </div>
-          </div>
-        ))}
-        {(!messages || messages.length === 0) && <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-8 text-center text-xs text-zinc-500">No messages yet. Start the conversation.</div>}
-      </section>
-    </main>
-  );
+  const [{ data: profile }, { data: messages }] = await Promise.all([
+    supabase.from("extrovert_profiles").select("id,display_name,department,profile_photo_path,verification_status,area_verification_status").eq("id", otherUserId).maybeSingle(),
+    supabase.from("extrovert_messages").select("id,sender_id,ciphertext,created_at,read_at").eq("conversation_id", conversationId).order("created_at", { ascending: true }).limit(100),
+  ]);
+  if (!profile) notFound();
+
+  const photoUrl = getProfilePhotoUrl(profile.profile_photo_path, 160);
+  const typedProfile = profile as Profile;
+  const initialMessages = (messages ?? []) as Message[];
+
+  return <main className="mx-auto flex h-[calc(100dvh-3.5rem)] w-full max-w-2xl flex-col overflow-hidden px-2 pb-20 font-sans md:h-[calc(100vh-4rem)] md:px-4 md:pb-4">
+    <header className="z-20 flex shrink-0 items-center gap-3 border-b border-zinc-200 bg-white/95 px-1 py-2.5 backdrop-blur-md">
+      <Link href={routes.messages} aria-label="Back to messages" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white"><ArrowLeft className="h-4 w-4" /></Link>
+      <Link href={`${routes.profileView}/${otherUserId}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-emerald-400/60 bg-zinc-100">{photoUrl ? <Image src={photoUrl} alt={typedProfile.display_name ?? "Person"} fill priority sizes="36px" className="object-cover" /> : <div className="flex h-full w-full items-center justify-center bg-emerald-600 text-xs font-bold text-white">{typedProfile.display_name?.charAt(0) ?? "?"}</div>}</div>
+        <div className="min-w-0"><div className="flex items-center gap-1.5"><h1 className="truncate text-sm font-black text-zinc-950">{typedProfile.display_name ?? "Connection"}</h1>{typedProfile.verification_status === "verified" && <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" />}</div><p className="truncate text-[10px] text-zinc-500">{typedProfile.department ?? "Extrovert connection"}</p></div>
+      </Link>
+      <div className="hidden items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[9px] font-bold text-emerald-700 sm:flex"><LockKeyhole className="h-3 w-3" />Secure</div>
+    </header>
+    <SocialChatClient conversationId={conversationId} currentUserId={user.id} otherUserId={otherUserId} initialMessages={initialMessages} />
+  </main>;
 }
