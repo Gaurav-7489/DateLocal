@@ -1,0 +1,11 @@
+begin;
+create index if not exists admin_audit_logs_actor_idx on public.admin_audit_logs(actor_id);
+create index if not exists reports_reviewed_by_idx on public.reports(reviewed_by);
+create index if not exists extrovert_reports_reporter_idx on public.extrovert_reports(reporter_id);
+create index if not exists extrovert_reports_reported_idx on public.extrovert_reports(reported_id);
+create index if not exists extrovert_blocks_blocker_idx on public.extrovert_blocks(blocker_id);
+create index if not exists extrovert_blocks_blocked_idx on public.extrovert_blocks(blocked_id);
+create index if not exists extrovert_area_verifications_area_idx on public.extrovert_area_verifications(area_id);
+create index if not exists extrovert_datelocal_auth_bridges_user_idx on public.extrovert_datelocal_auth_bridges(user_id);
+drop index if exists public.extrovert_datelocal_auth_bridges_expires_idx;
+commit;
