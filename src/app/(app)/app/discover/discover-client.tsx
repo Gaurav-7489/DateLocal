@@ -82,7 +82,7 @@ export default function DiscoverClient({ profiles, isPro = false }: Props) {
       if (result.error) {
         setDeck((current) => [target, ...current]);
         notify(result.error);
-      } else if (kind === "like" && result.matched) {
+      } else if (kind === "like" && "matched" in result && result.matched) {
         setMatch(target);
       } else if (kind === "super") {
         notify(`Super Like sent to ${target.display_name ?? "this person"}.`);
@@ -249,39 +249,16 @@ function DiscoverCard({ profile, isTop, onSwipe, onSafety, onSuperChat }: { prof
   const age = profile.date_of_birth ? calculateAge(profile.date_of_birth) : null;
   const photo = profile.profile_photos?.find((item) => item.is_primary)?.url ?? profile.profile_photo_url;
   const interests = (profile.profile_interests ?? []).flatMap((item) => item.interests ? (Array.isArray(item.interests) ? item.interests : [item.interests]) : []);
-  const verified = profile.verification_status === "verified";
-  const areaVerified = profile.area_verification_status === "verified";
 
   return (
-    <motion.article
-      initial={false}
-      animate={isTop ? { scale: 1, y: 0 } : { scale: .965, y: 12 }}
-      transition={{ duration: .18 }}
-      drag={isTop ? "x" : false}
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={.9}
-      onDragEnd={(_, info: PanInfo) => { if (Math.abs(info.offset.x) > 110) onSwipe(info.offset.x > 0 ? "right" : "left"); }}
-      className="absolute inset-0 overflow-hidden rounded-[2rem] border border-white/20 bg-zinc-900 shadow-[0_22px_60px_rgba(0,0,0,.18)] select-none"
-      style={{ zIndex: isTop ? 20 : 10, willChange: isTop ? "transform" : "auto" }}
-    >
-      <div className="absolute inset-0">
-        {photo ? <Image src={photo} alt="" fill priority={isTop} decoding="async" className="object-cover" sizes="(max-width:640px) 100vw,390px" /> : <div className="flex h-full items-center justify-center text-5xl font-black text-white">{profile.display_name?.charAt(0) ?? "?"}</div>}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/5" />
-      </div>
-
-      <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3">
-        <div className="flex flex-wrap gap-1">{verified && <TrustBadge label="Identity verified" />}{areaVerified && <TrustBadge label={profile.area_name ? `Area · ${profile.area_name}` : "Area verified"} />}</div>
-        <button onClick={onSafety} className="flex h-9 w-9 items-center justify-center rounded-full bg-black/35 text-white" aria-label="Safety options"><MoreVertical className="h-5 w-5" /></button>
-      </div>
-
-      <div className="absolute inset-x-0 bottom-0 p-4 text-white">
-        <div className="flex items-end justify-between gap-2">
-          <div className="min-w-0"><h2 className="truncate text-2xl font-black tracking-tight">{profile.display_name ?? "Member"}{age !== null && <span className="ml-1 font-light">{age}</span>}</h2><p className="mt-1 text-[11px] font-semibold text-white/85">{profile.gender && genderLabel(profile.gender)}{profile.department ? ` · ${profile.department}` : ""}{profile.academic_year ? ` · ${profile.academic_year}` : ""}</p></div>
-          <button onClick={onSuperChat} className="shrink-0 rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[9px] font-black">SuperChat</button>
-        </div>
-        {profile.bio && <p className="mt-2 line-clamp-3 text-[11px] leading-5 text-white/90">{profile.bio}</p>}
-        {interests.length > 0 && <div className="mt-2 flex gap-1.5 overflow-hidden">{interests.slice(0, 4).map((interest) => <span key={interest.id} className="shrink-0 rounded-full bg-white/15 px-2 py-1 text-[9px] font-bold">{interest.name}</span>)}</div>}
-        <p className="mt-3 text-[9px] font-semibold text-white/70">{profile.area_name ?? "Local area"} · exact location private</p>
+    <motion.article drag={isTop ? "x" : false} dragConstraints={{ left: 0, right: 0 }} dragElastic={0.85} onDragEnd={(_, info: PanInfo) => { if (Math.abs(info.offset.x) > 110) onSwipe(info.offset.x > 0 ? "right" : "left"); }} className={`absolute inset-0 overflow-hidden rounded-[2rem] border border-zinc-200 bg-zinc-100 shadow-xl ${isTop ? "z-20 cursor-grab active:cursor-grabbing" : "z-10 scale-[.97] opacity-70"}`}>
+      {photo ? <Image src={photo} alt="" fill sizes="(max-width: 420px) 100vw, 390px" className="object-cover" priority={isTop} /> : <div className="absolute inset-0 grid place-items-center text-zinc-400"><UserRound className="h-16 w-16" /></div>}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent p-5 pt-28 text-white">
+        <div className="flex items-end justify-between gap-3"><div className="min-w-0"><h2 className="truncate text-2xl font-black">{profile.display_name || "Member"}{age ? `, ${age}` : ""}</h2><p className="mt-1 text-xs font-semibold opacity-90">{genderLabel(profile.gender)}{profile.department ? ` · ${profile.department}` : ""}{profile.area_name ? ` · ${profile.area_name}` : ""}</p></div><button type="button" onClick={onSafety} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/15 backdrop-blur" aria-label="Safety controls"><MoreVertical className="h-5 w-5" /></button></div>
+        <div className="mt-2 flex flex-wrap gap-1">{profile.verification_status === "verified" && <TrustBadge label="Identity verified" />}{profile.area_verification_status === "verified" && <TrustBadge label="Area verified" />}</div>
+        {profile.bio && <p className="mt-3 line-clamp-2 text-xs leading-5 opacity-95">{profile.bio}</p>}
+        {interests.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{interests.slice(0, 5).map((item) => <span key={item.id} className="rounded-full bg-white/15 px-2 py-1 text-[9px] font-bold backdrop-blur">{item.name}</span>)}</div>}
+        <button type="button" onClick={onSuperChat} className="mt-3 rounded-full bg-white/15 px-3 py-1.5 text-[9px] font-black backdrop-blur">Send SuperChat</button>
       </div>
     </motion.article>
   );
