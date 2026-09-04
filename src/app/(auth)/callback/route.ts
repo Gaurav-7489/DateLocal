@@ -19,7 +19,28 @@ export async function GET(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL(`${routes.login}?error=session_failed`, requestUrl.origin));
 
-  const { data: profile, error: profileError } = await supabase.from("profiles").select("profile_completed").eq("id", user.id).maybeSingle();
+  const displayName = typeof user.user_metadata?.full_name === "string"
+    ? user.user_metadata.full_name.trim()
+    : typeof user.user_metadata?.name === "string"
+      ? user.user_metadata.name.trim()
+      : "Extrovert member";
+
+  const { error: identityError } = await supabase.from("extrovert_profiles").upsert({
+    id: user.id,
+    display_name: displayName || "Extrovert member",
+  }, { onConflict: "id", ignoreDuplicates: false });
+
+  if (identityError) {
+    console.error("Extrovert profile bootstrap failed:", identityError.message);
+    return NextResponse.redirect(new URL(`${routes.login}?error=profile_bootstrap_failed`, requestUrl.origin));
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("profile_completed")
+    .eq("id", user.id)
+    .maybeSingle();
+
   if (profileError) {
     console.error("Profile completion check failed:", profileError.message);
     return NextResponse.redirect(new URL(routes.profileSetup, requestUrl.origin));
