@@ -1,11 +1,11 @@
 "use client";
 
-import { memo, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useMotionValue, useTransform, AnimatePresence, type PanInfo } from "framer-motion";
-import { Heart, X, ShieldCheck, Sparkles, MessageCircle, MoreVertical, Flag, UserX, RotateCcw, SlidersHorizontal, ChevronLeft, ChevronRight, UserRound, ArrowRight, Loader2, Star } from "lucide-react";
+import { motion, AnimatePresence, type PanInfo } from "framer-motion";
+import { Heart, X, ShieldCheck, Sparkles, MessageCircle, MoreVertical, RotateCcw, SlidersHorizontal, UserRound, Loader2, Star } from "lucide-react";
 import { likeProfile, passProfile, rewindLastPass, resetPassedProfiles, blockUser, reportUser, superLikeProfile } from "./actions";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
@@ -13,40 +13,276 @@ import { calculateAge } from "@/lib/utils";
 import SuperChatComposer from "@/components/payments/superchat-composer";
 import { SHOP_PRODUCTS } from "@/lib/shop";
 
-type Interest={id:string;name:string}; type ProfileInterest={interests:Interest|Interest[]|null}; type ProfilePhoto={storage_path:string;display_order:number;is_primary:boolean;url?:string|null};
-export type DiscoverProfile={id:string;display_name:string|null;date_of_birth:string|null;gender:string|null;department:string|null;academic_year:string|null;bio:string|null;campus_residency?:string|null;relationship_goal?:string|null;zodiac?:string|null;prompt_question?:string|null;prompt_answer?:string|null;profile_photos:ProfilePhoto[]|null;profile_interests:ProfileInterest[]|null;profile_photo_url:string|null;verification_status?:string|null;area_verification_status?:string|null;area_name?:string|null};
-type Props={profiles:DiscoverProfile[];isPro?:boolean};
+type Interest = { id: string; name: string };
+type ProfileInterest = { interests: Interest | Interest[] | null };
+type ProfilePhoto = { storage_path: string; display_order: number; is_primary: boolean; url?: string | null };
 
-function TrustBadge({label}:{label:string}){return <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-500/85 px-2 py-1 text-[9px] font-black text-white"><ShieldCheck className="h-2.5 w-2.5"/>{label}</span>}
-function genderLabel(value:string|null){const g=(value||"").toLowerCase();if(g==="woman"||g==="female")return "Woman";if(g==="man"||g==="male")return "Man";if(g==="non-binary"||g==="nonbinary")return "Non-binary";return "Other"}
+export type DiscoverProfile = {
+  id: string;
+  display_name: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
+  department: string | null;
+  academic_year: string | null;
+  bio: string | null;
+  profile_photos: ProfilePhoto[] | null;
+  profile_interests: ProfileInterest[] | null;
+  profile_photo_url: string | null;
+  verification_status?: string | null;
+  area_verification_status?: string | null;
+  area_name?: string | null;
+};
 
-export default function DiscoverClient({profiles,isPro=false}:Props){
- const router=useRouter(); const [deck,setDeck]=useState(profiles); const [busy,setBusy]=useState(false); const [toast,setToast]=useState<string|null>(null); const [match,setMatch]=useState<DiscoverProfile|null>(null); const [safety,setSafety]=useState<DiscoverProfile|null>(null); const [reporting,setReporting]=useState<DiscoverProfile|null>(null); const [reportReason,setReportReason]=useState("Inappropriate photo or content"); const [reportDetails,setReportDetails]=useState(""); const [superChat,setSuperChat]=useState<DiscoverProfile|null>(null);
- useEffect(()=>setDeck(profiles),[profiles]);
- function notify(message:string){setToast(message);window.setTimeout(()=>setToast(null),2400)}
- async function act(id:string,kind:"like"|"pass"|"super") { if(busy)return; const target=deck.find(p=>p.id===id); if(!target)return; setBusy(true); setDeck(d=>d.filter(p=>p.id!==id)); try { const r=kind==="like"?await likeProfile(id):kind==="pass"?await passProfile(id):await superLikeProfile(id); if(r.error){notify(r.error);setDeck(d=>[target,...d]);} else if(kind==="like"&&r.matched)setMatch(target); else if(kind==="super")notify(`Super Like sent to ${target.display_name??"this person"}.`); } catch { notify("Something went wrong. Please try again."); setDeck(d=>[target,...d]); } finally {setBusy(false);} }
- async function rewind(){if(!isPro||busy)return;setBusy(true);try{const r=await rewindLastPass();if(r.error)notify(r.error);else router.refresh();}finally{setBusy(false)}}
- async function reviewPassed(){if(busy)return;setBusy(true);try{const r=await resetPassedProfiles();if(r.error)notify(r.error);else if(!r.count)notify("No passed profiles to review yet.");else router.refresh();}finally{setBusy(false)}}
- async function block(){if(!safety)return;const p=safety;setSafety(null);const r=await blockUser(p.id);if(r.error)notify(r.error);else{setDeck(d=>d.filter(x=>x.id!==p.id));notify("Profile blocked.")}}
- async function report(e:React.FormEvent){e.preventDefault();if(!reporting)return;setBusy(true);const r=await reportUser(reporting.id,reportReason,reportDetails);setBusy(false);if(r.error)notify(r.error);else{setDeck(d=>d.filter(x=>x.id!==reporting.id));setReporting(null);setReportDetails("");notify("Report submitted and profile removed.")}}
- const current=deck[0];
- if(!current&&!match)return <main className="mx-auto flex min-h-[calc(100dvh-4.5rem)] w-full max-w-md items-center justify-center px-4 pb-24"><section className="w-full rounded-[2rem] border border-border bg-card p-6 text-center"><Sparkles className="mx-auto h-8 w-8 text-pink-500"/><p className="mt-4 text-[10px] font-black uppercase tracking-[.18em] text-muted-foreground">Discover</p><h1 className="mt-1 text-2xl font-black">That&apos;s everyone for now.</h1><p className="mx-auto mt-2 max-w-xs text-xs leading-5 text-muted-foreground">New people will appear as they join. You can also review profiles you previously passed.</p><Button onClick={()=>void reviewPassed()} disabled={busy} className="mt-5 h-11 w-full rounded-2xl">{busy?<Loader2 className="mr-2 h-4 w-4 animate-spin"/>:<RotateCcw className="mr-2 h-4 w-4"/>}Review passed profiles</Button><Link href={routes.profileSetup} className="mt-2 flex h-11 items-center justify-center gap-2 rounded-2xl border border-border text-xs font-black"><SlidersHorizontal className="h-3.5 w-3.5"/>Edit preferences</Link></section></main>;
- return <main className="relative mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-md flex-col px-3 pb-20 pt-1">
-  <AnimatePresence>{toast&&<motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} exit={{opacity:0}} className="fixed left-1/2 top-16 z-[110] -translate-x-1/2 rounded-2xl border border-pink-200 bg-pink-50 px-4 py-2 text-xs font-bold text-pink-800 shadow-xl">{toast}</motion.div>}</AnimatePresence>
-  <div className="relative flex min-h-0 flex-1 items-center justify-center py-1"><div className="relative h-[min(72dvh,520px)] w-full max-w-[390px]">{deck.slice(0,2).map((profile,index)=><DiscoverCard key={profile.id} profile={profile} isTop={index===0} onSwipe={(direction)=>void act(profile.id,direction==="right"?"like":"pass")} onSafety={()=>setSafety(profile)} onSuperChat={()=>setSuperChat(profile)}/>)}</div></div>
-  {current&&<nav className="z-30 mx-auto flex w-full max-w-[348px] items-center justify-center gap-2 rounded-[2rem] border border-zinc-200 bg-white/95 px-2.5 py-2 shadow-[0_12px_35px_rgba(15,23,42,.10)]"><button onClick={()=>void rewind()} disabled={!isPro||busy} className="flex h-14 w-14 flex-col items-center justify-center rounded-full border border-zinc-200 text-zinc-500 disabled:opacity-35"><RotateCcw className="h-4 w-4"/><span className="text-[8px] font-bold">Undo</span></button><button onClick={()=>void act(current.id,"pass")} disabled={busy} className="flex h-14 w-14 flex-col items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 disabled:opacity-50"><X className="h-5 w-5"/><span className="text-[8px] font-bold">Pass</span></button><button onClick={()=>void act(current.id,"like")} disabled={busy} className="flex h-14 w-14 flex-col items-center justify-center rounded-full bg-pink-500 text-white disabled:opacity-50"><Heart className="h-5 w-5 fill-current"/><span className="text-[8px] font-black">Like</span></button><button onClick={()=>void act(current.id,"super")} disabled={busy} className="flex h-14 w-14 flex-col items-center justify-center rounded-full border border-orange-200 bg-white text-orange-500 disabled:opacity-50"><Star className="h-5 w-5 fill-current"/><span className="text-[8px] font-bold">Super</span></button><Link href={`${routes.profileView}/${current.id}`} className="flex h-14 w-14 flex-col items-center justify-center rounded-full border border-zinc-300 text-zinc-700"><UserRound className="h-5 w-5"/><span className="text-[8px] font-bold">Profile</span></Link></nav>}
-  <AnimatePresence>{safety&&<div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/55 p-3"><motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} className="w-full max-w-sm rounded-[2rem] bg-white p-5"><div className="flex items-center justify-between"><b className="text-sm">Safety controls</b><button onClick={()=>setSafety(null)}><X className="h-5 w-5"/></button></div><div className="mt-4 grid gap-2"><Link href={`${routes.profileView}/${safety.id}`} onClick={()=>setSafety(null)} className="rounded-2xl border p-3 text-xs font-bold">View profile</Link><button onClick={()=>{setReporting(safety);setSafety(null)}} className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-left text-xs font-bold text-amber-700">Report profile</button><button onClick={()=>void block()} className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-left text-xs font-bold text-rose-700">Block user</button></div></motion.div></div>}</AnimatePresence>
-  <AnimatePresence>{reporting&&<div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/60 p-3"><motion.form onSubmit={report} initial={{opacity:0,scale:.98}} animate={{opacity:1,scale:1}} className="w-full max-w-md rounded-[2rem] bg-white p-5"><div className="flex items-center justify-between"><b className="text-base">Report {reporting.display_name}</b><button type="button" onClick={()=>setReporting(null)}><X className="h-5 w-5"/></button></div><select value={reportReason} onChange={e=>setReportReason(e.target.value)} className="mt-4 w-full rounded-xl border p-3 text-xs"><option>Inappropriate photo or content</option><option>Harassment or abusive behavior</option><option>Fake or impersonated profile</option><option>Spam or commercial advertising</option><option>Underage user</option><option>Other safety concern</option></select><textarea value={reportDetails} onChange={e=>setReportDetails(e.target.value)} rows={4} maxLength={500} className="mt-3 w-full resize-none rounded-xl border p-3 text-xs" placeholder="Additional details (optional)"/><div className="mt-3 flex gap-2"><Button type="button" variant="secondary" onClick={()=>setReporting(null)} className="flex-1">Cancel</Button><Button disabled={busy} className="flex-1 bg-rose-600 text-white">{busy?"Submitting…":"Report & Block"}</Button></div></motion.form></div>}</AnimatePresence>
-  <AnimatePresence>{match&&<div className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/70 p-4"><motion.div initial={{opacity:0,scale:.9}} animate={{opacity:1,scale:1}} className="w-full max-w-sm rounded-3xl bg-white p-7 text-center"><button onClick={()=>setMatch(null)} className="float-right"><X className="h-4 w-4"/></button><div className="mx-auto mt-3 flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-pink-50">{match.profile_photo_url?<Image src={match.profile_photo_url} alt="" width={80} height={80} className="h-full w-full object-cover"/>:<Heart className="h-8 w-8 fill-current text-pink-500"/>}</div><p className="mt-4 text-[10px] font-black uppercase tracking-[.16em] text-pink-500">Mutual connection</p><h2 className="mt-1 text-2xl font-black">It&apos;s a Match</h2><p className="mt-2 text-xs text-muted-foreground">You and <b>{match.display_name}</b> liked each other.</p><Link href={routes.messages} className="mt-5 flex h-12 items-center justify-center gap-2 rounded-2xl bg-pink-500 text-xs font-black text-white">Open chat <MessageCircle className="h-4 w-4"/></Link></motion.div></div>}</AnimatePresence>
-  {superChat&&<SuperChatComposer profileId={superChat.id} profileName={superChat.display_name??"Member"} price={SHOP_PRODUCTS.superchat.amountPaise/100} onClose={()=>setSuperChat(null)} />}
- </main>;
+type Props = { profiles: DiscoverProfile[]; isPro?: boolean };
+
+function genderLabel(value: string | null) {
+  const gender = (value ?? "").toLowerCase();
+  if (gender === "woman" || gender === "female") return "Woman";
+  if (gender === "man" || gender === "male") return "Man";
+  if (gender === "non-binary" || gender === "nonbinary") return "Non-binary";
+  return "Other";
 }
 
-const DiscoverCard=memo(function DiscoverCard({profile,isTop,onSwipe,onSafety,onSuperChat}:{profile:DiscoverProfile;isTop:boolean;onSwipe:(direction:"left"|"right")=>void;onSafety:()=>void;onSuperChat:()=>void}){
- const x=useMotionValue(0); const rotate=useTransform(x,[-220,0,220],[-10,0,10]); const opacity=useTransform(x,[-320,-170,0,170,320],[0,1,1,1,0]); const age=profile.date_of_birth?calculateAge(profile.date_of_birth):null; const photos=[...(profile.profile_photos??[])].sort((a,b)=>Number(b.is_primary)-Number(a.is_primary)||a.display_order-b.display_order); const [photoIndex,setPhotoIndex]=useState(0); const photo=photos[photoIndex]?.url??profile.profile_photo_url; const interests=(profile.profile_interests??[]).flatMap(pi=>{const v=pi.interests;return v?(Array.isArray(v)?v:[v]):[]}); const verified=profile.verification_status==="verified"; const areaVerified=profile.area_verification_status==="verified";
- return <motion.article style={{x,rotate,opacity,zIndex:isTop?20:10,willChange:isTop?"transform":"auto"}} drag={isTop?"x":false} dragConstraints={{left:0,right:0}} dragElastic={.9} onDragEnd={(_,info:PanInfo)=>{if(Math.abs(info.offset.x)>110)onSwipe(info.offset.x>0?"right":"left")}} initial={false} animate={isTop?{scale:1,y:0}:{scale:.965,y:12}} transition={{duration:.18}} className="absolute inset-0 overflow-hidden rounded-[2rem] border border-white/20 bg-zinc-900 shadow-[0_22px_60px_rgba(0,0,0,.18)] select-none">
-  <div className="absolute inset-0">{photo?<Image src={photo} alt="" fill priority={isTop} decoding="async" className="object-cover" sizes="(max-width:640px) 100vw,390px"/>:<div className="flex h-full items-center justify-center text-5xl font-black text-white">{profile.display_name?.charAt(0)??"?"}</div>}<div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/5"/></div>
-  <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3"><div className="flex flex-wrap gap-1">{verified&&<TrustBadge label="Identity verified"/>}{areaVerified&&<TrustBadge label={profile.area_name?`Area · ${profile.area_name}`:"Area verified"/>}</div><button onClick={onSafety} className="flex h-9 w-9 items-center justify-center rounded-full bg-black/35 text-white" aria-label="More"><MoreVertical className="h-5 w-5"/></button></div>
-  <div className="absolute inset-x-0 bottom-0 p-4 text-white"><div className="flex items-end justify-between gap-2"><div className="min-w-0"><h2 className="truncate text-2xl font-black tracking-tight">{profile.display_name??"Member"}{age!==null&&<span className="ml-1 font-light">{age}</span>}</h2><p className="mt-1 text-[11px] font-semibold text-white/85">{profile.gender&&genderLabel(profile.gender)}{profile.department?` · ${profile.department}`:""}</p></div>{photos.length>1&&<div className="flex items-center gap-1"><button onClick={()=>setPhotoIndex(i=>(i-1+photos.length)%photos.length)} className="rounded-full bg-black/30 p-1.5" aria-label="Previous"><ChevronLeft className="h-4 w-4"/></button><span className="text-[9px] font-bold">{photoIndex+1}/{photos.length}</span><button onClick={()=>setPhotoIndex(i=>(i+1)%photos.length)} className="rounded-full bg-black/30 p-1.5" aria-label="Next"><ChevronRight className="h-4 w-4"/></button></div>}</div><p className="mt-2 line-clamp-3 text-[11px] leading-5 text-white/90">{profile.bio}</p>{interests.length>0&&<div className="mt-2 flex gap-1.5 overflow-hidden">{interests.slice(0,4).map(i=><span key={i.id} className="shrink-0 rounded-full bg-white/15 px-2 py-1 text-[9px] font-bold">{i.name}</span>)}</div>}<div className="mt-3 flex items-center justify-between"><span className="text-[9px] font-semibold text-white/70">{profile.area_name??"Local area"}</span><button onClick={onSuperChat} className="rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[9px] font-black">SuperChat</button></div></div>
- </motion.article>;
-});
+function TrustBadge({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/90 px-2 py-1 text-[9px] font-black text-white">
+      <ShieldCheck className="h-2.5 w-2.5" />
+      {label}
+    </span>
+  );
+}
+
+export default function DiscoverClient({ profiles, isPro = false }: Props) {
+  const router = useRouter();
+  const [deck, setDeck] = useState(profiles);
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [match, setMatch] = useState<DiscoverProfile | null>(null);
+  const [safety, setSafety] = useState<DiscoverProfile | null>(null);
+  const [reporting, setReporting] = useState<DiscoverProfile | null>(null);
+  const [reportReason, setReportReason] = useState("Inappropriate photo or content");
+  const [reportDetails, setReportDetails] = useState("");
+  const [superChat, setSuperChat] = useState<DiscoverProfile | null>(null);
+
+  useEffect(() => setDeck(profiles), [profiles]);
+
+  function notify(message: string) {
+    setToast(message);
+    window.setTimeout(() => setToast(null), 2200);
+  }
+
+  async function act(id: string, kind: "like" | "pass" | "super") {
+    if (busy) return;
+    const target = deck.find((profile) => profile.id === id);
+    if (!target) return;
+    setBusy(true);
+    setDeck((current) => current.filter((profile) => profile.id !== id));
+    try {
+      const result = kind === "like" ? await likeProfile(id) : kind === "pass" ? await passProfile(id) : await superLikeProfile(id);
+      if (result.error) {
+        setDeck((current) => [target, ...current]);
+        notify(result.error);
+      } else if (kind === "like" && result.matched) {
+        setMatch(target);
+      } else if (kind === "super") {
+        notify(`Super Like sent to ${target.display_name ?? "this person"}.`);
+      }
+    } catch {
+      setDeck((current) => [target, ...current]);
+      notify("Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function rewind() {
+    if (!isPro || busy) return;
+    setBusy(true);
+    try {
+      const result = await rewindLastPass();
+      if (result.error) notify(result.error);
+      else router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reviewPassed() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const result = await resetPassedProfiles();
+      if (result.error) notify(result.error);
+      else if (!result.count) notify("No passed profiles to review yet.");
+      else router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function block() {
+    if (!safety) return;
+    const profile = safety;
+    setSafety(null);
+    const result = await blockUser(profile.id);
+    if (result.error) notify(result.error);
+    else {
+      setDeck((current) => current.filter((item) => item.id !== profile.id));
+      notify("Profile blocked.");
+    }
+  }
+
+  async function report(event: React.FormEvent) {
+    event.preventDefault();
+    if (!reporting) return;
+    setBusy(true);
+    const result = await reportUser(reporting.id, reportReason, reportDetails);
+    setBusy(false);
+    if (result.error) notify(result.error);
+    else {
+      setDeck((current) => current.filter((item) => item.id !== reporting.id));
+      setReporting(null);
+      setReportDetails("");
+      notify("Report submitted and profile removed.");
+    }
+  }
+
+  const current = deck[0];
+
+  if (!current && !match) {
+    return (
+      <main className="mx-auto flex min-h-[calc(100dvh-4.5rem)] w-full max-w-md items-center justify-center px-4 pb-24">
+        <section className="w-full rounded-[2rem] border border-zinc-200 bg-white p-6 text-center shadow-sm">
+          <Sparkles className="mx-auto h-8 w-8 text-pink-500" />
+          <p className="mt-4 text-[10px] font-black uppercase tracking-[.18em] text-zinc-400">Dating discovery</p>
+          <h1 className="mt-1 text-2xl font-black">That&apos;s everyone for now.</h1>
+          <p className="mx-auto mt-2 max-w-xs text-xs leading-5 text-zinc-500">New people will appear as they join. You can also review profiles you previously passed.</p>
+          <Button onClick={() => void reviewPassed()} disabled={busy} className="mt-5 h-11 w-full rounded-2xl">
+            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+            Review passed profiles
+          </Button>
+          <Link href={routes.profileSetup} className="mt-2 flex h-11 items-center justify-center gap-2 rounded-2xl border border-zinc-200 text-xs font-black">
+            <SlidersHorizontal className="h-3.5 w-3.5" /> Edit preferences
+          </Link>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main className="relative mx-auto flex min-h-[calc(100dvh-3.5rem)] w-full max-w-md flex-col px-3 pb-20 pt-1">
+      <AnimatePresence>
+        {toast && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed left-1/2 top-16 z-[110] -translate-x-1/2 rounded-2xl border border-pink-200 bg-pink-50 px-4 py-2 text-xs font-bold text-pink-800 shadow-lg">
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="relative flex min-h-0 flex-1 items-center justify-center py-1">
+        <div className="relative h-[min(72dvh,520px)] w-full max-w-[390px]">
+          {deck.slice(0, 2).map((profile, index) => (
+            <DiscoverCard key={profile.id} profile={profile} isTop={index === 0} onSwipe={(direction) => void act(profile.id, direction === "right" ? "like" : "pass")} onSafety={() => setSafety(profile)} onSuperChat={() => setSuperChat(profile)} />
+          ))}
+        </div>
+      </div>
+
+      {current && (
+        <nav className="z-30 mx-auto flex w-full max-w-[348px] items-center justify-center gap-2 rounded-[2rem] border border-zinc-200 bg-white px-2.5 py-2 shadow-lg">
+          <button onClick={() => void rewind()} disabled={!isPro || busy} className="flex h-14 w-14 flex-col items-center justify-center rounded-full border border-zinc-200 text-zinc-500 disabled:opacity-35"><RotateCcw className="h-4 w-4" /><span className="text-[8px] font-bold">Undo</span></button>
+          <button onClick={() => void act(current.id, "pass")} disabled={busy} className="flex h-14 w-14 flex-col items-center justify-center rounded-full border border-zinc-200 text-zinc-700 disabled:opacity-50"><X className="h-5 w-5" /><span className="text-[8px] font-bold">Pass</span></button>
+          <button onClick={() => void act(current.id, "like")} disabled={busy} className="flex h-14 w-14 flex-col items-center justify-center rounded-full bg-pink-500 text-white disabled:opacity-50"><Heart className="h-5 w-5 fill-current" /><span className="text-[8px] font-black">Like</span></button>
+          <button onClick={() => void act(current.id, "super")} disabled={busy} className="flex h-14 w-14 flex-col items-center justify-center rounded-full border border-orange-200 bg-white text-orange-500 disabled:opacity-50"><Star className="h-5 w-5 fill-current" /><span className="text-[8px] font-bold">Super</span></button>
+          <Link href={`${routes.profileView}/${current.id}`} className="flex h-14 w-14 flex-col items-center justify-center rounded-full border border-zinc-300 text-zinc-700"><UserRound className="h-5 w-5" /><span className="text-[8px] font-bold">Profile</span></Link>
+        </nav>
+      )}
+
+      <AnimatePresence>
+        {safety && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/55 p-3">
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm rounded-[2rem] bg-white p-5">
+              <div className="flex items-center justify-between"><b className="text-sm">Safety controls</b><button onClick={() => setSafety(null)}><X className="h-5 w-5" /></button></div>
+              <div className="mt-4 grid gap-2">
+                <Link href={`${routes.profileView}/${safety.id}`} onClick={() => setSafety(null)} className="rounded-2xl border p-3 text-xs font-bold">View profile</Link>
+                <button onClick={() => { setReporting(safety); setSafety(null); }} className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-left text-xs font-bold text-amber-700">Report profile</button>
+                <button onClick={() => void block()} className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-left text-xs font-bold text-rose-700">Block user</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {reporting && (
+          <div className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/60 p-3">
+            <motion.form onSubmit={report} initial={{ opacity: 0, scale: .98 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md rounded-[2rem] bg-white p-5">
+              <div className="flex items-center justify-between"><b className="text-base">Report {reporting.display_name}</b><button type="button" onClick={() => setReporting(null)}><X className="h-5 w-5" /></button></div>
+              <select value={reportReason} onChange={(event) => setReportReason(event.target.value)} className="mt-4 w-full rounded-xl border p-3 text-xs"><option>Inappropriate photo or content</option><option>Harassment or abusive behavior</option><option>Fake or impersonated profile</option><option>Spam or commercial advertising</option><option>Underage user</option><option>Other safety concern</option></select>
+              <textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} rows={4} maxLength={500} className="mt-3 w-full resize-none rounded-xl border p-3 text-xs" placeholder="Additional details (optional)" />
+              <div className="mt-3 flex gap-2"><Button type="button" variant="secondary" onClick={() => setReporting(null)} className="flex-1">Cancel</Button><Button disabled={busy} className="flex-1 bg-rose-600 text-white">{busy ? "Submitting…" : "Report & Block"}</Button></div>
+            </motion.form>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {match && (
+          <div className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/70 p-4">
+            <motion.div initial={{ opacity: 0, scale: .9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-sm rounded-3xl bg-white p-7 text-center">
+              <button onClick={() => setMatch(null)} className="float-right"><X className="h-4 w-4" /></button>
+              <div className="mx-auto mt-3 flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-pink-50">{match.profile_photo_url ? <Image src={match.profile_photo_url} alt="" width={80} height={80} className="h-full w-full object-cover" /> : <Heart className="h-8 w-8 fill-current text-pink-500" />}</div>
+              <p className="mt-4 text-[10px] font-black uppercase tracking-[.16em] text-pink-500">Mutual connection</p>
+              <h2 className="mt-1 text-2xl font-black">It&apos;s a Match</h2>
+              <p className="mt-2 text-xs text-zinc-500">You and <b>{match.display_name}</b> liked each other.</p>
+              <Link href={routes.messages} className="mt-5 flex h-12 items-center justify-center gap-2 rounded-2xl bg-pink-500 text-xs font-black text-white">Open chat <MessageCircle className="h-4 w-4" /></Link>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {superChat && <SuperChatComposer profileId={superChat.id} profileName={superChat.display_name ?? "Member"} price={SHOP_PRODUCTS.superchat.amountPaise / 100} onClose={() => setSuperChat(null)} />}
+    </main>
+  );
+}
+
+function DiscoverCard({ profile, isTop, onSwipe, onSafety, onSuperChat }: { profile: DiscoverProfile; isTop: boolean; onSwipe: (direction: "left" | "right") => void; onSafety: () => void; onSuperChat: () => void }) {
+  const age = profile.date_of_birth ? calculateAge(profile.date_of_birth) : null;
+  const photo = profile.profile_photos?.find((item) => item.is_primary)?.url ?? profile.profile_photo_url;
+  const interests = (profile.profile_interests ?? []).flatMap((item) => item.interests ? (Array.isArray(item.interests) ? item.interests : [item.interests]) : []);
+  const verified = profile.verification_status === "verified";
+  const areaVerified = profile.area_verification_status === "verified";
+
+  return (
+    <motion.article
+      initial={false}
+      animate={isTop ? { scale: 1, y: 0 } : { scale: .965, y: 12 }}
+      transition={{ duration: .18 }}
+      drag={isTop ? "x" : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={.9}
+      onDragEnd={(_, info: PanInfo) => { if (Math.abs(info.offset.x) > 110) onSwipe(info.offset.x > 0 ? "right" : "left"); }}
+      className="absolute inset-0 overflow-hidden rounded-[2rem] border border-white/20 bg-zinc-900 shadow-[0_22px_60px_rgba(0,0,0,.18)] select-none"
+      style={{ zIndex: isTop ? 20 : 10, willChange: isTop ? "transform" : "auto" }}
+    >
+      <div className="absolute inset-0">
+        {photo ? <Image src={photo} alt="" fill priority={isTop} decoding="async" className="object-cover" sizes="(max-width:640px) 100vw,390px" /> : <div className="flex h-full items-center justify-center text-5xl font-black text-white">{profile.display_name?.charAt(0) ?? "?"}</div>}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/5" />
+      </div>
+
+      <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3">
+        <div className="flex flex-wrap gap-1">{verified && <TrustBadge label="Identity verified" />}{areaVerified && <TrustBadge label={profile.area_name ? `Area · ${profile.area_name}` : "Area verified"} />}</div>
+        <button onClick={onSafety} className="flex h-9 w-9 items-center justify-center rounded-full bg-black/35 text-white" aria-label="Safety options"><MoreVertical className="h-5 w-5" /></button>
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+        <div className="flex items-end justify-between gap-2">
+          <div className="min-w-0"><h2 className="truncate text-2xl font-black tracking-tight">{profile.display_name ?? "Member"}{age !== null && <span className="ml-1 font-light">{age}</span>}</h2><p className="mt-1 text-[11px] font-semibold text-white/85">{profile.gender && genderLabel(profile.gender)}{profile.department ? ` · ${profile.department}` : ""}{profile.academic_year ? ` · ${profile.academic_year}` : ""}</p></div>
+          <button onClick={onSuperChat} className="shrink-0 rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[9px] font-black">SuperChat</button>
+        </div>
+        {profile.bio && <p className="mt-2 line-clamp-3 text-[11px] leading-5 text-white/90">{profile.bio}</p>}
+        {interests.length > 0 && <div className="mt-2 flex gap-1.5 overflow-hidden">{interests.slice(0, 4).map((interest) => <span key={interest.id} className="shrink-0 rounded-full bg-white/15 px-2 py-1 text-[9px] font-bold">{interest.name}</span>)}</div>}
+        <p className="mt-3 text-[9px] font-semibold text-white/70">{profile.area_name ?? "Local area"} · exact location private</p>
+      </div>
+    </motion.article>
+  );
+}
