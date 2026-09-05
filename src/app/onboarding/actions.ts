@@ -26,9 +26,28 @@ export async function saveIdentity(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(routes.login);
 
-  const displayName = String(formData.get("display_name") ?? "").trim();
-  const dateOfBirth = String(formData.get("date_of_birth") ?? "").trim();
-  const gender = String(formData.get("gender") ?? "").trim();
+  const { data: existingIdentity, error: identityReadError } = await supabase
+    .from("extrovert_profiles")
+    .select("verification_status, display_name, date_of_birth, gender")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (identityReadError) {
+    throw new Error("We could not load your identity. Please try again.");
+  }
+
+  const isVerified = existingIdentity?.verification_status === "verified";
+
+  const submittedDisplayName = String(formData.get("display_name") ?? "").trim();
+  const submittedDateOfBirth = String(formData.get("date_of_birth") ?? "").trim();
+  const submittedGender = String(formData.get("gender") ?? "").trim();
+
+  // Verified identity fields are immutable through onboarding. A user must
+  // complete the verification flow again before these values can change.
+  const displayName = isVerified ? String(existingIdentity.display_name ?? "").trim() : submittedDisplayName;
+  const dateOfBirth = isVerified ? String(existingIdentity.date_of_birth ?? "").trim() : submittedDateOfBirth;
+  const gender = isVerified ? String(existingIdentity.gender ?? "").trim() : submittedGender;
+
   const identityType = String(formData.get("identity_type") ?? "student").trim();
   const department = String(formData.get("department") ?? "").trim();
   const academicYear = String(formData.get("academic_year") ?? "postgraduate").trim();
