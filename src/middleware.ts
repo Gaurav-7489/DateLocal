@@ -6,11 +6,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Only run auth/session middleware where it can affect navigation.
-  // Public pages and static assets no longer pay the Supabase middleware cost.
+  // Run auth/session middleware only where it affects navigation.
   matcher: [
     "/login",
     "/register",
+    "/onboarding",
     "/app/:path*",
     "/admin/:path*",
     "/verify",
