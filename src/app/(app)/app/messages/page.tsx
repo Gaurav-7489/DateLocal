@@ -3,14 +3,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { EmptyState } from "@/components/shared/empty-state";
 import { routes } from "@/config/routes";
-import { Button } from "@/components/ui/button";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { MessageSquare, Compass, Flame, HeartHandshake, Users, LockKeyhole } from "lucide-react";
+import { MessageSquare, Flame, HeartHandshake, LockKeyhole, Search, Users, ShieldCheck } from "lucide-react";
 import SuperChatRequestCard from "@/components/messages/superchat-request-card";
-import ConversationRow from "@/components/messages/conversation-row";
 
-export const metadata: Metadata = { title: "Messages | Extrovert" };
+export const metadata: Metadata = { title: "Chat | Extrovert" };
 export const dynamic = "force-dynamic";
 
 type Match = { id:string; user_a:string; user_b:string; created_at:string };
@@ -21,74 +19,43 @@ type SocialConnection = { id:string; requester_id:string; target_id:string; stat
 type SocialProfile = { id:string; display_name:string|null; department:string|null; profile_photo_path:string|null; verification_status:string|null };
 type SocialMessage = { id:string; conversation_id:string; sender_id:string; ciphertext:string; created_at:string };
 type Request = { id:string; sender_id:string; content:string; created_at:string; display_name:string; department:string; academic_year:string; profile_photos:{storage_path:string;is_primary:boolean;display_order:number}[] };
-
 type Chat = { key:string; href:string; name:string; photoUrl:string|null; latest:string; createdAt:string; mine:boolean; kind:"Social"|"Dating"; verified:boolean };
 
 export default async function MessagesPage(){
   const supabase=await createServerSupabaseClient();
   const {data:{user}}=await supabase.auth.getUser();
   if(!user)return null;
-
   const [{data:rawMatches,error:matchesError},{data:requestRows},{data:memberRows}]=await Promise.all([
     supabase.from("matches").select("id,user_a,user_b,created_at").or(`user_a.eq.${user.id},user_b.eq.${user.id}`).order("created_at",{ascending:false}),
     supabase.rpc("get_superchat_requests"),
     supabase.from("extrovert_conversation_members").select("conversation_id").eq("user_id",user.id),
   ]);
-  const requests=(requestRows??[]) as Request[];
-  const matches=(rawMatches??[]) as Match[];
-  const matchIds=matches.map(m=>m.id);
-  const socialConversationIds=Array.from(new Set((memberRows??[]).map((r:{conversation_id:string})=>r.conversation_id)));
-
+  const requests=(requestRows??[]) as Request[]; const matches=(rawMatches??[]) as Match[]; const matchIds=matches.map(m=>m.id); const socialConversationIds=Array.from(new Set((memberRows??[]).map((r:{conversation_id:string})=>r.conversation_id)));
   const [dateMessagesRes,dateProfilesRes,socialConversationsRes]=await Promise.all([
     matchIds.length?supabase.from("messages").select("id,match_id,sender_id,content,ciphertext,encryption_version,created_at").in("match_id",matchIds).order("created_at",{ascending:false}):Promise.resolve({data:[],error:null}),
     matchIds.length?supabase.rpc("get_match_profiles",{p_user_ids:Array.from(new Set(matches.map(m=>m.user_a===user.id?m.user_b:m.user_a)))}):Promise.resolve({data:[],error:null}),
     socialConversationIds.length?supabase.from("extrovert_conversations").select("id,connection_id,created_at").in("id",socialConversationIds):Promise.resolve({data:[],error:null}),
   ]);
-
-  const dateMessages=(dateMessagesRes.data??[]) as DateMessage[];
-  const dateProfiles=(dateProfilesRes.data??[]) as DateProfile[];
-  const dateProfileMap=new Map(dateProfiles.map(p=>[p.id,p]));
-  const latestDate=new Map<string,DateMessage>();
-  for(const message of dateMessages)if(!latestDate.has(message.match_id))latestDate.set(message.match_id,message);
-
-  const socialConversations=(socialConversationsRes.data??[]) as SocialConversation[];
-  const connectionIds=socialConversations.map(c=>c.connection_id);
+  const dateMessages=(dateMessagesRes.data??[]) as DateMessage[]; const dateProfiles=(dateProfilesRes.data??[]) as DateProfile[]; const dateProfileMap=new Map(dateProfiles.map(p=>[p.id,p])); const latestDate=new Map<string,DateMessage>(); for(const message of dateMessages)if(!latestDate.has(message.match_id))latestDate.set(message.match_id,message);
+  const socialConversations=(socialConversationsRes.data??[]) as SocialConversation[]; const connectionIds=socialConversations.map(c=>c.connection_id);
   const [{data:connections},{data:socialMessages}]=await Promise.all([
     connectionIds.length?supabase.from("extrovert_connections").select("id,requester_id,target_id,status").in("id",connectionIds).eq("status","accepted"):Promise.resolve({data:[],error:null}),
     socialConversationIds.length?supabase.from("extrovert_messages").select("id,conversation_id,sender_id,ciphertext,created_at").in("conversation_id",socialConversationIds).order("created_at",{ascending:false}):Promise.resolve({data:[],error:null}),
   ]);
-  const socialConnections=(connections??[]) as SocialConnection[];
-  const socialOtherIds=Array.from(new Set(socialConnections.map(c=>c.requester_id===user.id?c.target_id:c.requester_id)));
-  const {data:socialProfiles}=socialOtherIds.length?await supabase.from("extrovert_profiles").select("id,display_name,department,profile_photo_path,verification_status").in("id",socialOtherIds):{data:[]};
-  const socialProfileMap=new Map((socialProfiles??[]).map(p=>[p.id,p as SocialProfile]));
-  const latestSocial=new Map<string,SocialMessage>();
-  for(const message of (socialMessages??[]) as SocialMessage[])if(!latestSocial.has(message.conversation_id))latestSocial.set(message.conversation_id,message);
-
+  const socialConnections=(connections??[]) as SocialConnection[]; const socialOtherIds=Array.from(new Set(socialConnections.map(c=>c.requester_id===user.id?c.target_id:c.requester_id))); const {data:socialProfiles}=socialOtherIds.length?await supabase.from("extrovert_profiles").select("id,display_name,department,profile_photo_path,verification_status").in("id",socialOtherIds):{data:[]}; const socialProfileMap=new Map((socialProfiles??[]).map(p=>[p.id,p as SocialProfile])); const latestSocial=new Map<string,SocialMessage>(); for(const message of (socialMessages??[]) as SocialMessage[])if(!latestSocial.has(message.conversation_id))latestSocial.set(message.conversation_id,message);
   const datingChats:Chat[]=[]; const newMatches:{matchId:string;profile:DateProfile;photoUrl:string|null}[]=[];
-  for(const match of matches){
-    const other=match.user_a===user.id?match.user_b:match.user_a; const profile=dateProfileMap.get(other); if(!profile)continue;
-    const photos=[...(profile.profile_photos??[])].sort((a,b)=>Number(b.is_primary)-Number(a.is_primary)||a.display_order-b.display_order); const photoUrl=getProfilePhotoUrl(photos[0]?.storage_path,160); const latest=latestDate.get(match.id);
-    if(!latest)newMatches.push({matchId:match.id,profile,photoUrl});
-    else datingChats.push({key:`dating-${match.id}`,href:`${routes.messages}/${match.id}`,name:profile.display_name??"Match",photoUrl,latest:latest.encryption_version===1?"Encrypted message":latest.content??"Message",createdAt:latest.created_at,mine:latest.sender_id===user.id,kind:"Dating",verified:true});
-  }
-  const socialChats:Chat[]=[];
-  for(const conversation of socialConversations){
-    const connection=socialConnections.find(c=>c.id===conversation.connection_id); if(!connection)continue;
-    const other=connection.requester_id===user.id?connection.target_id:connection.requester_id; const profile=socialProfileMap.get(other); if(!profile)continue;
-    const latest=latestSocial.get(conversation.id); if(!latest)continue;
-    socialChats.push({key:`social-${conversation.id}`,href:`${routes.messages}/social/${conversation.id}`,name:profile.display_name??"Connection",photoUrl:getProfilePhotoUrl(profile.profile_photo_path,160),latest:"Encrypted message",createdAt:latest.created_at,mine:latest.sender_id===user.id,kind:"Social",verified:profile.verification_status==="verified"});
-  }
-  const chats=[...socialChats,...datingChats].sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime());
-  const dateLabel=`Dating chats`;
+  for(const match of matches){const other=match.user_a===user.id?match.user_b:match.user_a;const profile=dateProfileMap.get(other);if(!profile)continue;const photos=[...(profile.profile_photos??[])].sort((a,b)=>Number(b.is_primary)-Number(a.is_primary)||a.display_order-b.display_order);const photoUrl=getProfilePhotoUrl(photos[0]?.storage_path,160);const latest=latestDate.get(match.id);if(!latest)newMatches.push({matchId:match.id,profile,photoUrl});else datingChats.push({key:`dating-${match.id}`,href:`${routes.messages}/${match.id}`,name:profile.display_name??"Match",photoUrl,latest:latest.encryption_version===1?"Encrypted message":latest.content??"Message",createdAt:latest.created_at,mine:latest.sender_id===user.id,kind:"Dating",verified:true});}
+  const socialChats:Chat[]=[]; for(const conversation of socialConversations){const connection=socialConnections.find(c=>c.id===conversation.connection_id);if(!connection)continue;const other=connection.requester_id===user.id?connection.target_id:connection.requester_id;const profile=socialProfileMap.get(other);if(!profile)continue;const latest=latestSocial.get(conversation.id);if(!latest)continue;socialChats.push({key:`social-${conversation.id}`,href:`${routes.messages}/social/${conversation.id}`,name:profile.display_name??"Connection",photoUrl:getProfilePhotoUrl(profile.profile_photo_path,160),latest:"Encrypted message",createdAt:latest.created_at,mine:latest.sender_id===user.id,kind:"Social",verified:profile.verification_status==="verified"});}
+  const chats=[...datingChats,...socialChats].sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime());
 
-  return <div className="mx-auto w-full max-w-lg px-4 pb-24 pt-4 font-sans">
-    <header className="mb-5"><div className="flex items-center justify-between"><div><div className="flex items-center gap-2"><MessageSquare className="h-6 w-6 text-emerald-600"/><h1 className="text-xl font-black tracking-tight text-zinc-950">Messages</h1></div><p className="mt-0.5 text-xs text-zinc-500">One inbox for Social and Dating</p></div><Link href={routes.social}><Button size="sm" variant="outline"><Users className="mr-1.5 h-3.5 w-3.5"/>Social</Button></Link></div></header>
-    {requests.length>0&&<section className="mb-5 space-y-2.5"><div className="px-1 text-xs font-black uppercase tracking-wider text-emerald-700">Message requests ({requests.length})</div><div className="space-y-2">{requests.map(r=><SuperChatRequestCard key={r.id} requestId={r.id} senderName={r.display_name} content={r.content}/>)}</div></section>}
-    {newMatches.length>0&&<section className="mb-6 space-y-2.5"><div className="flex items-center gap-1.5 px-1"><Flame className="h-4 w-4 text-emerald-600"/><h2 className="text-xs font-black uppercase tracking-wider text-zinc-600">New Matches ({newMatches.length})</h2></div><div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">{newMatches.map(m=><Link key={m.matchId} href={`${routes.messages}/${m.matchId}`} className="group flex w-20 shrink-0 flex-col items-center gap-1.5"><div className="relative h-16 w-16 overflow-hidden rounded-2xl border-2 border-emerald-500/80 p-0.5">{m.photoUrl?<Image src={m.photoUrl} alt={m.profile.display_name??"Person"} fill className="rounded-[14px] object-cover" sizes="64px"/>:<div className="flex h-full w-full items-center justify-center rounded-[14px] bg-zinc-100 text-base font-black text-zinc-700">{m.profile.display_name?.charAt(0)}</div>}</div><span className="w-full truncate text-center text-xs font-bold text-zinc-800">{m.profile.display_name?.split(" ")[0]}</span></Link>)}</div></section>}
-    {matchesError? <EmptyState icon={<MessageSquare className="h-6 w-6 text-emerald-600"/>} title="Couldn&apos;t load messages" description="Your conversations are safe. Please try again in a moment."/> : chats.length===0&&newMatches.length===0&&requests.length===0?<EmptyState icon={<HeartHandshake className="h-6 w-6 text-emerald-600"/>} title="No conversations yet" description="Your Social connections and Date matches will appear here."/>:<section className="space-y-2"><div className="flex items-center gap-1 px-1 text-xs font-black uppercase tracking-wider text-zinc-600"><LockKeyhole className="h-3.5 w-3.5 text-emerald-600"/>Conversations</div>{chats.map(chat=><ConversationItem key={chat.key} chat={chat}/>)}</section>}
-    {chats.length>0&&<div className="mt-4 flex items-center justify-center gap-1 text-[9px] font-semibold text-zinc-400"><LockKeyhole className="h-3 w-3"/>Social and Dating chats stay protected by their own access rules</div>}
-  </div>
+  return <main className="mx-auto w-full max-w-md px-3 pb-24 pt-16 font-sans text-white md:max-w-lg md:px-4 md:pt-4 md:text-zinc-950">
+    <header className="px-1"><div className="flex items-center justify-between"><div><p className="text-[10px] font-black uppercase tracking-[.18em] text-pink-400 md:text-emerald-600">Your connections</p><h1 className="text-3xl font-black tracking-tight">Chat</h1></div><Link href={routes.social} aria-label="Social" className="grid h-10 w-10 place-items-center rounded-full bg-zinc-900 text-white md:bg-zinc-100 md:text-zinc-700"><Users className="h-5 w-5"/></Link></div><div className="mt-4 flex h-11 items-center gap-2 rounded-full border border-white/10 bg-zinc-950 px-4 md:border-zinc-200 md:bg-zinc-50"><Search className="h-4 w-4 text-white/40 md:text-zinc-400"/><span className="text-sm text-white/35 md:text-zinc-400">Search matches</span></div></header>
+    {newMatches.length>0&&<section className="mt-5"><div className="mb-3 flex items-center gap-1.5 px-1"><Flame className="h-4 w-4 fill-current text-pink-500"/><h2 className="text-xs font-black uppercase tracking-wider">New matches</h2></div><div className="flex gap-3 overflow-x-auto pb-2">{newMatches.map(m=><Link key={m.matchId} href={`${routes.messages}/${m.matchId}`} className="group w-20 shrink-0 text-center"><div className="relative mx-auto h-[68px] w-[68px] overflow-hidden rounded-full border-2 border-pink-500 p-0.5">{m.photoUrl?<Image src={m.photoUrl} alt="" fill sizes="68px" className="rounded-full object-cover"/>:<div className="grid h-full place-items-center rounded-full bg-zinc-900 font-black">{m.profile.display_name?.charAt(0)}</div>}</div><span className="mt-1 block truncate text-[10px] font-bold">{m.profile.display_name?.split(" ")[0]}</span></Link>)}</div></section>}
+    {requests.length>0&&<section className="mt-5"><div className="mb-2 px-1 text-xs font-black uppercase tracking-wider text-amber-400">Message requests ({requests.length})</div><div className="space-y-2">{requests.map(r=><SuperChatRequestCard key={r.id} requestId={r.id} senderName={r.display_name} content={r.content}/>)}</div></section>}
+    {matchesError?<div className="mt-5"><EmptyState icon={<MessageSquare className="h-6 w-6"/>} title="Couldn&apos;t load messages" description="Please try again in a moment."/></div>:chats.length===0&&newMatches.length===0&&requests.length===0?<div className="mt-10"><EmptyState icon={<HeartHandshake className="h-6 w-6"/>} title="No conversations yet" description="Your matches and social connections will appear here."/></div>:<section className="mt-6"><div className="mb-2 flex items-center gap-1 px-1 text-xs font-black uppercase tracking-wider text-white/40 md:text-zinc-500"><MessageSquare className="h-3.5 w-3.5"/>Messages</div><div className="space-y-1">{chats.map(chat=><ConversationItem key={chat.key} chat={chat}/>)}</div></section>}
+    {chats.length>0&&<div className="mt-5 flex items-center justify-center gap-1 text-[9px] font-semibold text-white/30 md:text-zinc-400"><LockKeyhole className="h-3 w-3"/>Protected conversations</div>}
+  </main>
 }
 
-function ConversationItem({chat}:{chat:Chat}){return <Link href={chat.href} className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-2.5 transition hover:border-emerald-200 active:scale-[.995]"><div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100">{chat.photoUrl?<Image src={chat.photoUrl} alt={chat.name} fill sizes="44px" className="object-cover"/>:<div className="flex h-full w-full items-center justify-center text-sm font-black text-zinc-600">{chat.name.charAt(0)}</div>}</div><div className="min-w-0 flex-1"><div className="flex items-center gap-1.5"><p className="truncate text-xs font-black text-zinc-950">{chat.name}</p>{chat.verified&&<span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[8px] font-bold text-emerald-700">Verified</span>}<span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[8px] font-bold text-zinc-500">{chat.kind}</span></div><p className="truncate text-[11px] text-zinc-500">{chat.mine?"You: ":""}{chat.latest}</p></div><time className="shrink-0 text-[9px] font-medium text-zinc-400">{formatRelative(chat.createdAt)}</time></Link>}
+function ConversationItem({chat}:{chat:Chat}){return <Link href={chat.href} className="flex items-center gap-3 rounded-2xl px-2.5 py-3 transition active:bg-white/5 md:hover:bg-zinc-50"><div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-zinc-900">{chat.photoUrl?<Image src={chat.photoUrl} alt="" fill sizes="56px" className="object-cover"/>:<div className="grid h-full place-items-center text-sm font-black text-white/50">{chat.name.charAt(0)}</div>}</div><div className="min-w-0 flex-1"><div className="flex items-center gap-1.5"><p className="truncate text-sm font-black">{chat.name}</p>{chat.verified&&<ShieldCheck className="h-3.5 w-3.5 text-emerald-400 md:text-emerald-600"/>}<span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[8px] font-bold text-white/45 md:bg-zinc-100 md:text-zinc-500">{chat.kind}</span></div><p className="truncate text-xs text-white/45 md:text-zinc-500">{chat.mine?"You: ":""}{chat.latest}</p></div><time className="shrink-0 text-[9px] font-medium text-white/30 md:text-zinc-400">{formatRelative(chat.createdAt)}</time></Link>}
 function formatRelative(value:string){const diff=Math.max(0,Date.now()-new Date(value).getTime());const minutes=Math.floor(diff/60000);if(minutes<1)return"now";if(minutes<60)return`${minutes}m`;const hours=Math.floor(minutes/60);if(hours<24)return`${hours}h`;const days=Math.floor(hours/24);return days<7?`${days}d`:new Date(value).toLocaleDateString([], {day:"numeric",month:"short"});}
