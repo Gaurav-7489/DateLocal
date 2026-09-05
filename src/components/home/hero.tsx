@@ -2,110 +2,55 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Sparkles, Users, Lock } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sparkles, Users, Lock, Heart } from "lucide-react";
 import { SwipeDeck } from "./swipe-deck";
-import { universityConfig } from "@/config/university";
 import { routes } from "@/config/routes";
 
 export function Hero() {
   return (
-    <section className="relative min-h-[90vh] w-full flex flex-col justify-center items-center px-6 pt-32 pb-20 overflow-hidden font-sans">
-      
-      {/* Dynamic Refined Ambient Glows */}
+    <section className="relative min-h-[90vh] w-full overflow-hidden bg-[#fffdfb] px-5 pb-16 pt-28 font-sans sm:px-8 sm:pt-32">
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <motion.div
-          animate={{
-            scale: [1, 1.08, 1],
-            opacity: [0.3, 0.45, 0.3],
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[750px] h-[550px] bg-gradient-to-tr from-emerald-200/50 via-orange-200/40 to-blue-200/50 rounded-full blur-[140px]"
-        />
-        <div className="absolute top-1/3 -left-40 w-[420px] h-[420px] bg-emerald-100/70 rounded-full blur-[120px]" />
-        <div className="absolute bottom-10 -right-40 w-[450px] h-[450px] bg-blue-100/70 rounded-full blur-[130px]" />
+        <motion.div animate={{scale:[1,1.06,1],opacity:[.18,.28,.18]}} transition={{duration:9,repeat:Infinity,ease:"easeInOut"}} className="absolute -top-40 left-1/2 h-[620px] w-[760px] -translate-x-1/2 rounded-full bg-[#e9c7ce] blur-[150px]" />
+        <div className="absolute left-[-220px] top-1/2 h-[420px] w-[420px] rounded-full bg-[#f7e8e4] blur-[120px]" />
+        <div className="absolute bottom-[-240px] right-[-180px] h-[480px] w-[480px] rounded-full bg-[#f1d9de] blur-[130px]" />
       </div>
 
-      <div className="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center z-10">
-        
-        {/* Left Column: Copy & CTAs */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="lg:col-span-7 flex flex-col items-start gap-6 text-left"
-        >
-          {/* Student Built Badge with Pulse */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200/80 backdrop-blur-md text-xs font-extrabold text-emerald-800 shadow-2xs">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-            </span>
-            A Student Project for {universityConfig.name}
+      <div className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-12 lg:gap-16">
+        <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{duration:.65,ease:[.16,1,.3,1]}} className="flex flex-col items-start gap-6 lg:col-span-7">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#e5cbd0] bg-[#faf0f2] px-4 py-2 text-xs font-extrabold text-[#761f30] shadow-sm">
+            <Heart className="h-3.5 w-3.5 fill-current" />
+            Dating, made more human.
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-zinc-950 leading-[1.06]">
-            Your campus. <br />
-            <span className="bg-gradient-to-r from-emerald-600 via-orange-500 to-blue-600 bg-clip-text text-transparent">
-              Your people.
-            </span>
+          <h1 className="text-5xl font-black leading-[.98] tracking-[-.055em] text-zinc-950 sm:text-7xl lg:text-[5.5rem]">
+            Meet people.
+            <br />
+            <span className="text-[#761f30]">Feel something.</span>
           </h1>
 
-          <p className="text-zinc-600 text-base sm:text-lg max-w-xl font-medium leading-relaxed">
-            The authentic digital campus layer. Find genuine friendships, study partners, hackathon teams, and dates without outsiders or noise.
+          <p className="max-w-xl text-base font-medium leading-7 text-zinc-600 sm:text-lg">
+            Discover people you actually want to know, make the first move, and turn a good profile into a real conversation.
           </p>
 
-          <div className="flex flex-wrap items-center gap-4 pt-2 w-full sm:w-auto">
-            <Link
-              href={routes.register}
-              className="group relative inline-flex items-center justify-center px-8 py-4 text-sm font-bold text-white bg-emerald-600 rounded-full shadow-[0_6px_24px_rgba(16,185,129,0.3)] hover:shadow-[0_8px_30px_rgba(16,185,129,0.4)] hover:scale-105 active:scale-95 transition-all duration-300 overflow-hidden"
-            >
-              <span className="absolute inset-0 w-full h-full -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-shimmer" />
-              <span className="relative z-10 flex items-center gap-2">
-                Join with Student Email
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </span>
+          <div className="flex w-full flex-wrap items-center gap-3 pt-1 sm:w-auto">
+            <Link href={routes.register} className="group inline-flex items-center justify-center gap-2 rounded-full bg-[#761f30] px-7 py-4 text-sm font-black text-white shadow-[0_10px_30px_rgba(118,31,48,.24)] transition hover:-translate-y-0.5 hover:bg-[#5b1423] active:scale-95">
+              Start discovering <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
-
-            <Link
-              href={`${routes.register}?mode=basic`}
-              className="inline-flex items-center justify-center px-7 py-4 text-sm font-bold text-zinc-700 bg-white border border-zinc-200/90 rounded-full hover:bg-zinc-50 hover:text-zinc-950 transition-all shadow-xs active:scale-95"
-            >
-              Sign up with any email
-            </Link>
-
-            <Link
-              href={routes.safety}
-              className="inline-flex items-center justify-center px-7 py-4 text-sm font-bold text-zinc-700 bg-white border border-zinc-200/90 rounded-full hover:bg-zinc-50 hover:text-zinc-950 transition-all shadow-xs active:scale-95"
-            >
-              <ShieldCheck className="mr-2 w-4 h-4 text-emerald-600" />
-              Campus email check
+            <Link href={`${routes.register}?mode=basic`} className="inline-flex items-center justify-center rounded-full border border-zinc-200 bg-white px-6 py-4 text-sm font-bold text-zinc-800 shadow-sm transition hover:border-[#d7b9bf] hover:bg-[#fffdfb] active:scale-95">
+              Create your profile
             </Link>
           </div>
 
-          {/* Micro Trust Indicators below CTA */}
-          <div className="flex items-center gap-6 pt-4 text-xs font-semibold text-zinc-500">
-            <div className="flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-emerald-600" /> Active Batch Peers
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Lock className="w-4 h-4 text-blue-600" /> Zero Outsiders
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-orange-500" /> Secure Chat
-            </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-3 text-xs font-semibold text-zinc-500">
+            <span className="inline-flex items-center gap-1.5"><Users className="h-4 w-4 text-[#761f30]" /> Real people</span>
+            <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-[#761f30]" /> Identity verification</span>
+            <span className="inline-flex items-center gap-1.5"><Lock className="h-4 w-4 text-[#761f30]" /> Private by design</span>
           </div>
         </motion.div>
 
-        {/* Right Column: Interactive Swipe Deck Container */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.94, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-          className="lg:col-span-5 flex justify-center items-center py-6"
-        >
+        <motion.div initial={{opacity:0,scale:.95,y:10}} animate={{opacity:1,scale:1,y:0}} transition={{duration:.75,delay:.1,ease:[.16,1,.3,1]}} className="flex items-center justify-center py-2 lg:col-span-5">
           <SwipeDeck />
         </motion.div>
-
       </div>
     </section>
   );
