@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
@@ -6,7 +7,7 @@ import { ArrowLeft, LockKeyhole, ShieldCheck } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { routes } from "@/config/routes";
 import { getProfilePhotoUrl } from "@/lib/profile-photo";
-import SocialChatClient from "./social-chat-client";
+const SocialChatClient = dynamic(() => import("./social-chat-client"), { ssr: false });
 export const metadata: Metadata = { title: "Social Chat | Extrovert" };
 export const dynamic = "force-dynamic";
 type Props = { params: Promise<{ conversationId: string }> };
