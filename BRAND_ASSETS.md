@@ -1,11 +1,12 @@
-# Extrovert Date brand assets
+# Extrovert brand assets
 
-Recurring icon/brand update checklist.
+Recurring brand update checklist.
 
 - App icon: `public/icon-192.png` and `public/icon-512.png`
 - Apple touch icon: `public/icon-192.png`
 - Web manifest: `public/manifest.json`
-- App identity: `Extrovert Date`
-- Primary accent: pink
+- Product identity: `Extrovert`
+- Product modes: `Dating` and `Social`
+- Primary accent: emerald / white
 
-Keep the dating identity visually tied to Extrovert while retaining its pink Date accent. Update both icon sizes together and keep the manifest/icon metadata in sync.
+Keep Dating and Social visually connected to the same Extrovert identity. Update both icon sizes together and keep manifest/icon metadata in sync.
