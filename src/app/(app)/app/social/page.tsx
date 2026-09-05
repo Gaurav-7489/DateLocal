@@ -12,22 +12,24 @@ import ExploreMap, { type ExploreMapArea, type ExploreMapPerson } from "./explor
 export const metadata:Metadata={title:"Explore | Extrovert"};
 export const dynamic="force-dynamic";
 type SocialProfile={id:string;display_name:string|null;bio:string|null;interests:string[]|null;area_id:string|null;verification_status:string|null;area_verification_status:string|null;profile_photo_path:string|null};
+type AreaStat={id:string;name:string};
 type Connection={id:string;requester_id:string;target_id:string;status:string};
 
 export default async function SocialPage(){
  const supabase=await createServerSupabaseClient(); const {data:{user}}=await supabase.auth.getUser(); if(!user)return null;
  const {data:me}=await supabase.from("extrovert_profiles").select("display_name,area_id,verification_status,area_verification_status").eq("id",user.id).maybeSingle();
  const {data:areaRows}=await supabase.from("extrovert_areas").select("id,name").in("name",["Waknaghat","Solan","Shimla"]);
- const areasByName=new Map((areaRows??[]).map(a=>[a.name,a.id])); const areaIds=(areaRows??[]).map(a=>a.id); const myAreaName=(areaRows??[]).find(a=>a.id===me?.area_id)?.name??"Waknaghat";
- const [{data:people},{data:connections}]=await Promise.all([
+ const typedAreas=(areaRows??[]) as AreaStat[]; const areasByName=new Map(typedAreas.map(a=>[a.name,a.id])); const areaIds=typedAreas.map(a=>a.id); const myAreaName=typedAreas.find(a=>a.id===me?.area_id)?.name??"Waknaghat";
+ const [{data:people},{data:areaStats},{data:connections}]=await Promise.all([
   areaIds.length?supabase.from("extrovert_profiles").select("id,display_name,bio,interests,area_id,verification_status,area_verification_status,profile_photo_path").in("area_id",areaIds).neq("id",user.id).neq("trust_state","banned").order("verification_status",{ascending:false}).limit(24):Promise.resolve({data:[]}),
+  areaIds.length?supabase.from("extrovert_profiles").select("id,area_id,verification_status").in("area_id",areaIds).neq("trust_state","banned"):Promise.resolve({data:[]}),
   supabase.from("extrovert_connections").select("id,requester_id,target_id,status").or(`requester_id.eq.${user.id},target_id.eq.${user.id}`),
  ]);
  const all=(connections??[]) as Connection[]; const connectionMap=new Map<string,Connection>(); for(const c of all)connectionMap.set(c.requester_id===user.id?c.target_id:c.requester_id,c); const incoming=all.filter(c=>c.target_id===user.id&&c.status==="pending"); const accepted=all.filter(c=>c.status==="accepted");
  const conversationIds=accepted.map(c=>c.id); const {data:conversationRows}=conversationIds.length?await supabase.from("extrovert_conversations").select("id,connection_id").in("connection_id",conversationIds):{data:[]}; const conversationMap=new Map((conversationRows??[]).map((c:{id:string;connection_id:string})=>[c.connection_id,c.id]));
- const profiles=(people??[]) as SocialProfile[]; const profileAreaName=new Map((areaRows??[]).map(a=>[a.id,a.name]));
+ const profiles=(people??[]) as SocialProfile[]; const profileAreaName=new Map(typedAreas.map(a=>[a.id,a.name])); const stats=(areaStats??[]) as {id:string;area_id:string;verification_status:string}[];
  const mapPeople:ExploreMapPerson[]=profiles.map(profile=>({id:profile.id,display_name:profile.display_name,profile_photo_path:getProfilePhotoUrl(profile.profile_photo_path,96),area_name:profileAreaName.get(profile.area_id??"")??myAreaName}));
- const mapAreas:ExploreMapArea[]=["Waknaghat","Solan","Shimla"].map(name=>{const id=areasByName.get(name);const rows=profiles.filter(p=>p.area_id===id);return{name,users:rows.length,verified:rows.filter(p=>p.verification_status==="verified").length};});
+ const mapAreas:ExploreMapArea[]=["Waknaghat","Solan","Shimla"].map(name=>{const id=areasByName.get(name);const rows=stats.filter(p=>p.area_id===id);return{name,users:rows.length,verified:rows.filter(p=>p.verification_status==="verified").length};});
  return <main className="mx-auto w-full max-w-2xl px-3.5 pb-24 pt-16 font-sans text-zinc-950 md:px-4 md:pt-5">
   <header className="flex items-end justify-between gap-3"><div><p className="text-[10px] font-black uppercase tracking-[.18em] text-emerald-600"><Compass className="mr-1 inline h-3.5 w-3.5"/>Explore</p><h1 className="mt-1 text-3xl font-black tracking-tight">Your social world</h1><p className="mt-1 max-w-xl text-xs leading-5 text-zinc-500">Find friends and people around Waknaghat, Solan and Shimla. Dating stays in Discover.</p></div><Link href={routes.discover}><Button size="sm" className="rounded-full bg-emerald-600 text-white"><Heart className="mr-1.5 h-3.5 w-3.5"/>Discover</Button></Link></header>
   <ExploreMap people={mapPeople} areas={mapAreas}/>
