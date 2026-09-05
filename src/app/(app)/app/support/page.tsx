@@ -1,120 +1,14 @@
 "use client";
-
-import { FormEvent, useMemo, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, Bot, MessageCircle, Send, ShieldCheck } from "lucide-react";
-import { routes } from "@/config/routes";
-
-type Message = { id: number; role: "bot" | "user"; text: string };
-
-const quickQuestions = [
-  "How does verification work?",
-  "I have a payment problem",
-  "How do I report someone?",
-  "How do I delete my account?",
-];
-
-function getReply(input: string) {
-  const text = input.toLowerCase();
-  if (/verif|identity|selfie|area/.test(text)) {
-    return "Verification is optional. Identity verification confirms that you are a real person and can add a verified badge. Area verification confirms your selected Extrovert area. Your documents and selfies stay private. If verification fails, you can retry or continue using Extrovert without it.";
-  }
-  if (/pay|payment|paid|subscription|premium|beyond|refund|razorpay/.test(text)) {
-    return "For payment or subscription problems, please use Contact & Feedback so the Extrovert team can check your account. Include what you were charged for and what went wrong. Never send your card number, UPI PIN, password, or OTP.";
-  }
-  if (/report|block|harass|abuse|unsafe|scam/.test(text)) {
-    return "You can report or block a user from their profile or the relevant interaction. If someone is threatening or seriously unsafe, report them and stop engaging. For urgent account or safety help, use Contact & Feedback to reach the team.";
-  }
-  if (/delete|remove account|close account/.test(text)) {
-    return "You can delete your account from Settings. Account deletion is permanent, so make sure you really want to remove your profile and data before confirming.";
-  }
-  if (/match|like|dating/.test(text)) {
-    return "In Dating, you can like or pass on profiles. When two people like each other, it becomes a match and you can start a chat. You can also unmatch or block when needed.";
-  }
-  if (/social|connect|friend/.test(text)) {
-    return "Social is for meeting people and building connections. Send a connection request, and once it is accepted you can chat with that person.";
-  }
-  if (/password|login|sign in|account/.test(text)) {
-    return "For login or account problems, first try signing out and back in. If the problem continues, use Contact & Feedback and describe the exact error without sharing your password or verification codes.";
-  }
-  return "I can help with common Extrovert questions about verification, Dating, Social, payments, safety, login, and account settings. If your issue is more specific, use Contact & Feedback and the team can take a look.";
-}
-
-export default function SupportPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 1, role: "bot", text: "Hey. I'm Extrovert Support. Ask me a question and I'll help with the common stuff." },
-  ]);
-  const [input, setInput] = useState("");
-
-  const nextId = useMemo(() => messages.length + 1, [messages.length]);
-
-  function send(text: string) {
-    const value = text.trim();
-    if (!value) return;
-    setMessages((current) => [
-      ...current,
-      { id: nextId, role: "user", text: value },
-      { id: nextId + 1, role: "bot", text: getReply(value) },
-    ]);
-    setInput("");
-  }
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    send(input);
-  }
-
-  return (
-    <main className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-md flex-col px-3.5 py-4 pb-24 font-sans">
-      <div className="flex items-center justify-between">
-        <Link href={routes.settings} className="inline-flex items-center gap-1 text-xs font-bold text-muted-foreground">
-          <ArrowLeft className="h-4 w-4" /> Settings
-        </Link>
-        <div className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[9px] font-black text-emerald-700">
-          <ShieldCheck className="h-3 w-3" /> Private support
-        </div>
-      </div>
-
-      <section className="mt-5 rounded-3xl border border-border/80 bg-card p-4 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
-            <Bot className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[.16em] text-emerald-600">EXTROVERT SUPPORT</p>
-            <h1 className="text-xl font-black tracking-tight">How can we help?</h1>
-          </div>
-        </div>
-        <p className="mt-2 text-[11px] leading-5 text-muted-foreground">Quick answers for common questions. This first version runs without an external AI service, so it is fast and costs nothing to run.</p>
-      </section>
-
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {quickQuestions.map((question) => (
-          <button key={question} onClick={() => send(question)} className="rounded-full border border-border bg-card px-3 py-2 text-[10px] font-bold shadow-2xs transition active:scale-[.98]">
-            {question}
-          </button>
-        ))}
-      </div>
-
-      <section className="mt-3 flex-1 space-y-2 overflow-y-auto rounded-3xl border border-border/80 bg-muted/20 p-3">
-        {messages.map((message) => (
-          <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[88%] rounded-2xl px-3 py-2.5 text-[11px] leading-5 ${message.role === "user" ? "rounded-br-md bg-emerald-600 text-white" : "rounded-bl-md border border-border bg-card text-foreground"}`}>
-              {message.text}
-            </div>
-          </div>
-        ))}
-      </section>
-
-      <form onSubmit={submit} className="mt-3 flex items-center gap-2 rounded-2xl border border-border bg-card p-2 shadow-sm">
-        <MessageCircle className="ml-1 h-4 w-4 shrink-0 text-muted-foreground" />
-        <input value={input} onChange={(event) => setInput(event.target.value)} maxLength={1000} className="min-w-0 flex-1 bg-transparent px-1 py-2 text-xs outline-none" placeholder="Ask support something..." aria-label="Support question" />
-        <button type="submit" disabled={!input.trim()} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white disabled:opacity-40" aria-label="Send support question">
-          <Send className="h-4 w-4" />
-        </button>
-      </form>
-
-      <Link href={routes.feedback} className="mt-2 text-center text-[10px] font-bold text-emerald-700">Need a human? Contact the Extrovert team →</Link>
-    </main>
-  );
-}
+import {FormEvent,useState} from "react"; import Link from "next/link"; import {ArrowLeft,CheckCircle2,FileCheck2,MessageCircle,Send,ShieldCheck} from "lucide-react"; import {routes} from "@/config/routes";
+type Message={id:number;role:"bot"|"user";text:string};
+const quick=["How does verification work?","How do I report someone?","How do I delete my account?","I have a payment problem"];
+function reply(input:string){const t=input.toLowerCase();if(/verif|identity|selfie|area/.test(t))return"Verification is optional. Identity verification can add a verified badge, while area verification confirms your selected Extrovert area. Your documents and selfies are private.";if(/report|block|harass|abuse|unsafe|scam/.test(t))return"Open the profile menu to report or block someone. Reporting also removes that profile from your current discovery view. If you feel unsafe, stop engaging and contact the team.";if(/delete|remove account|close account/.test(t))return"You can permanently delete your account from Settings. Take a moment to make sure you want to remove your profile and data before confirming.";if(/pay|payment|subscription|refund|razorpay/.test(t))return"For payment issues, use Contact & Feedback and include the charge context. Never send an OTP, UPI PIN, password or card number.";if(/match|like|dating/.test(t))return"In Discover, swipe right to like and left to pass. A mutual like becomes a match and opens chat.";if(/social|connect|friend/.test(t))return"Explore is the social side. Pick Waknaghat, Solan or Shimla, open a local profile and send a connection request. Accepted connections can chat.";return"I can help with verification, Discover, Explore, safety, payments, login and account settings. For something specific, contact the Extrovert team."}
+export default function SupportPage(){const[messages,setMessages]=useState<Message[]>([{id:1,role:"bot",text:"Welcome to Extrovert Support. Ask me anything about the app."}]);const[input,setInput]=useState("");function send(value:string){const v=value.trim();if(!v)return;setMessages(m=>[...m,{id:m.length+1,role:"user",text:v},{id:m.length+2,role:"bot",text:reply(v)}]);setInput("")}function submit(e:FormEvent){e.preventDefault();send(input)}return <main className="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-2xl flex-col px-3.5 pb-24 pt-5 font-sans sm:px-5">
+ <header className="flex items-center justify-between"><Link href={routes.settings} className="inline-flex items-center gap-1 text-[10px] font-bold text-zinc-500 hover:text-emerald-700"><ArrowLeft className="h-3.5 w-3.5"/>Settings</Link><span className="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[9px] font-black text-emerald-700"><ShieldCheck className="h-3 w-3"/>Private support</span></header>
+ <section className="mt-5 rounded-[1.75rem] border border-emerald-100 bg-emerald-50/60 p-5 shadow-sm"><div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl bg-white text-emerald-600 shadow-sm"><MessageCircle className="h-5 w-5"/></div><div><p className="text-[9px] font-black uppercase tracking-[.16em] text-emerald-700">EXTROVERT SUPPORT</p><h1 className="text-2xl font-black tracking-tight text-emerald-950">Help without the runaround.</h1></div></div><p className="mt-3 max-w-xl text-xs leading-5 text-emerald-900/70">Fast answers for common issues. No external AI service is required for this support layer.</p></section>
+ <section className="mt-3 rounded-[1.75rem] border border-zinc-200 bg-white p-4 shadow-sm"><div className="flex items-start gap-3"><FileCheck2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600"/><div><p className="text-xs font-black">Built by a registered Indian micro enterprise</p><p className="mt-1 text-[10px] leading-4 text-zinc-500">We publish a public-safe copy of the Extrovert Udyam registration certificate for transparency. Personal fields are kept out of the UI.</p><a href="/trust/extrovert-udyam-registration.pdf" target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-[10px] font-black text-emerald-700">View certificate <CheckCircle2 className="h-3.5 w-3.5"/></a></div></div></section>
+ <div className="mt-3 flex flex-wrap gap-1.5">{quick.map(q=><button key={q} onClick={()=>send(q)} className="rounded-full border border-zinc-200 bg-white px-3 py-2 text-[10px] font-bold shadow-sm hover:border-emerald-200 hover:bg-emerald-50/40">{q}</button>)}</div>
+ <section className="mt-3 flex-1 space-y-2 overflow-y-auto rounded-[1.75rem] border border-zinc-200 bg-zinc-50/70 p-3 shadow-sm">{messages.map(m=><div key={m.id} className={`flex ${m.role==="user"?"justify-end":"justify-start"}`}><div className={`max-w-[88%] rounded-2xl px-3 py-2.5 text-[11px] leading-5 ${m.role==="user"?"rounded-br-md bg-emerald-600 text-white":"rounded-bl-md border border-zinc-200 bg-white text-zinc-800 shadow-sm"}`}>{m.text}</div></div>)}</section>
+ <form onSubmit={submit} className="mt-3 flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm"><MessageCircle className="ml-1 h-4 w-4 text-zinc-400"/><input value={input} onChange={e=>setInput(e.target.value)} maxLength={1000} className="min-w-0 flex-1 bg-transparent px-1 py-2 text-xs outline-none" placeholder="Ask support something..."/><button type="submit" disabled={!input.trim()} className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-600 text-white shadow-sm disabled:cursor-wait disabled:opacity-40" aria-label="Send"><Send className="h-4 w-4"/></button></form>
+ <Link href={routes.feedback} className="mt-2 text-center text-[10px] font-black text-emerald-700">Need a human? Contact the Extrovert team →</Link>
+ </main>}
