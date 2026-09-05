@@ -22,7 +22,7 @@ export default async function SocialPage() {
   const areaId = me?.area_id ?? null;
   const [{data:area},{data:people},{data:connections}] = await Promise.all([
     areaId ? supabase.from("extrovert_areas").select("name").eq("id",areaId).maybeSingle() : Promise.resolve({data:null}),
-    areaId ? supabase.from("extrovert_profiles").select("id,display_name,bio,interests,area_id,verification_status,area_verification_status,profile_photo_path").eq("area_id",areaId).neq("id",user.id).eq("trust_state","active").order("verification_status",{ascending:false}).order("created_at",{ascending:false}).limit(12) : Promise.resolve({data:[]}),
+    areaId ? supabase.from("extrovert_profiles").select("id,display_name,bio,interests,area_id,verification_status,area_verification_status,profile_photo_path").eq("area_id",areaId).neq("id",user.id).neq("trust_state","banned").order("verification_status",{ascending:false}).order("created_at",{ascending:false}).limit(12) : Promise.resolve({data:[]}),
     supabase.from("extrovert_connections").select("id,requester_id,target_id,status") .or(`requester_id.eq.${user.id},target_id.eq.${user.id}`)
   ]);
   const allConnections=(connections??[]) as Connection[];
