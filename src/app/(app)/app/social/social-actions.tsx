@@ -1,16 +1,4 @@
 "use client";
-
-import { useTransition } from "react";
-import { UserPlus, Check, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { acceptSocialConnection, requestSocialConnection } from "./actions";
-
-export function ConnectButton({ targetId }: { targetId: string }) {
-  const [pending, startTransition] = useTransition();
-  return <Button size="sm" variant="outline" disabled={pending} leftIcon={pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />} onClick={() => startTransition(async () => { const r = await requestSocialConnection(targetId); if (r.error) window.alert(r.error); })}>{pending ? "Sending…" : "Connect"}</Button>;
-}
-
-export function AcceptButton({ connectionId }: { connectionId: string }) {
-  const [pending, startTransition] = useTransition();
-  return <Button size="sm" disabled={pending} leftIcon={pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} onClick={() => startTransition(async () => { const r = await acceptSocialConnection(connectionId); if (r.error) window.alert(r.error); })}>{pending ? "Accepting…" : "Accept"}</Button>;
-}
+import {useState,useTransition} from "react";import {UserPlus,Check,Loader2} from "lucide-react";import {Button} from "@/components/ui/button";import {acceptSocialConnection,requestSocialConnection} from "./actions";
+export function ConnectButton({targetId}:{targetId:string}){const[pending,startTransition]=useTransition();const[done,setDone]=useState(false);const[error,setError]=useState<string|null>(null);return <div className="flex items-center gap-1.5">{error&&<span className="max-w-[120px] text-[8px] font-bold text-rose-600">{error}</span>}<Button size="sm" variant={done?"secondary":"outline"} disabled={pending||done} leftIcon={pending?<Loader2 className="h-3 w-3 animate-spin"/>:done?<Check className="h-3 w-3"/>:<UserPlus className="h-3 w-3"/>} onClick={()=>{setError(null);startTransition(async()=>{const r=await requestSocialConnection(targetId);if(r.error)setError(r.error);else setDone(true)})}}>{pending?"Sending…":done?"Sent":"Connect"}</Button></div>}
+export function AcceptButton({connectionId}:{connectionId:string}){const[pending,startTransition]=useTransition();const[done,setDone]=useState(false);const[error,setError]=useState<string|null>(null);return <div className="flex items-center gap-1.5">{error&&<span className="text-[8px] font-bold text-rose-600">{error}</span>}<Button size="sm" disabled={pending||done} leftIcon={pending?<Loader2 className="h-3 w-3 animate-spin"/>:<Check className="h-3 w-3"/>} onClick={()=>{setError(null);startTransition(async()=>{const r=await acceptSocialConnection(connectionId);if(r.error)setError(r.error);else setDone(true)})}}>{pending?"Accepting…":done?"Accepted":"Accept"}</Button></div>}
