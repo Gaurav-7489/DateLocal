@@ -30,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const adminEmails = (process.env.SUPER_ADMIN_EMAILS ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean);
   const isSuperAdmin = isSuperAdminUser(userId) || userRole === "SUPER_ADMIN" || userRole === "ADMIN" || (Boolean(ownerId) && userId === ownerId) || (userEmail !== "Unknown" && adminEmails.includes(userEmail.toLowerCase()));
 
-  return <div className="flex h-[100dvh] flex-col overflow-hidden bg-black overscroll-none select-none md:bg-white">
+  return <div className="flex h-[100dvh] flex-col overflow-hidden bg-white overscroll-none select-none text-zinc-950">
     <AppNavbar userEmail={userEmail} isSuperAdmin={isSuperAdmin}/>
     <main className="min-h-0 flex-1 overflow-y-auto pb-[76px] md:pb-0">{children}</main>
     <DatingBottomNav/>
